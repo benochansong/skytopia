@@ -1,0 +1,234 @@
+import { memo, useRef } from 'react';
+import { useFrame } from '@react-three/fiber';
+import { Html } from '@react-three/drei';
+import type { Group } from 'three';
+import type { Building, Kind } from '../types/game';
+import { cellsOf, key, neighbors } from '../game/grid';
+import { useGame } from '../stores/gameStore';
+type Vec = [number, number, number];
+export function Box({
+  position = [0, 0, 0],
+  size = [1, 1, 1],
+  color,
+  emissive,
+  rotation = [0, 0, 0],
+}: {
+  position?: Vec;
+  size?: Vec;
+  color: string;
+  emissive?: string;
+  rotation?: Vec;
+}) {
+  return (
+    <mesh position={position} rotation={rotation} castShadow receiveShadow>
+      <boxGeometry args={size} />
+      <meshStandardMaterial
+        color={color}
+        roughness={0.78}
+        emissive={emissive}
+        emissiveIntensity={emissive ? 1.2 : 0}
+      />
+    </mesh>
+  );
+}
+export function Tree({ position = [0, 0, 0], scale = 1 }: { position?: Vec; scale?: number }) {
+  return (
+    <group position={position} scale={scale}>
+      <Box position={[0, 0.19, 0]} size={[0.09, 0.4, 0.09]} color="#776349" />
+      <mesh position={[0, 0.52, 0]} castShadow>
+        <icosahedronGeometry args={[0.3, 0]} />
+        <meshStandardMaterial color="#529a73" flatShading />
+      </mesh>
+      <mesh position={[0.06, 0.7, 0]} castShadow>
+        <icosahedronGeometry args={[0.23, 0]} />
+        <meshStandardMaterial color="#78b884" flatShading />
+      </mesh>
+    </group>
+  );
+}
+export function Reactor({ core = false }: { core?: boolean }) {
+  const ring = useRef<Group>(null);
+  useFrame((_, dt) => {
+    const s = useGame.getState();
+    if (
+      ring.current &&
+      !s.settings.reducedMotion &&
+      (s.screen === 'playing' || s.screen === 'menu')
+    )
+      ring.current.rotation.y += dt * 0.5;
+  });
+  return (
+    <group scale={core ? 1.35 : 0.85}>
+      <mesh position={[0, 0.12, 0]} castShadow>
+        <cylinderGeometry args={[0.38, 0.46, 0.24, 8]} />
+        <meshStandardMaterial color="#cfddcc" metalness={0.3} roughness={0.6} />
+      </mesh>
+      <mesh position={[0, 0.55, 0]} castShadow>
+        <octahedronGeometry args={[0.29, 0]} />
+        <meshStandardMaterial
+          color="#a5ffeb"
+          emissive="#2bc8d2"
+          emissiveIntensity={1.6}
+          metalness={0.25}
+          roughness={0.2}
+        />
+      </mesh>
+      <group ref={ring} position={[0, 0.6, 0]}>
+        <mesh rotation={[Math.PI / 3, 0, 0]}>
+          <torusGeometry args={[0.42, 0.035, 6, 32]} />
+          <meshStandardMaterial color="#ccb784" metalness={0.65} roughness={0.3} />
+        </mesh>
+        <mesh rotation={[-Math.PI / 3, 0, 0]}>
+          <torusGeometry args={[0.36, 0.024, 6, 32]} />
+          <meshStandardMaterial color="#6fe6e8" emissive="#35a5b5" />
+        </mesh>
+      </group>
+      {[0, 1, 2, 3].map((i) => (
+        <Box
+          key={i}
+          position={[Math.sin((i * Math.PI) / 2) * 0.32, 0.3, Math.cos((i * Math.PI) / 2) * 0.32]}
+          size={[0.1, 0.5, 0.1]}
+          color="#456b76"
+        />
+      ))}
+    </group>
+  );
+}
+export function Facility({ kind }: { kind: Kind }) {
+  if (kind === 'home')
+    return (
+      <group>
+        <Box position={[0, 0.31, 0]} size={[0.67, 0.6, 0.62]} color="#f1e4c6" />
+        <Box position={[0, 0.05, 0]} size={[0.78, 0.1, 0.74]} color="#a3a994" />
+        <mesh position={[0, 0.73, 0]} rotation={[0, Math.PI / 4, 0]} castShadow>
+          <coneGeometry args={[0.55, 0.4, 4]} />
+          <meshStandardMaterial color="#547e8a" flatShading />
+        </mesh>
+        <Box position={[-0.21, 0.77, -0.15]} size={[0.1, 0.31, 0.12]} color="#e2d5b6" />
+        {[-0.2, 0.2].map((x) => (
+          <Box
+            key={x}
+            position={[x, 0.38, 0.316]}
+            size={[0.13, 0.19, 0.018]}
+            color="#ffe6a0"
+            emissive="#c99048"
+          />
+        ))}
+        <Box position={[0, 0.19, 0.32]} size={[0.13, 0.3, 0.02]} color="#796c56" />
+        <Box
+          position={[0.339, 0.38, 0]}
+          size={[0.015, 0.17, 0.18]}
+          color="#ffdb8c"
+          emissive="#b98e52"
+        />
+        <Box position={[0, 0.07, 0.4]} size={[0.3, 0.08, 0.2]} color="#d6d7bd" />
+        <Tree position={[-0.35, 0, -0.3]} scale={0.45} />
+      </group>
+    );
+  if (kind === 'power') return <Reactor />;
+  if (kind === 'farm')
+    return (
+      <group>
+        <Box position={[0, 0.04, 0]} size={[0.86, 0.08, 0.86]} color="#8a7852" />
+        {[-0.28, 0, 0.28].map((x) => (
+          <group key={x}>
+            {[-0.28, -0.07, 0.14, 0.34].map((z) => (
+              <mesh key={z} position={[x, 0.14, z]} castShadow>
+                <coneGeometry args={[0.075, 0.2, 5]} />
+                <meshStandardMaterial color="#b2cb58" />
+              </mesh>
+            ))}
+          </group>
+        ))}
+        <Box
+          position={[0, 0.4, -0.25]}
+          size={[0.75, 0.06, 0.35]}
+          color="#a7d8c9"
+          rotation={[0.25, 0, 0]}
+        />
+        {[-0.33, 0.33].map((x) => (
+          <Box key={x} position={[x, 0.23, -0.28]} size={[0.035, 0.4, 0.035]} color="#e2dac2" />
+        ))}
+      </group>
+    );
+  if (kind === 'park')
+    return (
+      <group>
+        <Box position={[0, 0.02, 0]} size={[0.9, 0.04, 0.9]} color="#99bf78" />
+        <Tree position={[-0.2, 0, -0.1]} scale={0.95} />
+        <Tree position={[0.24, 0, -0.25]} scale={0.65} />
+        <Box position={[0.2, 0.16, 0.25]} size={[0.4, 0.06, 0.17]} color="#b48b60" />
+        <Box position={[0.2, 0.27, 0.32]} size={[0.4, 0.18, 0.04]} color="#b48b60" />
+        {[0.08, 0.33].map((x) => (
+          <Box key={x} position={[x, 0.08, 0.25]} size={[0.04, 0.16, 0.1]} color="#526b61" />
+        ))}
+        <Box position={[-0.07, 0.04, 0.3]} size={[0.13, 0.025, 0.5]} color="#dedabd" />
+      </group>
+    );
+  return null;
+}
+export const BuildingModel = memo(function BuildingModel({
+  building: b,
+  connected,
+  powered,
+  roads,
+}: {
+  building: Building;
+  connected: boolean;
+  powered: boolean;
+  roads: Set<string>;
+}) {
+  const language = useGame((s) => s.settings.language);
+  const cells = cellsOf(b, b.origin);
+  return (
+    <group>
+      {cells.map((c) => (
+        <group key={key(c)} position={[c.x, 0.08, c.z]}>
+          {b.kind === 'road' ? (
+            <group>
+              <Box position={[0, 0.015, 0]} size={[0.92, 0.035, 0.92]} color="#7b8d8a" />
+              <Box position={[0, 0.035, 0]} size={[0.12, 0.015, 0.12]} color="#e0d6ae" />
+              {neighbors(c).map((n, i) =>
+                roads.has(key(n)) ? (
+                  <Box
+                    key={i}
+                    position={[(n.x - c.x) * 0.3, 0.04, (n.z - c.z) * 0.3]}
+                    size={[n.x === c.x ? 0.045 : 0.3, 0.015, n.z === c.z ? 0.045 : 0.3]}
+                    color="#dfd7b2"
+                  />
+                ) : null,
+              )}
+            </group>
+          ) : (
+            <group rotation={[0, (-b.rotation * Math.PI) / 2, 0]}>
+              <Facility kind={b.kind} />
+            </group>
+          )}
+        </group>
+      ))}
+      {(!connected || !powered) && b.kind !== 'road' ? (
+        <Html
+          position={[b.origin.x, 1.2, b.origin.z]}
+          center
+          distanceFactor={18}
+          style={{ pointerEvents: 'none' }}
+        >
+          <span
+            className="connection-badge"
+            title={
+              !connected
+                ? language === 'ko'
+                  ? '도로 연결 필요'
+                  : 'Road connection needed'
+                : language === 'ko'
+                  ? '전력 부족'
+                  : 'Insufficient power'
+            }
+          >
+            {!connected ? '⌁ !' : 'ϟ !'}
+          </span>
+        </Html>
+      ) : null}
+    </group>
+  );
+});

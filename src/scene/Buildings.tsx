@@ -46,7 +46,7 @@ export function Tree({ position = [0, 0, 0], scale = 1 }: { position?: Vec; scal
     </group>
   );
 }
-export function Reactor({ core = false }: { core?: boolean }) {
+export function Reactor({ core = false, output = 1 }: { core?: boolean; output?: number }) {
   const ring = useRef<Group>(null);
   useFrame((_, dt) => {
     const s = useGame.getState();
@@ -55,7 +55,7 @@ export function Reactor({ core = false }: { core?: boolean }) {
       !s.settings.reducedMotion &&
       (s.screen === 'playing' || s.screen === 'menu')
     )
-      ring.current.rotation.y += dt * 0.5;
+      ring.current.rotation.y += dt * 0.5 * output;
   });
   return (
     <group scale={core ? 1.35 : 0.85}>
@@ -68,7 +68,7 @@ export function Reactor({ core = false }: { core?: boolean }) {
         <meshStandardMaterial
           color="#a5ffeb"
           emissive="#2bc8d2"
-          emissiveIntensity={1.6}
+          emissiveIntensity={0.15 + 1.45 * output}
           metalness={0.25}
           roughness={0.2}
         />
@@ -94,7 +94,71 @@ export function Reactor({ core = false }: { core?: boolean }) {
     </group>
   );
 }
-export function Facility({ kind }: { kind: Kind }) {
+export function Facility({ kind, output = 1 }: { kind: Kind; output?: number }) {
+  if (kind === 'largeHome')
+    return (
+      <group>
+        <group scale={[0.95, 1.4, 0.95]}>
+          <Facility kind="home" />
+        </group>
+        <Box position={[0, 0.5, 0.33]} size={[0.76, 0.08, 0.09]} color="#b09b73" />
+        <Box position={[0, 0.85, 0.33]} size={[0.76, 0.08, 0.09]} color="#b09b73" />
+      </group>
+    );
+  if (kind === 'factory')
+    return (
+      <group>
+        <Box position={[0, 0.35, 0]} size={[0.83, 0.7, 0.78]} color="#ad8d79" />
+        <Box position={[0, 0.73, 0]} size={[0.9, 0.08, 0.85]} color="#5c7079" />
+        {[-0.23, 0.23].map((x) => (
+          <group key={x}>
+            <Box position={[x, 1, -0.18]} size={[0.16, 0.6, 0.16]} color="#73848c" />
+            <Box
+              position={[x, 0.38, 0.4]}
+              size={[0.18, 0.25, 0.02]}
+              color="#f1be74"
+              emissive="#9b6829"
+            />
+          </group>
+        ))}
+        <Box position={[0, 0.15, 0.43]} size={[0.3, 0.28, 0.04]} color="#536773" />
+      </group>
+    );
+  if (kind === 'liftSmall' || kind === 'liftLarge')
+    return (
+      <group>
+        <Reactor output={output} />
+        <mesh position={[0, -0.3, 0]} rotation={[Math.PI, 0, 0]}>
+          <coneGeometry args={[kind === 'liftLarge' ? 0.4 : 0.28, 0.8, 8]} />
+          <meshStandardMaterial
+            color="#69d9f5"
+            emissive="#35bde2"
+            emissiveIntensity={output * 1.5}
+            transparent
+            opacity={0.15 + output * 0.4}
+            depthWrite={false}
+          />
+        </mesh>
+        <mesh position={[0, 0.12, 0]} rotation={[Math.PI / 2, 0, 0]}>
+          <torusGeometry args={[0.42, 0.04, 6, 20]} />
+          <meshStandardMaterial
+            color={kind === 'liftLarge' ? '#b5a7df' : '#84bbc8'}
+            metalness={0.6}
+            roughness={0.4}
+          />
+        </mesh>
+      </group>
+    );
+  if (kind === 'ballast')
+    return (
+      <group>
+        <Box position={[0, 0.24, 0]} size={[0.7, 0.48, 0.7]} color="#73778a" />
+        <Box position={[0, 0.51, 0]} size={[0.75, 0.06, 0.75]} color="#b1a69b" />
+        {[-0.29, 0.29].map((x) => (
+          <Box key={x} position={[x, 0.24, 0.36]} size={[0.055, 0.5, 0.03]} color="#ceb88c" />
+        ))}
+      </group>
+    );
   if (kind === 'home')
     return (
       <group>
@@ -172,11 +236,13 @@ export const BuildingModel = memo(function BuildingModel({
   connected,
   powered,
   roads,
+  output = 1,
 }: {
   building: Building;
   connected: boolean;
   powered: boolean;
   roads: Set<string>;
+  output?: number;
 }) {
   const language = useGame((s) => s.settings.language);
   const cells = cellsOf(b, b.origin);
@@ -201,13 +267,14 @@ export const BuildingModel = memo(function BuildingModel({
             </group>
           ) : (
             <group rotation={[0, (-b.rotation * Math.PI) / 2, 0]}>
-              <Facility kind={b.kind} />
+              <Facility kind={b.kind} output={output} />
             </group>
           )}
         </group>
       ))}
       {(!connected || !powered) && b.kind !== 'road' ? (
         <Html
+          zIndexRange={[3, 0]}
           position={[b.origin.x, 1.2, b.origin.z]}
           center
           distanceFactor={18}

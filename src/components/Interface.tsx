@@ -1,4 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { Phase2Menu, AnalysisToolbar, LabPanel, StructuralPanel, GameOver } from './StructuralUI';
+import { MISSIONS, MISSION_GOALS, LAB_EXAMPLES } from '../data/missions';
+import { P2 } from '../locales/phase2';
 import type { CSSProperties, ReactNode } from 'react';
 import { useGame } from '../stores/gameStore';
 import { TEXT, OBJECTIVES, TUTORIAL } from '../locales/text';
@@ -186,6 +190,12 @@ export function Dialog({
     const el = ref.current;
     el?.querySelector<HTMLElement>('button,select,input')?.focus();
     const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && onClose) {
+        e.preventDefault();
+        e.stopPropagation();
+        onClose();
+        return;
+      }
       if (e.key !== 'Tab') return;
       const nodes = el?.querySelectorAll<HTMLElement>(
         'button:not(:disabled),select,input,[tabindex="0"]',
@@ -207,7 +217,7 @@ export function Dialog({
       previous?.focus();
     };
   }, []);
-  return (
+  return createPortal(
     <div className="modal-shade">
       <div
         className={`dialog ${wide ? 'wide' : ''}`}
@@ -229,7 +239,8 @@ export function Dialog({
         <h2>{title}</h2>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 function Logo({ small = false }: { small?: boolean }) {
@@ -257,7 +268,7 @@ export function Menu() {
     <div className="menu-screen">
       <header className="menu-top">
         <span className="edition">
-          FOUNDATION OF THE SKY <i>01</i>
+          GRAVITY AND COLLAPSE <i>02</i>
         </span>
         <button
           className="language-button"
@@ -300,6 +311,7 @@ export function Menu() {
             {t.training}
             <span className="tag">{lang === 'ko' ? '추천' : 'START HERE'}</span>
           </button>
+          <Phase2Menu />
         </div>
         <div className="menu-links">
           <button onClick={() => useGame.getState().setScreen('settings')}>{t.settings}</button>
@@ -321,7 +333,7 @@ export function Menu() {
       <footer className="menu-footer">
         <span>BUILD ABOVE. BALANCE THE SKY. RISE BEYOND.</span>
         <span>
-          PHASE 1 <b>·</b> v0.1.0
+          PHASE 2 <b>·</b> v0.2.0
         </span>
       </footer>
       {pending ? (
@@ -343,11 +355,15 @@ export function HUD() {
     lang = useGame((s) => s.settings.language),
     t = TEXT[lang];
   const cameraMode = useGame((s) => s.cameraMode),
-    balance = useGame((s) => s.balanceVisible),
     notice = useGame((s) => s.notice);
-  const stats = useMemo(() => analyze(g), [g.platforms, g.buildings]);
+  const stats = analyze(g);
   const goals = objectives(g, stats),
-    validity = useMemo(() => validatePlacement(g), [g.active, g.cursor, g.platforms, g.buildings]);
+    validity = useMemo(
+      () => validatePlacement(g),
+      [g.active, g.cursor, g.platforms, g.buildings, g.structure, g.resources, g.reservedActive],
+    );
+  const labels =
+    g.mode === 'lab' ? [] : g.missionId === 1 ? OBJECTIVES[lang] : MISSION_GOALS[lang][g.missionId];
   const progress = [
     Math.min(5, stats.expansion) + '/5',
     Math.min(5, stats.homes) + '/5',
@@ -365,7 +381,12 @@ export function HUD() {
       suffix: `/ ${stats.capacity}`,
     },
     { icon: 'power', label: t.power, value: `${stats.power}`, suffix: `/ ${stats.demand}` },
-    { icon: 'cube', label: t.resources, value: `${g.resources}`, suffix: '' },
+    {
+      icon: 'cube',
+      label: t.resources,
+      value: g.mode === 'lab' ? '∞' : `${Math.floor(g.resources)}`,
+      suffix: '',
+    },
     { icon: 'star', label: t.score, value: `${g.score.toLocaleString()}`, suffix: '' },
   ];
   return (
@@ -410,28 +431,42 @@ export function HUD() {
         <section className="mission-card panel">
           <div className="section-label">
             <Icon name="flag" size={15} />
-            {t.mission}
-            <span>01</span>
+            {g.mode === 'lab' ? P2[lang].lab : t.mission}
+            <span>{g.mode === 'lab' ? g.labExample : `0${g.missionId}`}</span>
           </div>
-          <span className="eyebrow">FIRST LIGHT</span>
-          <h1>{t.firstLight}</h1>
-          <p>{t.missionHint}</p>
-          <div className="mission-progress">
-            <i style={{ width: `${(goals.filter(Boolean).length / goals.length) * 100}%` }} />
-          </div>
+          <span className="eyebrow">
+            {g.mode === 'lab' ? 'STRUCTURAL LAB' : MISSIONS[g.missionId].subtitle}
+          </span>
+          <h1>
+            {g.mode === 'lab' ? LAB_EXAMPLES[g.labExample][lang] : MISSIONS[g.missionId][lang]}
+          </h1>
+          <p>
+            {g.mode === 'lab'
+              ? P2[lang].unlimited
+              : g.missionId === 1
+                ? t.missionHint
+                : `${P2[lang].hold} ${g.missionHold.toFixed(1)} / ${MISSIONS[g.missionId].hold}s`}
+          </p>
+          {g.mode !== 'lab' ? (
+            <div className="mission-progress">
+              <i style={{ width: `${(goals.filter(Boolean).length / goals.length) * 100}%` }} />
+            </div>
+          ) : null}
           <ul className="objectives">
-            {OBJECTIVES[lang].map((label, i) => (
+            {labels.map((label, i) => (
               <li key={label} className={goals[i] ? 'done' : ''}>
                 <span className="goal-check">
                   {goals[i] ? <Icon name="check" size={12} /> : null}
                 </span>
                 <span>{label}</span>
-                <small>{progress[i]}</small>
+                <small>{g.missionId === 1 ? progress[i] : goals[i] ? '✓' : '—'}</small>
               </li>
             ))}
           </ul>
         </section>
-        {g.mode === 'training' ? (
+        {g.mode === 'lab' ? (
+          <LabPanel />
+        ) : g.mode === 'training' ? (
           <section className="tutorial-card panel">
             <span className="eyebrow">FLIGHT SCHOOL · {Math.min(g.tutorial + 1, 9)} / 9</span>
             <h2>{t.trainingTitle}</h2>
@@ -450,61 +485,9 @@ export function HUD() {
         )}
       </aside>
       <aside className="right-rail">
-        <section className="stability-card panel">
-          <div className="section-label">
-            <Icon name="compass" size={16} />
-            {t.stability}
-          </div>
-          <div
-            className={`stability-dial ${stats.stability < 70 ? 'warning' : ''}`}
-            style={{ '--stability': `${stats.stability * 3.6}deg` } as CSSProperties}
-          >
-            <div>
-              <strong>
-                {Math.round(stats.stability)}
-                <small>%</small>
-              </strong>
-              <span>{stats.stability >= 70 ? t.balanced : t.caution}</span>
-            </div>
-          </div>
-          <dl className="city-stats">
-            <div>
-              <dt>{t.mass}</dt>
-              <dd>
-                {stats.mass.toFixed(0)} <small>t</small>
-              </dd>
-            </div>
-            <div>
-              <dt>{t.lift}</dt>
-              <dd>
-                {stats.lift} <small>t</small>
-              </dd>
-            </div>
-            <div>
-              <dt>{t.disconnected}</dt>
-              <dd className={stats.disconnected ? 'warning-text' : ''}>{stats.disconnected}</dd>
-            </div>
-            <div>
-              <dt>{t.food}</dt>
-              <dd>{stats.food}</dd>
-            </div>
-          </dl>
-          <button
-            className={`balance-toggle ${balance ? 'selected' : ''}`}
-            aria-pressed={balance}
-            onClick={() => {
-              useGame.setState({ balanceVisible: !balance });
-              useGame.getState().tutorialEvent('balance');
-            }}
-          >
-            <Icon name="target" size={16} />
-            {t.balance}
-          </button>
-          <div className="center-readout">
-            X {stats.center.x.toFixed(2)} <span>·</span> Z {stats.center.z.toFixed(2)}
-          </div>
-        </section>
+        <StructuralPanel />
       </aside>
+      <AnalysisToolbar />
       <div className="view-controls panel">
         <button
           className={cameraMode === 'free' ? 'selected' : ''}
@@ -574,8 +557,10 @@ export function HUD() {
         </button>
         <div className="build-actions">
           <div className="fall-label">
-            <span>{g.mode === 'training' ? t.noTimer : t.remaining}</span>
-            <strong>{g.mode === 'training' ? '∞' : `${g.remaining.toFixed(1)}s`}</strong>
+            <span>{g.mode !== 'mission' || g.reservedActive ? t.noTimer : t.remaining}</span>
+            <strong>
+              {g.mode !== 'mission' || g.reservedActive ? '∞' : `${g.remaining.toFixed(1)}s`}
+            </strong>
           </div>
           <div className="fall-track">
             <i style={{ width: `${(g.remaining / 20) * 100}%` }} />
@@ -628,6 +613,7 @@ export function Overlay() {
     returnScreen = useGame((s) => s.returnScreen),
     t = TEXT[settings.language];
   const close = () => useGame.getState().setScreen(returnScreen);
+  if (screen === 'gameover') return <GameOver />;
   if (screen === 'settings')
     return (
       <Dialog title={t.settings} onClose={close}>
@@ -654,6 +640,37 @@ export function Overlay() {
               />
             </label>
           ))}
+          {(['musicVolume', 'effectsVolume', 'warningVolume'] as const).map((k) => (
+            <label key={k}>
+              {P2[settings.language][k]}
+              <input
+                aria-label={P2[settings.language][k]}
+                type="range"
+                min="0"
+                max="1"
+                step="0.05"
+                value={settings[k]}
+                onChange={(e) => useGame.getState().configure({ [k]: Number(e.target.value) })}
+              />
+            </label>
+          ))}
+          <label>
+            {P2[settings.language].difficulty}
+            <select
+              value={settings.difficulty}
+              onChange={(e) =>
+                useGame
+                  .getState()
+                  .configure({ difficulty: e.target.value as 'easy' | 'normal' | 'hard' })
+              }
+            >
+              {(['easy', 'normal', 'hard'] as const).map((k) => (
+                <option key={k} value={k}>
+                  {P2[settings.language][k]}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
         <button className="primary full" onClick={close}>
           {t.back}
@@ -687,11 +704,18 @@ export function Overlay() {
   if (screen === 'victory') {
     const stats = analyze(g);
     return (
-      <Dialog title={t.victoryTitle} wide>
+      <Dialog
+        title={
+          g.missionId === 1
+            ? t.victoryTitle
+            : `${MISSIONS[g.missionId][settings.language]} · ${P2[settings.language].completed}`
+        }
+        wide
+      >
         <div className="victory-emblem">
           <Icon name="star" size={52} />
         </div>
-        <h3>{t.victory}</h3>
+        <h3>{g.missionId === 1 ? t.victory : MISSIONS[g.missionId][settings.language]}</h3>
         <p>{t.victoryHint}</p>
         <div className="victory-stats">
           {[
@@ -713,6 +737,15 @@ export function Overlay() {
           <button className="primary" onClick={() => useGame.getState().setScreen('playing')}>
             {t.resume}
           </button>
+          {g.missionId < 4 ? (
+            <button
+              onClick={() =>
+                useGame.getState().start('mission', (g.missionId + 1) as Game['missionId'])
+              }
+            >
+              {P2[settings.language].nextMission}
+            </button>
+          ) : null}
         </div>
       </Dialog>
     );

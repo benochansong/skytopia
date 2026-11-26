@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react';
+import { Soundscape } from '../game/audio';
 import { useGame } from '../stores/gameStore';
 export default function Runtime() {
-  const audio = useRef<AudioContext | null>(null);
+  const audio = useRef<Soundscape | null>(null);
   useEffect(() => {
     let last = performance.now(),
       lastSave = last;
@@ -9,6 +10,17 @@ export default function Runtime() {
       const now = performance.now();
       if (!document.hidden) useGame.getState().tick(Math.min((now - last) / 1000, 1));
       last = now;
+      if (useGame.getState().screen === 'playing' && useGame.getState().settings.musicVolume > 0)
+        audio.current?.cue('ambient');
+      if (
+        useGame.getState().screen === 'playing' &&
+        useGame
+          .getState()
+          .game.buildings.some(
+            (b) => b.enabled && (b.kind === 'liftSmall' || b.kind === 'liftLarge'),
+          )
+      )
+        audio.current?.cue('engine');
       if (now - lastSave > 10000 && useGame.getState().screen === 'playing') {
         useGame.getState().save(true);
         lastSave = now;
@@ -17,7 +29,7 @@ export default function Runtime() {
     const unload = () => {
       const s = useGame.getState();
       if (
-        ['playing', 'paused', 'victory'].includes(s.screen) ||
+        ['playing', 'paused', 'victory', 'gameover'].includes(s.screen) ||
         (s.screen === 'settings' && s.returnScreen === 'paused')
       )
         s.save(true);
@@ -29,8 +41,13 @@ export default function Runtime() {
     const unlock = () => {
       if (!useGame.getState().settings.sound) return;
       try {
-        audio.current ??= new AudioContext();
-        if (audio.current.state === 'suspended') void audio.current.resume().catch(() => {});
+        audio.current ??= new Soundscape(new AudioContext());
+        audio.current.configure(
+          useGame.getState().settings,
+          useGame.getState().screen === 'playing',
+        );
+        if (audio.current.context.state === 'suspended')
+          void audio.current.context.resume().catch(() => {});
       } catch {
         /* Audio is optional. */
       }
@@ -40,7 +57,7 @@ export default function Runtime() {
       if (
         el.matches('input,select,textarea') ||
         el.isContentEditable ||
-        (el.closest('button') && (e.code === 'Space' || e.code === 'Enter'))
+        (el.closest('button,summary') && (e.code === 'Space' || e.code === 'Enter'))
       )
         return;
       const s = useGame.getState();
@@ -50,6 +67,12 @@ export default function Runtime() {
         return;
       }
       if (s.screen !== 'playing') return;
+      if (el.closest('[role="dialog"]')) return;
+      if (e.code === 'Tab' && !e.shiftKey && !el.closest('button')) {
+        e.preventDefault();
+        s.cycleAnalysis();
+        return;
+      }
       const moves: Record<string, [number, number]> = {
         KeyW: [0, -1],
         ArrowUp: [0, -1],
@@ -76,28 +99,19 @@ export default function Runtime() {
       if (e.code === 'KeyH') s.camera();
     };
     const unsubscribe = useGame.subscribe((state, prev) => {
+      audio.current?.configure(state.settings, state.screen === 'playing');
+      if (!state.settings.sound || audio.current?.context.state !== 'running') return;
+      if (state.placementSerial !== prev.placementSerial) audio.current.cue('place');
       if (
-        state.placementSerial === prev.placementSerial ||
-        !state.settings.sound ||
-        audio.current?.state !== 'running'
-      )
-        return;
-      const ctx = audio.current,
-        oscillator = ctx.createOscillator(),
-        gain = ctx.createGain();
-      oscillator.type = 'sine';
-      oscillator.frequency.setValueAtTime(520, ctx.currentTime);
-      oscillator.frequency.exponentialRampToValueAtTime(1040, ctx.currentTime + 0.12);
-      gain.gain.setValueAtTime(0.045, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.24);
-      oscillator.connect(gain);
-      gain.connect(ctx.destination);
-      oscillator.start();
-      oscillator.stop(ctx.currentTime + 0.25);
-      oscillator.onended = () => {
-        oscillator.disconnect();
-        gain.disconnect();
-      };
+        state.game.structure.nextEventId >= prev.game.structure.nextEventId &&
+        state.game.elapsed >= prev.game.elapsed
+      ) {
+        for (const e of state.game.structure.events.filter(
+          (e) => e.id >= prev.game.structure.nextEventId,
+        ))
+          audio.current.cue(e.kind);
+        if (state.game.structure.loss && !prev.game.structure.loss) audio.current.cue('loss');
+      }
     });
     window.addEventListener('keydown', keyboard);
     window.addEventListener('keydown', unlock);
@@ -112,7 +126,7 @@ export default function Runtime() {
       window.removeEventListener('pointerdown', unlock);
       window.removeEventListener('beforeunload', unload);
       document.removeEventListener('visibilitychange', visibility);
-      if (audio.current) void audio.current.close().catch(() => {});
+      audio.current?.close();
       audio.current = null;
     };
   }, []);

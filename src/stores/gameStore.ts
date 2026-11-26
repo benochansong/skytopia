@@ -1,15 +1,22 @@
 import { create } from 'zustand';
-import type { Cell, Game, Settings } from '../types/game';
+import type { Cell, Game, Settings, Kind, Target } from '../types/game';
 import * as engine from '../game/engine';
 import { loadGame, loadSettings, saveGame, saveSettings } from '../game/storage';
 import { validatePlacement } from '../game/placement';
 import { cameraMove } from '../game/grid';
-type Screen = 'menu' | 'playing' | 'paused' | 'victory' | 'settings' | 'about';
+import * as maintenance from '../game/repair/maintenance';
+type Screen = 'menu' | 'playing' | 'paused' | 'victory' | 'settings' | 'about' | 'gameover';
+export type AnalysisMode = 'off' | 'load' | 'lift' | 'center' | 'durability' | 'connections';
 type Store = {
   game: Game;
   screen: Screen;
   settings: Settings;
   hasSave: boolean;
+  hasLabSave: boolean;
+  analysisMode: AnalysisMode;
+  toolMode: 'build' | 'inspect';
+  selected: Target | null;
+  cameraFocus: Cell | null;
   saveIssue: string;
   notice: string;
   azimuth: number;
@@ -19,8 +26,8 @@ type Store = {
   placementSerial: number;
   lastPlaced: Cell;
   returnScreen: Screen;
-  start: (mode: Game['mode']) => void;
-  resume: () => void;
+  start: (mode: Game['mode'], missionId?: Game['missionId'], example?: Game['labExample']) => void;
+  resume: (slot?: 'campaign' | 'lab') => void;
   setScreen: (screen: Screen) => void;
   pause: () => void;
   move: (dx: number, dz: number) => void;
@@ -35,13 +42,30 @@ type Store = {
   camera: (mode?: 'free' | 'top') => void;
   tutorialEvent: (event: 'orbit' | 'zoom' | 'balance') => void;
   skipTutorial: () => void;
+  select: (cell: Cell) => void;
+  selectTarget: (target: Target) => void;
+  blueprint: (kind: Kind) => void;
+  maintain: (action: 'repair' | 'reinforce' | 'demolish', target?: Target) => void;
+  emergency: () => void;
+  cycleAnalysis: () => void;
+  focus: (cell: Cell) => void;
+  toggleLabTime: () => void;
+  resetLab: () => void;
+  toggleLift: (id: number) => void;
 };
 const settings = loadSettings();
 const saved = loadGame();
 export const useGame = create<Store>((set, get) => {
   const apply = (next: Game) => {
     const current = get();
-    set({ game: next, ...(next.won && !current.game.won ? { screen: 'victory' as const } : {}) });
+    set({
+      game: next,
+      ...(next.structure.loss
+        ? { screen: 'gameover' as const }
+        : next.won && !current.game.won
+          ? { screen: 'victory' as const }
+          : {}),
+    });
   };
   const active = () => get().screen === 'playing';
   return {
@@ -50,6 +74,11 @@ export const useGame = create<Store>((set, get) => {
     returnScreen: 'menu',
     settings,
     hasSave: saved.ok,
+    hasLabSave: loadGame('lab').ok,
+    analysisMode: 'off',
+    toolMode: 'build',
+    selected: null,
+    cameraFocus: null,
     saveIssue: saved.ok || saved.reason === 'empty' ? '' : saved.reason,
     notice: '',
     azimuth: Math.PI / 4,
@@ -58,19 +87,34 @@ export const useGame = create<Store>((set, get) => {
     balanceVisible: true,
     placementSerial: 0,
     lastPlaced: { x: 0, z: 0 },
-    start: (mode) =>
+    start: (mode, missionId = 1, example = 'A') =>
       set({
-        game: engine.newGame(mode, Date.now() >>> 0, get().settings),
+        game: engine.newGame(mode, Date.now() >>> 0, get().settings, missionId, example),
         screen: 'playing',
         notice: '',
         cameraMode: 'free',
         cameraReset: get().cameraReset + 1,
+        cameraFocus: null,
+        selected: null,
+        toolMode: 'build',
+        analysisMode: mode === 'lab' ? 'load' : 'off',
       }),
-    resume: () => {
-      const result = loadGame();
+    resume: (slot = 'campaign') => {
+      const result = loadGame(slot);
       if (result.ok)
-        set({ game: { ...result.game, settings: get().settings }, screen: 'playing', notice: '' });
-      else set({ hasSave: false, saveIssue: result.reason });
+        set({
+          game: { ...result.game, settings: get().settings },
+          screen: result.game.structure.loss ? 'gameover' : 'playing',
+          notice: '',
+          selected: null,
+          toolMode: 'build',
+          cameraFocus: null,
+        });
+      else
+        set({
+          ...(slot === 'campaign' ? { hasSave: false } : { hasLabSave: false }),
+          saveIssue: result.reason,
+        });
     },
     setScreen: (screen) => {
       const previous = get().screen;
@@ -109,6 +153,10 @@ export const useGame = create<Store>((set, get) => {
     },
     place: (cursor) => {
       if (!active()) return;
+      if (get().toolMode === 'inspect') {
+        get().select(cursor ?? get().game.cursor);
+        return;
+      }
       const g = cursor ? engine.move(get().game, cursor) : get().game;
       const v = validatePlacement(g);
       if (!v.valid) {
@@ -165,7 +213,9 @@ export const useGame = create<Store>((set, get) => {
     save: (silent = false) => {
       const ok = saveGame({ ...get().game, settings: get().settings });
       set({
-        hasSave: ok || get().hasSave,
+        ...(get().game.mode === 'lab'
+          ? { hasLabSave: ok || get().hasLabSave }
+          : { hasSave: ok || get().hasSave }),
         saveIssue: ok ? '' : 'unavailable',
         ...(!silent || !ok ? { notice: ok ? 'saved' : 'saveFailed' } : {}),
       });
@@ -179,7 +229,8 @@ export const useGame = create<Store>((set, get) => {
         ...(!ok ? { notice: 'saveFailed' } : {}),
       });
     },
-    camera: (mode) => set({ cameraMode: mode || 'free', cameraReset: get().cameraReset + 1 }),
+    camera: (mode) =>
+      set({ cameraMode: mode || 'free', cameraReset: get().cameraReset + 1, cameraFocus: null }),
     tutorialEvent: (event) => {
       const g = get().game;
       if (!active() || g.mode !== 'training') return;
@@ -191,6 +242,64 @@ export const useGame = create<Store>((set, get) => {
         set({ game: { ...g, tutorial: g.tutorial + 1 } });
     },
     skipTutorial: () => set({ game: { ...get().game, tutorial: 9 } }),
+    select: (cell) => {
+      if (active()) {
+        set({ selected: maintenance.targetAt(get().game, cell) });
+      }
+    },
+    selectTarget: (selected) => set({ selected, toolMode: 'inspect' }),
+    blueprint: (kind) => {
+      if (active()) {
+        apply(maintenance.selectBlueprint(get().game, kind));
+        set({ toolMode: 'build' });
+      }
+    },
+    maintain: (action, target) => {
+      if (!active()) return;
+      const selected = target ?? get().selected;
+      if (!selected) return;
+      const g = get().game,
+        next = maintenance[action](g, selected);
+      if (next === g) {
+        set({ notice: 'maintenanceDenied' });
+        return;
+      }
+      apply(next);
+      set({
+        notice:
+          action === 'repair'
+            ? 'repairStarted'
+            : action === 'reinforce'
+              ? 'reinforced'
+              : 'demolished',
+      });
+    },
+    emergency: () => {
+      if (!active()) return;
+      const g = get().game,
+        cell = get().selected
+          ? (maintenance.targetInfo(g, get().selected!)?.cell ?? g.cursor)
+          : g.cursor,
+        next = maintenance.emergencyLift(g, cell);
+      apply(next);
+      set({ notice: next === g ? 'maintenanceDenied' : 'emergencyActive' });
+    },
+    cycleAnalysis: () => {
+      const modes: AnalysisMode[] = ['off', 'load', 'lift', 'center', 'durability', 'connections'];
+      set({ analysisMode: modes[(modes.indexOf(get().analysisMode) + 1) % modes.length] });
+    },
+    focus: (cell) => set({ cameraFocus: cell, cameraReset: get().cameraReset + 1 }),
+    toggleLabTime: () => {
+      if (get().game.mode === 'lab' && active())
+        set({ game: { ...get().game, labPaused: !get().game.labPaused } });
+    },
+    resetLab: () => {
+      const g = get().game;
+      if (g.mode === 'lab') get().start('lab', 1, g.labExample);
+    },
+    toggleLift: (id) => {
+      if (active()) apply(maintenance.toggleLift(get().game, id));
+    },
   };
 });
 

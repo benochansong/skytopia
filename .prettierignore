@@ -4,3 +4,5 @@ test-results
 playwright-report
 package-lock.json
 docs/PHASE1-SPEC.md
+
+docs/PHASE2-SPEC.md

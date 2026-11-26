@@ -1,7 +1,9 @@
 import type { Game, Piece, Cell, Placement, PlacementReason } from '../types/game';
 import { cellsOf, inBounds, key, neighbors } from './grid';
 import { analyze } from './analysis';
-import { BLOCKS } from '../data/rules';
+import { PHYSICAL, STRUCTURE, isPlatform } from '../data/rules';
+import { projectPlacement, braceTarget } from './building';
+import { costFor, targetInfo } from './repair/maintenance';
 export function validatePlacement(
   g: Game,
   p: Piece = g.active,
@@ -9,51 +11,46 @@ export function validatePlacement(
   warnings = true,
 ): Placement {
   const cells = cellsOf(p, cursor);
-  const result = (valid: boolean, reason: PlacementReason, warning = false) => ({
-    valid,
-    reason,
-    warning,
-    cells,
-  });
+  const result = (
+    valid: boolean,
+    reason: PlacementReason,
+    warning = false,
+    risk: 0 | 1 | 2 | 3 = 0,
+  ): Placement => ({ valid, reason, warning, cells, risk });
   if (cells.some((c) => !inBounds(c))) return result(false, 'bounds');
   if (cells.some((c) => c.x === 0 && c.z === 0)) return result(false, 'core');
-  const platforms = new Set(g.platforms.map(key));
+  const reserved = new Set(g.structure.pending);
+  for (const e of g.structure.events)
+    if (e.kind === 'collapse' && g.elapsed - e.time < STRUCTURE.debrisSeconds)
+      for (const c of e.platforms) reserved.add(key(c));
+  if (cells.some((c) => reserved.has(key(c)))) return result(false, 'settling');
+  const platforms = new Set(g.platforms.filter((p) => p.durability > 0).map(key));
   const occupied = new Set(g.buildings.flatMap((b) => cellsOf(b, b.origin).map(key)));
-  if (p.kind === 'platform') {
+  if (isPlatform(p.kind)) {
     if (cells.some((c) => platforms.has(key(c)))) return result(false, 'overlap');
     if (!cells.some((c) => neighbors(c).some((n) => platforms.has(key(n)))))
       return result(false, 'disconnectedPlatform');
   } else {
-    if (cells.some((c) => occupied.has(key(c)))) return result(false, 'overlap');
     if (cells.some((c) => !platforms.has(key(c)))) return result(false, 'missingPlatform');
+    if (p.kind === 'brace') {
+      const info = targetInfo(g, braceTarget(g, p, cursor));
+      if (!info || info.hp <= 0 || info.reinforcement >= STRUCTURE.maxReinforcement)
+        return result(false, 'reinforcementLimit');
+    } else if (cells.some((c) => occupied.has(key(c)))) return result(false, 'overlap');
   }
+  if (g.reservedActive && g.resources < costFor(g, PHYSICAL[p.kind].cost))
+    return result(false, 'resourcesNeeded');
   if (warnings) {
-    const projected =
-      p.kind === 'platform'
-        ? {
-            ...g,
-            platforms: [
-              ...g.platforms,
-              ...cells.map((c) => ({
-                ...c,
-                y: 0 as const,
-                variant: 'grass' as const,
-                mass: BLOCKS.platform.mass / cells.length,
-                durability: 100,
-              })),
-            ],
-          }
-        : {
-            ...g,
-            buildings: [
-              ...g.buildings,
-              { ...p, id: g.nextId, origin: cursor, y: 0 as const, initial: false },
-            ],
-          };
-    const s = analyze(projected);
-    if (s.stability < 70) return result(true, 'balanceWarning', true);
-    if (p.kind !== 'platform' && !s.connectedIds.has(g.nextId))
-      return result(true, 'connectionWarning', true);
+    const projected = projectPlacement(g, p, cursor),
+      s = analyze(projected),
+      r = s.structural;
+    if (r.critical || (r.worst && r.worst.ratio >= 1.5))
+      return result(true, 'criticalWarning', true, 3);
+    if (r.worst && r.worst.ratio > 1) return result(true, 'overloadWarning', true, 2);
+    if (s.stability < 70) return result(true, 'balanceWarning', true, 1);
+    if (!isPlatform(p.kind) && p.kind !== 'brace' && !s.connectedIds.has(g.nextId))
+      return result(true, 'connectionWarning', true, 1);
+    if (s.power < s.demand) return result(true, 'balanceWarning', true, 1);
   }
   return result(true, 'ready');
 }

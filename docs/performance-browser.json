@@ -1,0 +1,39 @@
+{
+  "browser": "158.0.8127.37",
+  "renderer": "SwiftShader software WebGL, 1440×900, DPR 1, shadows enabled, development build, paused lab",
+  "snapshots": [
+    {
+      "platforms": 36,
+      "drawCalls": 120,
+      "triangles": 6292,
+      "geometries": 132,
+      "textures": 2,
+      "samples": 55,
+      "medianFrameMs": 143.09999999962747,
+      "p95FrameMs": 155.09999999962747,
+      "averageFps": 6.8903309864438755
+    },
+    {
+      "platforms": 256,
+      "drawCalls": 564,
+      "triangles": 92840,
+      "geometries": 574,
+      "textures": 2,
+      "samples": 22,
+      "medianFrameMs": 378.80000000074506,
+      "p95FrameMs": 399.30000000074506,
+      "averageFps": 2.736658788406518
+    },
+    {
+      "platforms": 36,
+      "drawCalls": 119,
+      "triangles": 6212,
+      "geometries": 132,
+      "textures": 2,
+      "samples": 55,
+      "medianFrameMs": 146,
+      "p95FrameMs": 160.40000000037253,
+      "averageFps": 6.856231067452529
+    }
+  ]
+}

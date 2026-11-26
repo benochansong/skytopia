@@ -1,3 +1,4 @@
+import { cityExample } from '../game/city/scenarios';
 import { create } from 'zustand';
 import type { Cell, Game, Settings, Kind, Target } from '../types/game';
 import * as engine from '../game/engine';
@@ -6,13 +7,27 @@ import { validatePlacement } from '../game/placement';
 import { cameraMove } from '../game/grid';
 import * as maintenance from '../game/repair/maintenance';
 type Screen = 'menu' | 'playing' | 'paused' | 'victory' | 'settings' | 'about' | 'gameover';
-export type AnalysisMode = 'off' | 'load' | 'lift' | 'center' | 'durability' | 'connections';
+export type AnalysisMode =
+  | 'off'
+  | 'load'
+  | 'lift'
+  | 'center'
+  | 'durability'
+  | 'connections'
+  | 'power'
+  | 'food'
+  | 'happiness'
+  | 'logistics'
+  | 'economy';
 type Store = {
   game: Game;
   screen: Screen;
   settings: Settings;
   hasSave: boolean;
   hasLabSave: boolean;
+  hasCitySave: boolean;
+  cityAction: (action: (g: Game) => Game) => void;
+  cityExample: (example: Game['city']['example']) => void;
   analysisMode: AnalysisMode;
   toolMode: 'build' | 'inspect';
   selected: Target | null;
@@ -27,7 +42,7 @@ type Store = {
   lastPlaced: Cell;
   returnScreen: Screen;
   start: (mode: Game['mode'], missionId?: Game['missionId'], example?: Game['labExample']) => void;
-  resume: (slot?: 'campaign' | 'lab') => void;
+  resume: (slot?: 'campaign' | 'lab' | 'city') => void;
   setScreen: (screen: Screen) => void;
   pause: () => void;
   move: (dx: number, dz: number) => void;
@@ -75,6 +90,16 @@ export const useGame = create<Store>((set, get) => {
     settings,
     hasSave: saved.ok,
     hasLabSave: loadGame('lab').ok,
+    hasCitySave: loadGame('city').ok,
+    cityAction: (action) => {
+      if (active()) apply(action(get().game));
+    },
+    cityExample: (example) => {
+      if (active() && get().game.mode === 'citylab') {
+        const g = engine.newGame('citylab', Date.now() >>> 0, get().settings);
+        apply(cityExample(g, example));
+      }
+    },
     analysisMode: 'off',
     toolMode: 'build',
     selected: null,
@@ -112,7 +137,11 @@ export const useGame = create<Store>((set, get) => {
         });
       else
         set({
-          ...(slot === 'campaign' ? { hasSave: false } : { hasLabSave: false }),
+          ...(slot === 'city'
+            ? { hasCitySave: false }
+            : slot === 'campaign'
+              ? { hasSave: false }
+              : { hasLabSave: false }),
           saveIssue: result.reason,
         });
     },
@@ -213,9 +242,11 @@ export const useGame = create<Store>((set, get) => {
     save: (silent = false) => {
       const ok = saveGame({ ...get().game, settings: get().settings });
       set({
-        ...(get().game.mode === 'lab'
-          ? { hasLabSave: ok || get().hasLabSave }
-          : { hasSave: ok || get().hasSave }),
+        ...(get().game.mode === 'citylab'
+          ? { hasCitySave: ok || get().hasCitySave }
+          : get().game.mode === 'lab'
+            ? { hasLabSave: ok || get().hasLabSave }
+            : { hasSave: ok || get().hasSave }),
         saveIssue: ok ? '' : 'unavailable',
         ...(!silent || !ok ? { notice: ok ? 'saved' : 'saveFailed' } : {}),
       });
@@ -285,17 +316,27 @@ export const useGame = create<Store>((set, get) => {
       set({ notice: next === g ? 'maintenanceDenied' : 'emergencyActive' });
     },
     cycleAnalysis: () => {
-      const modes: AnalysisMode[] = ['off', 'load', 'lift', 'center', 'durability', 'connections'];
+      const modes: AnalysisMode[] = [
+        'off',
+        'load',
+        'lift',
+        'center',
+        'durability',
+        'connections',
+        ...(get().game.city.enabled
+          ? (['power', 'food', 'happiness', 'logistics', 'economy'] as AnalysisMode[])
+          : []),
+      ];
       set({ analysisMode: modes[(modes.indexOf(get().analysisMode) + 1) % modes.length] });
     },
     focus: (cell) => set({ cameraFocus: cell, cameraReset: get().cameraReset + 1 }),
     toggleLabTime: () => {
-      if (get().game.mode === 'lab' && active())
+      if (['lab', 'citylab'].includes(get().game.mode) && active())
         set({ game: { ...get().game, labPaused: !get().game.labPaused } });
     },
     resetLab: () => {
       const g = get().game;
-      if (g.mode === 'lab') get().start('lab', 1, g.labExample);
+      if (['lab', 'citylab'].includes(g.mode)) get().start(g.mode, 1, g.labExample);
     },
     toggleLift: (id) => {
       if (active()) apply(maintenance.toggleLift(get().game, id));

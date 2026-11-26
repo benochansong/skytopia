@@ -1,3 +1,4 @@
+import { DayLight, LivingCity } from './LivingCity';
 import { memo, useEffect, useMemo, useRef } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import type { ThreeEvent } from '@react-three/fiber';
@@ -278,12 +279,14 @@ function City() {
   const structure = useGame((s) => s.game.structure),
     difficulty = useGame((s) => s.game.difficulty),
     analysisMode = useGame((s) => s.analysisMode);
+  const city = useGame((s) => s.game.city),
+    population = useGame((s) => s.game.population);
   const root = useRef<Group>(null);
   const lastAim = useRef<{ x: number; y: number } | null>(null);
   const fallAge = useRef(0);
   const stats = useMemo(
-    () => analyze({ platforms, buildings, structure, difficulty }),
-    [platforms, buildings, structure, difficulty],
+    () => analyze({ platforms, buildings, structure, difficulty, city, population }),
+    [platforms, buildings, structure, difficulty, city, population],
   );
   const balanceDirection = useMemo(
     () =>
@@ -344,6 +347,7 @@ function City() {
         <Reactor core />
       </group>
       <BuildingField />
+      <LivingCity />
       {buildings
         .filter((b) => !INSTANCED_KINDS.includes(b.kind))
         .map((b) => (
@@ -423,7 +427,8 @@ function City() {
   );
 }
 export default function World() {
-  const shadows = useGame((s) => s.settings.shadows);
+  const shadows = useGame((s) => s.settings.shadows),
+    environment = useGame((s) => s.settings.environment);
   return (
     <div
       className="world"
@@ -442,24 +447,9 @@ export default function World() {
           scene.userData.name = 'Skytopia';
         }}
       >
-        <color attach="background" args={['#add2e2']} />
-        <fog attach="fog" args={['#c4deeb', 24, 65]} />
-        <hemisphereLight args={['#e9f6f8', '#859a7c', 1.7]} />
-        <ambientLight intensity={0.4} />
-        <directionalLight
-          position={[-8, 16, 8]}
-          intensity={2.5}
-          color="#fff0d2"
-          castShadow={shadows}
-          shadow-mapSize={[2048, 2048]}
-          shadow-camera-left={-12}
-          shadow-camera-right={12}
-          shadow-camera-top={12}
-          shadow-camera-bottom={-12}
-          shadow-normalBias={0.04}
-        />
+        <DayLight />
         {import.meta.env.DEV && import.meta.env.MODE === 'test' ? <PerformanceProbe /> : null}
-        <Scenery />
+        {environment && <Scenery />}
         <City />
         <Camera />
       </Canvas>

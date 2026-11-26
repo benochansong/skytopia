@@ -1,3 +1,5 @@
+import { cityReport } from './city/report';
+import { facility } from '../data/cityRules';
 import type { Game, Stats } from '../types/game';
 import type { City } from './stability/types';
 import { analyzeNetwork } from './stability/network';
@@ -13,7 +15,9 @@ export function analyze(city: City): Stats {
       c.city.structure?.lifts === city.structure?.lifts &&
       c.city.structure?.coreDurability === city.structure?.coreDurability &&
       c.city.structure?.emergency === city.structure?.emergency &&
-      c.city.difficulty === city.difficulty,
+      c.city.difficulty === city.difficulty &&
+      c.city.city === city.city &&
+      c.city.population === city.population,
   );
   if (hit) return hit.stats;
   const network = analyzeNetwork(city),
@@ -35,6 +39,8 @@ export function analyze(city: City): Stats {
       buildings: city.buildings,
       structure: city.structure,
       difficulty: city.difficulty,
+      city: city.city,
+      population: city.population,
     },
     stats,
   });
@@ -43,6 +49,53 @@ export function analyze(city: City): Stats {
 }
 export function objectives(g: Game, s = analyze(g)) {
   const r = s.structural;
+  if (g.city.enabled && g.missionId >= 5) {
+    const c = cityReport(g),
+      ops = [...c.operations.values()],
+      farms = ops.filter((o) => o.food > 0.3),
+      industry = ops.filter((o) => o.materials > 0.1),
+      power = c.deficit < 0.01,
+      homes = g.buildings
+        .filter((b) => facility(b).capacity > 0)
+        .every((b) => (s.powerRatios.get(b.id) ?? 0) >= 0.99),
+      food = c.foodProduction >= c.foodConsumption;
+    if (g.missionId === 5)
+      return [g.population >= 50, farms.length >= 2, food, c.stocks.food >= 60, s.stability >= 75];
+    if (g.missionId === 6)
+      return [
+        power && c.generation >= 280,
+        homes,
+        g.buildings
+          .filter((b) => facility(b).lift > 0)
+          .every((b) => (s.powerRatios.get(b.id) ?? 0) >= 0.99),
+        industry.some((o) => o.efficiency >= 0.7),
+        s.stability >= 75,
+      ];
+    if (g.missionId === 7)
+      return [
+        g.population >= 100,
+        industry.length >= 2,
+        c.materialsProduction >= 0.5,
+        c.net > 0,
+        r.unsafeEdges === 0,
+      ];
+    if (g.missionId === 8)
+      return [
+        g.population >= 150,
+        g.city.happiness >= 80,
+        power && food,
+        ops.some((o) => o.kind === 'park' && o.efficiency > 0.5) &&
+          ops.some((o) => o.kind === 'clinic' && o.efficiency > 0.5),
+        s.stability >= 80,
+      ];
+    return [
+      c.stocks.food >= 60,
+      power,
+      g.structure.repairsDone > 0 && s.stability >= 80,
+      g.city.happiness >= 70,
+      c.net > 0,
+    ];
+  }
   if (g.missionId === 2)
     return [
       g.population >= 50,

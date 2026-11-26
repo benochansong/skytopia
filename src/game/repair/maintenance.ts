@@ -1,3 +1,7 @@
+import { BLOCKS } from '../../data/rules';
+import { pay, canPay, adjustStock, inventory } from '../city/inventory';
+import { reconcileResidents } from '../city/population';
+import { reconcileStores } from '../city/simulation';
 import { DIFFICULTIES, PHYSICAL, STRUCTURE, isLift } from '../../data/rules';
 import type { Game, Target, Cell, Kind } from '../../types/game';
 import { analyze } from '../analysis';
@@ -40,7 +44,7 @@ export function targetInfo(g: Game, target: Target) {
     : null;
 }
 export const costFor = (g: Game, base: number) =>
-  g.mode === 'lab' ? 0 : Math.ceil(base * DIFFICULTIES[g.difficulty].cost);
+  g.mode === 'lab' || g.city.unlimited ? 0 : Math.ceil(base * DIFFICULTIES[g.difficulty].cost);
 export function repair(g: Game, target: Target): Game {
   const info = targetInfo(g, target);
   if (
@@ -51,10 +55,16 @@ export function repair(g: Game, target: Target): Game {
   )
     return g;
   const cost = costFor(g, info.cost);
-  if (g.resources < cost) return g;
+  if (
+    g.city.enabled
+      ? !canPay(g, { materials: cost, credits: cost / 2, aether: 0 })
+      : g.resources < cost
+  )
+    return g;
   return {
-    ...g,
-    resources: g.resources - cost,
+    ...(g.city.enabled
+      ? pay(g, { materials: cost, credits: cost / 2, aether: 0 })
+      : { ...g, resources: g.resources - cost }),
     structure: {
       ...g.structure,
       repairs: [...g.structure.repairs, { target, remaining: STRUCTURE.repairSeconds }],
@@ -97,8 +107,15 @@ export function reinforce(g: Game, target: Target, free = false): Game {
   const info = targetInfo(g, target);
   if (!info || info.reinforcement >= STRUCTURE.maxReinforcement || info.hp <= 0) return g;
   const cost = free ? 0 : costFor(g, PHYSICAL.brace.cost);
-  if (g.resources < cost) return g;
-  let next = { ...g, resources: g.resources - cost };
+  if (
+    g.city.enabled
+      ? !canPay(g, { materials: cost, credits: cost / 2, aether: 0 })
+      : g.resources < cost
+  )
+    return g;
+  let next = g.city.enabled
+    ? pay(g, { materials: cost, credits: cost / 2, aether: 0 })
+    : { ...g, resources: g.resources - cost };
   if (target.type === 'platform')
     next = {
       ...next,
@@ -143,19 +160,29 @@ export function demolitionPreview(g: Game, target: Target): Game {
     buildings: g.buildings.filter((v) => v.id !== b.id),
     structure: { ...g.structure, lifts },
   };
-  return { ...next, population: Math.min(next.population, analyze(next).capacity) };
+  return g.city.enabled
+    ? reconcileStores(reconcileResidents(next))
+    : { ...next, population: Math.min(next.population, analyze(next).capacity) };
 }
 export function demolish(g: Game, target: Target): Game {
   if (g.structure.loss) return g;
-  const next = demolitionPreview(g, target);
+  let next = demolitionPreview(g, target);
   if (next === g) return g;
   const b = g.buildings.find((b) => String(b.id) === target.id)!;
+  if (g.city.enabled)
+    next = adjustStock(
+      next,
+      inventory(next).root,
+      'materials',
+      Math.floor(PHYSICAL[b.kind].cost * STRUCTURE.salvageFraction),
+    );
   return recordEvent(
     {
       ...next,
-      resources:
-        g.resources +
-        (g.mode === 'lab' ? 0 : Math.floor(PHYSICAL[b.kind].cost * STRUCTURE.salvageFraction)),
+      resources: g.city.enabled
+        ? next.resources
+        : g.resources +
+          (g.mode === 'lab' ? 0 : Math.floor(PHYSICAL[b.kind].cost * STRUCTURE.salvageFraction)),
     },
     'demolish',
     target.id,
@@ -169,14 +196,17 @@ export function emergencyLift(g: Game, cell: Cell): Game {
   if (
     g.structure.loss ||
     g.structure.emergency.cooldown > 0 ||
-    g.resources < cost ||
+    (g.city.enabled
+      ? !canPay(g, { materials: cost, credits: cost / 2, aether: 2 })
+      : g.resources < cost) ||
     !g.platforms.some((p) => p.durability > 0 && key(p) === key(cell))
   )
     return g;
   return recordEvent(
     {
-      ...g,
-      resources: g.resources - cost,
+      ...(g.city.enabled
+        ? pay(g, { materials: cost, credits: cost / 2, aether: 2 })
+        : { ...g, resources: g.resources - cost }),
       structure: {
         ...g.structure,
         emergency: {
@@ -202,15 +232,16 @@ export const EMERGENCY_KINDS: Kind[] = [
   'ballast',
 ];
 export function selectBlueprint(g: Game, kind: Kind): Game {
-  if (g.structure.loss || (g.mode !== 'lab' && !EMERGENCY_KINDS.includes(kind))) return g;
+  if (g.structure.loss || (!['lab', 'citylab'].includes(g.mode) && !EMERGENCY_KINDS.includes(kind)))
+    return g;
   return {
     ...g,
     active: {
       kind,
-      shape: kind === 'liftLarge' || kind === 'largeHome' ? 'O' : 'single',
+      shape: BLOCKS[kind].shapes[0],
       rotation: 0,
     },
-    reservedActive: g.mode === 'lab' ? null : (g.reservedActive ?? g.active),
+    reservedActive: ['lab', 'citylab'].includes(g.mode) ? null : (g.reservedActive ?? g.active),
   };
 }
 export function toggleLift(g: Game, id: number): Game {

@@ -11,7 +11,13 @@ export default function Runtime() {
       if (!document.hidden) useGame.getState().tick(Math.min((now - last) / 1000, 1));
       last = now;
       if (useGame.getState().screen === 'playing' && useGame.getState().settings.musicVolume > 0)
-        audio.current?.cue('ambient');
+        audio.current?.cue(
+          useGame.getState().game.city.enabled
+            ? useGame.getState().game.city.dayTime > 180
+              ? 'night'
+              : 'city'
+            : 'ambient',
+        );
       if (
         useGame.getState().screen === 'playing' &&
         useGame
@@ -101,6 +107,17 @@ export default function Runtime() {
     const unsubscribe = useGame.subscribe((state, prev) => {
       audio.current?.configure(state.settings, state.screen === 'playing');
       if (!state.settings.sound || audio.current?.context.state !== 'running') return;
+      if (state.game.city.enabled && state.game.elapsed >= prev.game.elapsed)
+        for (const e of state.game.city.events.filter((e) => e.id >= prev.game.city.nextEventId))
+          audio.current.cue(
+            e.kind === 'shortage'
+              ? 'shortage'
+              : e.kind === 'upgrade'
+                ? 'upgrade'
+                : e.kind === 'tier'
+                  ? 'tier'
+                  : 'recovered',
+          );
       if (state.placementSerial !== prev.placementSerial) audio.current.cue('place');
       if (
         state.game.structure.nextEventId >= prev.game.structure.nextEventId &&

@@ -11,8 +11,27 @@ export type Kind =
   | 'liftSmall'
   | 'liftLarge'
   | 'brace'
-  | 'ballast';
-export type Shape = 'single' | 'I' | 'L' | 'T' | 'O' | 'S';
+  | 'ballast'
+  | 'apartment'
+  | 'housingEstate'
+  | 'advancedPower'
+  | 'relay'
+  | 'powerLink'
+  | 'aetherPower'
+  | 'battery'
+  | 'greenhouse'
+  | 'hydroponics'
+  | 'workshop'
+  | 'manufacturer'
+  | 'refinery'
+  | 'warehouse'
+  | 'logisticsDepot'
+  | 'granary'
+  | 'aetherStore'
+  | 'plaza'
+  | 'clinic'
+  | 'shop';
+export type Shape = 'single' | 'D' | 'I' | 'L' | 'T' | 'O' | 'S';
 export type Cell = { x: number; z: number };
 export type Piece = { kind: Kind; shape: Shape; rotation: number };
 export type Platform = Cell & {
@@ -32,6 +51,8 @@ export type Building = Piece & {
   initial: boolean;
   durability: number;
   enabled: boolean;
+  level?: number;
+  priority?: number;
 };
 export type Supply = { seed: number; bag: Kind[]; draws: number; policy?: 'classic' | 'adaptive' };
 export type Difficulty = 'easy' | 'normal' | 'hard';
@@ -86,11 +107,16 @@ export type Settings = {
   musicVolume: number;
   effectsVolume: number;
   warningVolume: number;
+  dayNight: boolean;
+  citizens: number;
+  vehicles: number;
+  environment: boolean;
 };
 export type Game = {
-  version: 2;
-  mode: 'mission' | 'training' | 'lab';
-  missionId: 1 | 2 | 3 | 4;
+  version: 3;
+  city: import('./city').CityState;
+  mode: 'mission' | 'training' | 'lab' | 'citylab';
+  missionId: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
   missionHold: number;
   baselineSeparation: number;
   labExample: 'A' | 'B' | 'C' | 'D';

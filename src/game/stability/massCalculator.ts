@@ -1,4 +1,5 @@
-import { BLOCKS, PHYSICAL, STRUCTURE } from '../../data/rules';
+import { facility } from '../../data/cityRules';
+import { STRUCTURE } from '../../data/rules';
 import type { City, Point3 } from './types';
 import { cellsOf, key } from '../grid';
 import { fromKey } from './state';
@@ -24,9 +25,9 @@ export function calculateMass(city: City) {
     if (seen.has(b.id)) continue;
     seen.add(b.id);
     const cells = cellsOf(b, b.origin),
-      share = BLOCKS[b.kind].mass / cells.length;
+      share = facility(b).mass / cells.length;
     for (const c of cells) {
-      add(share, { ...c, y: b.y + PHYSICAL[b.kind].height / 2 });
+      add(share, { ...c, y: b.y + facility(b).height / 2 });
       local.set(key(c), (local.get(key(c)) ?? 0) + share);
     }
   }

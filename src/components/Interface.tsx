@@ -1,3 +1,4 @@
+import { CityMenu, CityHUD, CitySettings } from './CityUI';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Phase2Menu, AnalysisToolbar, LabPanel, StructuralPanel, GameOver } from './StructuralUI';
@@ -190,6 +191,7 @@ export function Dialog({
     const el = ref.current;
     el?.querySelector<HTMLElement>('button,select,input')?.focus();
     const handler = (e: KeyboardEvent) => {
+      if (Array.from(document.querySelectorAll('[role="dialog"]')).at(-1) !== el) return;
       if (e.key === 'Escape' && onClose) {
         e.preventDefault();
         e.stopPropagation();
@@ -211,9 +213,9 @@ export function Dialog({
         first.focus();
       }
     };
-    el?.addEventListener('keydown', handler);
+    document.addEventListener('keydown', handler, true);
     return () => {
-      el?.removeEventListener('keydown', handler);
+      document.removeEventListener('keydown', handler, true);
       previous?.focus();
     };
   }, []);
@@ -312,6 +314,7 @@ export function Menu() {
             <span className="tag">{lang === 'ko' ? '추천' : 'START HERE'}</span>
           </button>
           <Phase2Menu />
+          <CityMenu />
         </div>
         <div className="menu-links">
           <button onClick={() => useGame.getState().setScreen('settings')}>{t.settings}</button>
@@ -333,7 +336,7 @@ export function Menu() {
       <footer className="menu-footer">
         <span>BUILD ABOVE. BALANCE THE SKY. RISE BEYOND.</span>
         <span>
-          PHASE 2 <b>·</b> v0.2.0
+          PHASE 3 <b>·</b> v0.3.0
         </span>
       </footer>
       {pending ? (
@@ -380,7 +383,12 @@ export function HUD() {
       value: `${Math.floor(g.population)}`,
       suffix: `/ ${stats.capacity}`,
     },
-    { icon: 'power', label: t.power, value: `${stats.power}`, suffix: `/ ${stats.demand}` },
+    {
+      icon: 'power',
+      label: t.power,
+      value: `${Math.round(stats.power * 10) / 10}`,
+      suffix: `/ ${Math.round(stats.demand * 10) / 10}`,
+    },
     {
       icon: 'cube',
       label: t.resources,
@@ -390,7 +398,7 @@ export function HUD() {
     { icon: 'star', label: t.score, value: `${g.score.toLocaleString()}`, suffix: '' },
   ];
   return (
-    <div className="hud">
+    <div className={`hud ${g.city.enabled ? 'city-mode' : ''}`}>
       <header className="topbar panel">
         <Logo small />
         <div className="resource-strip">
@@ -431,29 +439,49 @@ export function HUD() {
         <section className="mission-card panel">
           <div className="section-label">
             <Icon name="flag" size={15} />
-            {g.mode === 'lab' ? P2[lang].lab : t.mission}
-            <span>{g.mode === 'lab' ? g.labExample : `0${g.missionId}`}</span>
+            {g.mode === 'citylab' ? 'CITY LAB' : g.mode === 'lab' ? P2[lang].lab : t.mission}
+            <span>
+              {g.mode === 'citylab'
+                ? g.city.example
+                : g.mode === 'lab'
+                  ? g.labExample
+                  : `0${g.missionId}`}{' '}
+            </span>
           </div>
           <span className="eyebrow">
-            {g.mode === 'lab' ? 'STRUCTURAL LAB' : MISSIONS[g.missionId].subtitle}
+            {g.mode === 'citylab'
+              ? 'LIVING CITY'
+              : g.mode === 'lab'
+                ? 'STRUCTURAL LAB'
+                : MISSIONS[g.missionId].subtitle}
           </span>
           <h1>
-            {g.mode === 'lab' ? LAB_EXAMPLES[g.labExample][lang] : MISSIONS[g.missionId][lang]}
+            {g.mode === 'citylab'
+              ? lang === 'ko'
+                ? '도시 운영 실험실'
+                : 'City Lab'
+              : g.mode === 'lab'
+                ? LAB_EXAMPLES[g.labExample][lang]
+                : MISSIONS[g.missionId][lang]}
           </h1>
           <p>
-            {g.mode === 'lab'
-              ? P2[lang].unlimited
-              : g.missionId === 1
-                ? t.missionHint
-                : `${P2[lang].hold} ${g.missionHold.toFixed(1)} / ${MISSIONS[g.missionId].hold}s`}
+            {g.mode === 'citylab'
+              ? lang === 'ko'
+                ? '도시 운영 패널에서 예제·시설·시간을 조절하세요.'
+                : 'Use City management to control facilities, scenarios and time.'
+              : g.mode === 'lab'
+                ? P2[lang].unlimited
+                : g.missionId === 1
+                  ? t.missionHint
+                  : `${P2[lang].hold} ${g.missionHold.toFixed(1)} / ${MISSIONS[g.missionId].hold}s`}
           </p>
-          {g.mode !== 'lab' ? (
+          {!['lab', 'citylab'].includes(g.mode) ? (
             <div className="mission-progress">
               <i style={{ width: `${(goals.filter(Boolean).length / goals.length) * 100}%` }} />
             </div>
           ) : null}
           <ul className="objectives">
-            {labels.map((label, i) => (
+            {(g.mode === 'citylab' ? [] : labels).map((label, i) => (
               <li key={label} className={goals[i] ? 'done' : ''}>
                 <span className="goal-check">
                   {goals[i] ? <Icon name="check" size={12} /> : null}
@@ -487,6 +515,7 @@ export function HUD() {
       <aside className="right-rail">
         <StructuralPanel />
       </aside>
+      <CityHUD />
       <AnalysisToolbar />
       <div className="view-controls panel">
         <button
@@ -618,6 +647,7 @@ export function Overlay() {
     return (
       <Dialog title={t.settings} onClose={close}>
         <div className="settings-rows">
+          <CitySettings />
           <label>
             {t.language}
             <select
@@ -737,7 +767,7 @@ export function Overlay() {
           <button className="primary" onClick={() => useGame.getState().setScreen('playing')}>
             {t.resume}
           </button>
-          {g.missionId < 4 ? (
+          {g.missionId < 9 ? (
             <button
               onClick={() =>
                 useGame.getState().start('mission', (g.missionId + 1) as Game['missionId'])

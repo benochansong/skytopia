@@ -1,3 +1,4 @@
+import { facility } from '../../data/cityRules';
 import { PHYSICAL, STRUCTURE, isLift } from '../../data/rules';
 import type { City, LiftOutput, Network } from './types';
 import { footprintCenter } from './state';
@@ -18,7 +19,7 @@ export function calculateLift(city: City, network: Network) {
       state = city.structure?.lifts[b.id];
     const desired = b.enabled ? (network.powerRatios.get(b.id) ?? 0) : 0;
     const factor = b.enabled ? (state?.factor ?? desired) : 0,
-      max = def.lift * health;
+      max = facility(b).lift * health;
     const output = max * factor,
       cell = footprintCenter(b);
     total += output;

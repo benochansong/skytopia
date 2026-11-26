@@ -51,7 +51,9 @@ export function processCollapse(g: Game): Game {
   const lostCapacity = buildings.reduce((s, b) => s + BLOCKS[b.kind].capacity, 0);
   next = {
     ...next,
-    population: Math.min(analyze(next).capacity, Math.max(0, g.population - lostCapacity)),
+    population: g.city.enabled
+      ? g.population
+      : Math.min(analyze(next).capacity, Math.max(0, g.population - lostCapacity)),
   };
   next = recordEvent(
     next,
@@ -61,12 +63,12 @@ export function processCollapse(g: Game): Game {
     platforms,
     buildings,
   );
-  if (buildings.some((b) => b.kind === 'power'))
+  if (buildings.some((b) => BLOCKS[b.kind].power > 0))
     next = recordEvent(
       next,
       'powerLost',
       'grid',
-      buildings.find((b) => b.kind === 'power')!.origin,
+      buildings.find((b) => BLOCKS[b.kind].power > 0)!.origin,
     );
   return next;
 }

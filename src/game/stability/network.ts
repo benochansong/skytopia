@@ -1,8 +1,11 @@
-import { BLOCKS, PHYSICAL } from '../../data/rules';
+import { operatingNetwork } from '../city/operations';
+import { facility } from '../../data/cityRules';
+import { PHYSICAL } from '../../data/rules';
 import { cellsOf, key, neighbors } from '../grid';
 import { edgeKey } from './state';
 import type { City, Network } from './types';
 export function analyzeNetwork(city: City): Network {
+  if (city.city?.enabled) return operatingNetwork(city).network;
   const platforms = new Set(city.platforms.filter((p) => p.durability > 0).map(key));
   const allRoads = new Set(
     city.buildings
@@ -48,7 +51,7 @@ export function analyzeNetwork(city: City): Network {
     food = 0,
     disconnected = 0;
   for (const b of city.buildings) {
-    const def = BLOCKS[b.kind],
+    const def = facility(b),
       hp = Math.max(0, b.durability / PHYSICAL[b.kind].hp);
     const candidates = new Set<number>();
     for (const c of cellsOf(b, b.origin))
@@ -87,7 +90,7 @@ export function analyzeNetwork(city: City): Network {
         ? 0
         : Math.min(1, (supply.get(circuit) ?? 0) / Math.max(1, usage.get(circuit) ?? 0));
     powerRatios.set(b.id, ratio);
-    if (connectedIds.has(b.id) && ratio >= 1) poweredCapacity += BLOCKS[b.kind].capacity;
+    if (connectedIds.has(b.id) && ratio >= 1) poweredCapacity += facility(b).capacity;
   }
   return {
     roads,

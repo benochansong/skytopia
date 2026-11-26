@@ -1,3 +1,5 @@
+import { canPay } from './city/inventory';
+import { constructionCost } from './city/actions';
 import type { Game, Piece, Cell, Placement, PlacementReason } from '../types/game';
 import { cellsOf, inBounds, key, neighbors } from './grid';
 import { analyze } from './analysis';
@@ -38,7 +40,11 @@ export function validatePlacement(
         return result(false, 'reinforcementLimit');
     } else if (cells.some((c) => occupied.has(key(c)))) return result(false, 'overlap');
   }
-  if (g.reservedActive && g.resources < costFor(g, PHYSICAL[p.kind].cost))
+  if (
+    g.city.enabled
+      ? !canPay(g, constructionCost(g, p.kind))
+      : g.reservedActive && g.resources < costFor(g, PHYSICAL[p.kind].cost)
+  )
     return result(false, 'resourcesNeeded');
   if (warnings) {
     const projected = projectPlacement(g, p, cursor),

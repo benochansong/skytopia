@@ -65,7 +65,7 @@ test('menu, language, interactive training, pause, save and reload', async ({ pa
   await page.waitForTimeout(700);
   expect((await state(page)).game.elapsed).toBe(frozen);
   await page.getByRole('dialog').getByRole('button', { name: '저장', exact: true }).click();
-  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('skytopia.save.v2')!));
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('skytopia.save.v3')!));
   await page.reload();
   await page.getByRole('button', { name: '이어하기', exact: true }).click();
   const restored = (await state(page)).game;
@@ -169,7 +169,7 @@ test('mission victory renders and can continue, corrupted save remains recoverab
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await page.keyboard.press('Escape');
   await page.getByRole('button', { name: '저장 후 메뉴' }).click();
-  await page.evaluate(() => localStorage.setItem('skytopia.save.v2', '{broken'));
+  await page.evaluate(() => localStorage.setItem('skytopia.save.v3', '{broken'));
   await page.reload();
   await expect(page.getByText(/손상되었거나 호환되지 않는/)).toBeVisible();
   await expect(page.getByRole('button', { name: '이어하기', exact: true })).toBeDisabled();
@@ -199,9 +199,9 @@ test('real countdown, hold lock, recycling and autosave', async ({ page }) => {
   await expect.poll(async () => (await state(page)).game.resources).toBe(104);
   expect((await state(page)).game.buildings).toHaveLength(6);
   await expect
-    .poll(() => page.evaluate(() => localStorage.getItem('skytopia.save.v2')), { timeout: 12000 })
+    .poll(() => page.evaluate(() => localStorage.getItem('skytopia.save.v3')), { timeout: 12000 })
     .not.toBeNull();
-  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('skytopia.save.v2')!));
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('skytopia.save.v3')!));
   expect(saved.resources).toBe(104);
   expect(saved.buildings).toHaveLength(6);
   await page.keyboard.press('Escape');

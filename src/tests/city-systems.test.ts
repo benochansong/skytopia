@@ -175,7 +175,7 @@ describe('city resource and population invariants', () => {
     const migrated = decodeSave(JSON.stringify(old));
     expect(migrated.ok).toBe(true);
     if (migrated.ok) {
-      expect(migrated.game.version).toBe(3);
+      expect(migrated.game.version).toBe(4);
       expect(migrated.game.supply).toEqual(old.supply);
       expect(migrated.game.city.enabled).toBe(false);
     }

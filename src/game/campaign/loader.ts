@@ -1,3 +1,4 @@
+import { verticalExample, verticalMetropolis } from '../vertical/scenarios';
 import { configureLivingScenario } from '../city/scenarios';
 import type { Game, Settings, Kind } from '../../types/game';
 import { newGame } from '../engine';
@@ -10,7 +11,19 @@ import { reconcileResidents } from '../city/population';
 import { freshCity } from '../city/state';
 export function loadStage(id: number, settings: Settings, seed = stage(id).seed): Game {
   const d = stage(id);
-  let g = newGame('mission', seed, settings, d.source);
+  let g =
+    id === 20
+      ? verticalMetropolis(settings)
+      : id >= 16 && id <= 19
+        ? verticalExample(settings, id === 17 ? 'B' : id === 18 ? 'C' : id === 19 ? 'D' : undefined)
+        : newGame('mission', seed, settings, d.source);
+  if (id >= 16 && id <= 20) {
+    g.mode = 'mission';
+    g.missionId = d.source;
+    g.labPaused = false;
+    if (id === 18) g.buildings = g.buildings.filter((b) => b.kind !== 'bridge');
+    if (id === 19) g.buildings = g.buildings.filter((b) => b.kind !== 'cargoElevator');
+  }
   if (d.layout === 'long' && d.source < 3) {
     g = {
       ...g,

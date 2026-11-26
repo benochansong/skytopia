@@ -1,6 +1,6 @@
 import type { Goal, LocalText, Metric, Stage } from '../../types/campaign';
 import type { Kind } from '../../types/game';
-import { KINDS } from '../../data/rules';
+import { KINDS, VERTICAL_KINDS } from '../../data/rules';
 export const t = (ko: string, en: string): LocalText => ({ ko, en });
 const goal = (
   id: Metric,
@@ -21,15 +21,20 @@ const industry = (n: number) =>
   goal('industry', '산업시설 ' + n + '개 가동', n + ' working industries', n);
 const base: Kind[] = ['platform', 'home', 'road', 'power'];
 export const available = (id: number): Kind[] =>
-  id >= 11
-    ? [...KINDS]
-    : [
-        ...base,
-        ...(id >= 4 ? (['farm', 'warehouse', 'park', 'largeHome'] as Kind[]) : []),
-        ...(id >= 6 ? (['metalPlatform', 'brace', 'liftSmall', 'ballast'] as Kind[]) : []),
-        ...(id >= 7 ? (['liftLarge'] as Kind[]) : []),
-        ...(id >= 10 ? (['factory', 'workshop'] as Kind[]) : []),
-      ];
+  id >= 16
+    ? [
+        ...KINDS,
+        ...VERTICAL_KINDS.filter((k) => id >= 19 || !['hanger', 'suspendedDeck'].includes(k)),
+      ]
+    : id >= 11
+      ? [...KINDS]
+      : [
+          ...base,
+          ...(id >= 4 ? (['farm', 'warehouse', 'park', 'largeHome'] as Kind[]) : []),
+          ...(id >= 6 ? (['metalPlatform', 'brace', 'liftSmall', 'ballast'] as Kind[]) : []),
+          ...(id >= 7 ? (['liftLarge'] as Kind[]) : []),
+          ...(id >= 10 ? (['factory', 'workshop'] as Kind[]) : []),
+        ];
 export const CHAPTERS = [
   {
     id: 1,
@@ -66,7 +71,10 @@ export const CHAPTERS = [
     title: t('수직의 지평선', 'Vertical Horizons'),
     region: 'Vertical Highlands',
     color: '#b8cbd6',
-    planned: true,
+    sky: '#b8cfe2',
+    rock: '#798691',
+    music: [174.61, 220, 261.63, 349.23],
+    planned: false,
   },
   {
     id: 5,
@@ -140,7 +148,7 @@ const seedStage = (
   hold: id === 1 ? 0 : 10,
   optional: [stable(90), goal('collapse', '추가 붕괴 없음', 'No additional collapse', 0, true)],
   speaker: id <= 3 ? 'elena' : id <= 5 ? 'maya' : id <= 10 ? 'elena' : 'maya',
-  next: id < 15 ? id + 1 : undefined,
+  next: id < 20 ? id + 1 : undefined,
   xp: 100 + id * 10,
   ...patch,
 });
@@ -473,6 +481,120 @@ export const STAGES: Stage[] = [
       speaker: 'orion',
     },
   ),
+  seedStage(
+    16,
+    t('구름보다 높이', 'Above the Clouds'),
+    'BUILD',
+    1,
+    'vertical-base',
+    [
+      goal('upperDecks', '상층 플랫폼 4칸', 'Four upper deck tiles', 4),
+      goal('columns', '지지 기둥 설치', 'Install a support column', 1),
+      goal('upperHomes', '연결된 상층 주거', 'Connected upper home', 1),
+      goal('verticalAccess', '층간 이동시설', 'Vertical access', 1),
+      stable(75),
+      connected,
+    ],
+    t(
+      '바닥은 저절로 떠 있지 않습니다. 0층 기둥 위 +1층에 데크를 놓고 계단과 전력을 연결하세요.',
+      'Floors need support. Build a +1 deck above a ground column, then connect stairs and power.',
+    ),
+    {
+      script: ['column', 'deck', 'deck', 'deck', 'deck', 'stairs', 'verticalRelay', 'home'],
+      hold: 10,
+    },
+  ),
+  seedStage(
+    17,
+    t('하늘의 기둥', 'Pillars of the Sky'),
+    'REPAIR',
+    1,
+    'vertical-B',
+    [goal('columns', '기둥 3개 유지', 'Maintain three columns', 3), noOver, stable(85), connected],
+    t(
+      '하나의 기둥이 주거 타워를 떠받치고 있습니다. 다른 두 기둥으로 하중을 분산하고 주민을 보호하세요.',
+      'One column carries a residential tower. Share its load across two more columns and protect the residents.',
+    ),
+    {
+      script: ['reinforcedColumn', 'reinforcedColumn', 'diagonal', 'road'],
+      protect: ['towerHome'],
+      hold: 20,
+    },
+  ),
+  seedStage(
+    18,
+    t('희망의 다리', 'Bridges of Hope'),
+    'EXPAND',
+    1,
+    'vertical-C',
+    [
+      goal('bridges', '교량 2개 연결', 'Connect two bridges', 2),
+      goal('upperHomes', '상층 주거 연결', 'Connect the upper home', 1),
+      connected,
+      power,
+      goal('freightLinks', '화물 교량 또는 승강기 연결', 'Connect freight infrastructure', 1),
+      stable(75),
+    ],
+    t(
+      '상층의 두 구역은 끊어져 있습니다. 보행교와 도로교로 주민·화물·전력 경로를 복구하세요.',
+      'Two upper districts are isolated. Restore pedestrian, freight and power routes with bridges.',
+    ),
+    { script: ['bridge', 'roadBridge', 'road', 'verticalRelay'], hold: 15 },
+  ),
+  seedStage(
+    19,
+    t('도시 아래의 도시', 'The City Beneath'),
+    'BUILD',
+    1,
+    'vertical-D',
+    [
+      goal('lowerDecks', '현수 플랫폼 4칸', 'Four suspended deck tiles', 4),
+      goal('lowerIndustry', '하부 공장 가동', 'Operate lower industry', 1),
+      goal('cargoLifts', '화물 승강기 가동', 'Operate a cargo lift', 1),
+      goal('lowerPower', '하부 전력 연결', 'Power the lower deck', 1),
+      goal('lifts', '부양장치 2개 가동', 'Operate two levitators', 2),
+      noOver,
+      stable(75),
+    ],
+    t(
+      '현수 장치는 당기는 힘으로 산업층을 지탱합니다. 화물 승강기를 연결하고 하부 공장과 부양 장치를 가동하세요.',
+      'Suspension carries industry in tension. Connect a cargo lift, power the lower factory and operate its levitator.',
+    ),
+    { script: ['cargoElevator', 'road', 'liftSmall', 'verticalRelay'], hold: 20, population: 30 },
+  ),
+  seedStage(
+    20,
+    t('수직 대도시', 'Vertical Metropolis'),
+    'SURVIVE',
+    8,
+    'vertical-metropolis',
+    [
+      pop(300),
+      goal('usedFloors', '3개 층 사용', 'Use three floors', 3),
+      goal('upperHomes', '연결된 상층 주거', 'Connected upper home', 1),
+      goal('lowerIndustry', '하부 산업 가동', 'Operate lower industry', 1),
+      goal('skyGardens', '공중 정원 2개', 'Two sky gardens', 2),
+      goal('bridges', '교량 연결', 'Connect a bridge', 1),
+      goal('verticalAccess', '층간 이동 연결', 'Connect vertical access', 2),
+      power,
+      food,
+      goal('net', '경제 흑자', 'Positive cash flow', 0.01),
+      stable(85),
+      noOver,
+      goal('critical', '치명적 구조 위험 없음', 'No critical structural risk', 0, true),
+    ],
+    t(
+      '상층 주거, 중앙 생활권, 하부 산업이 하나의 문명이 됩니다. 300명이 살아갈 자립 도시를 60초간 유지하세요.',
+      'Upper homes, central services and lower industry become one civilization. Sustain a self-sufficient city for 300 people for 60 seconds.',
+    ),
+    {
+      script: ['skyGarden', 'towerHome', 'skyGarden', 'liftLarge', 'greenhouse', 'advancedPower'],
+      hold: 60,
+      population: 250,
+      resources: 600,
+      speaker: 'orion',
+    },
+  ),
 ];
 export const CHALLENGES: Stage[] = [
   {
@@ -540,11 +662,6 @@ export const LEVELS = [
 export const level = (xp: number) => Math.min(6, Math.floor(xp / 500));
 
 export const FUTURE_STAGES = [
-  [16, 4, t('구름보다 높이', 'Above the Clouds')],
-  [17, 4, t('하늘의 기둥', 'Pillars of the Sky')],
-  [18, 4, t('희망의 다리', 'Bridges of Hope')],
-  [19, 4, t('도시 아래의 도시', 'The City Beneath')],
-  [20, 4, t('수직 대도시', 'Vertical Metropolis')],
   [21, 5, t('다가오는 폭풍', 'Gathering Storm')],
   [22, 5, t('떨어지는 별', 'Falling Stars')],
   [23, 5, t('에테르 위기', 'Aether Crisis')],

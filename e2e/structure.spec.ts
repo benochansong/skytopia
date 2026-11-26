@@ -46,11 +46,11 @@ test('laboratory overlays, inspection, timed repair, reinforcement, demolition a
   expect((await game(page)).buildings.some((b) => b.id === 1)).toBe(false);
   await page.getByRole('button', { name: '저장', exact: true }).click();
   const saved = await game(page);
-  expect(await page.evaluate(() => localStorage.getItem('skytopia.save.v3'))).toBeNull();
+  expect(await page.evaluate(() => localStorage.getItem('skytopia.save.v4'))).toBeNull();
   await page.screenshot({ path: 'test-results/phase2-lab.png' });
   await page.reload();
   await page.getByRole('button', { name: '구조 실험실' }).click();
-  await page.getByRole('button', { name: '실험 이어하기' }).click();
+  await page.getByRole('button', { name: '실험 이어하기', exact: true }).click();
   expect((await game(page)).platforms).toEqual(saved.platforms);
   expect((await game(page)).structure).toEqual(saved.structure);
   expect(errors).toEqual([]);

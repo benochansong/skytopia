@@ -1,3 +1,5 @@
+import { VERTICAL } from '../data/rules';
+import { visibleAt } from '../game/vertical/geometry';
 import { CHAPTERS, stage } from '../game/campaign/definitions';
 import { useMemo, useRef, useLayoutEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
@@ -6,7 +8,7 @@ import { useGame } from '../stores/gameStore';
 import { cityReport } from '../game/city/report';
 import { cityRoutes } from '../game/city/routes';
 import { facility } from '../data/cityRules';
-import { cellsOf } from '../game/grid';
+import { cellsOf, floorOf } from '../game/grid';
 export function DayLight() {
   const g = useGame((s) => s.game),
     settings = useGame((s) => s.settings),
@@ -49,13 +51,29 @@ export function LivingCity() {
     smoke = useRef<InstancedMesh>(null),
     markers = useRef<InstancedMesh>(null),
     airship = useRef<Group>(null);
-  const routes = useMemo(() => cityRoutes(g), [g.buildings, g.platforms, g.structure.edges]);
+  const routes = useMemo(
+    () => cityRoutes(g),
+    [g.buildings, g.platforms, g.structure.edges, g.city],
+  );
   const r = g.city.enabled ? cityReport(g) : null;
   const linePoints = useMemo(() => {
     if (!r) return new Float32Array();
     const edges = mode === 'power' ? r.powerGrid.edges : mode === 'logistics' ? r.roads.edges : [];
-    return new Float32Array(edges.flatMap(([a, b]) => [a.x, 0.22, a.z, b.x, 0.22, b.z]));
-  }, [r, mode]);
+    return new Float32Array(
+      edges.flatMap(([a, b]) =>
+        visibleAt(floorOf(a), g, a.x, a.z) && visibleAt(floorOf(b), g, b.x, b.z)
+          ? [
+              a.x,
+              floorOf(a) * VERTICAL.height + 0.22,
+              a.z,
+              b.x,
+              floorOf(b) * VERTICAL.height + 0.22,
+              b.z,
+            ]
+          : [],
+      ),
+    );
+  }, [r, mode, g.vertical]);
   useFrame(() => {
     if (!g.city.enabled) return;
     const o = new Object3D(),
@@ -63,12 +81,18 @@ export function LivingCity() {
     for (const [mesh, paths, max, speed, scale] of [
       [
         citizens,
-        routes.routes,
+        routes.routes.filter((p) => p.every((c) => visibleAt(floorOf(c), g, c.x, c.z))),
         Math.min(settings.citizens, Math.floor(g.population / 2)),
         0.35,
         [0.075, 0.18, 0.075],
       ],
-      [vehicles, routes.freight, settings.vehicles, 0.5, [0.2, 0.12, 0.12]],
+      [
+        vehicles,
+        routes.freight.filter((p) => p.every((c) => visibleAt(floorOf(c), g, c.x, c.z))),
+        settings.vehicles,
+        0.5,
+        [0.2, 0.12, 0.12],
+      ],
     ] as const) {
       if (!mesh.current) continue;
       const active =
@@ -85,7 +109,11 @@ export function LivingCity() {
           a = path[index],
           b = path[index + 1],
           f = t - index;
-        o.position.set(a.x + (b.x - a.x) * f + 0.14, 0.2, a.z + (b.z - a.z) * f + 0.14);
+        o.position.set(
+          a.x + (b.x - a.x) * f + 0.14,
+          (floorOf(a) + (floorOf(b) - floorOf(a)) * f) * VERTICAL.height + 0.2,
+          a.z + (b.z - a.z) * f + 0.14,
+        );
         o.scale.set(scale[0], scale[1], scale[2]);
         o.rotation.y = Math.atan2(b.x - a.x, b.z - a.z);
         o.updateMatrix();
@@ -96,14 +124,18 @@ export function LivingCity() {
     if (smoke.current) {
       let count = 0;
       for (const b of g.buildings
-        .filter((b) => ['factory', 'workshop', 'manufacturer', 'refinery'].includes(b.kind))
+        .filter(
+          (b) =>
+            visibleAt(b.y, g, b.origin.x, b.origin.z) &&
+            ['factory', 'workshop', 'manufacturer', 'refinery'].includes(b.kind),
+        )
         .slice(0, 16)) {
         const efficiency = r?.operations.get(b.id)?.efficiency ?? 0;
         if (efficiency <= 0.05 || settings.reducedMotion) continue;
         const age = (time * 0.4 + b.id * 0.17) % 1;
         o.position.set(
           b.origin.x + 0.22 + age * 0.15,
-          facility(b).height + 0.2 + age * 0.8,
+          b.y * VERTICAL.height + facility(b).height + 0.2 + age * 0.8,
           b.origin.z - 0.18,
         );
         o.scale.setScalar((0.05 + age * 0.12) * efficiency);
@@ -126,12 +158,13 @@ export function LivingCity() {
       marks = 0,
       warningCount = 0;
     for (const b of g.buildings) {
+      if (!visibleAt(b.y, g, b.origin.x, b.origin.z)) continue;
       const op = r.operations.get(b.id)!;
       if (
         b.kind !== 'road' &&
         ['power', 'road', 'workers', 'input', 'damage', 'paused'].includes(op.status)
       ) {
-        o.position.set(b.origin.x, facility(b).height + 0.35, b.origin.z);
+        o.position.set(b.origin.x, b.y * VERTICAL.height + facility(b).height + 0.35, b.origin.z);
         o.scale.setScalar(0.12);
         o.rotation.set(0, 0, 0);
         o.updateMatrix();
@@ -151,7 +184,11 @@ export function LivingCity() {
         (facility(b).capacity || facility(b).power)
       ) {
         for (const c of cellsOf(b, b.origin)) {
-          o.position.set(c.x, facility(b).height * 0.45, c.z + 0.375);
+          o.position.set(
+            c.x,
+            floorOf(c) * VERTICAL.height + facility(b).height * 0.45,
+            c.z + 0.375,
+          );
           o.scale.set(0.5, 0.08, 0.025);
           o.rotation.set(0, 0, 0);
           o.updateMatrix();
@@ -183,7 +220,7 @@ export function LivingCity() {
                     ? 1
                     : 0;
         for (const c of cellsOf(b, b.origin)) {
-          o.position.set(c.x, 0.13, c.z);
+          o.position.set(c.x, floorOf(c) * VERTICAL.height + 0.13, c.z);
           o.scale.set(0.92, 0.025, 0.92);
           o.updateMatrix();
           markers.current.setMatrixAt(marks, o.matrix);
@@ -202,11 +239,12 @@ export function LivingCity() {
     markers.current.count = marks;
     markers.current.instanceMatrix.needsUpdate = true;
     if (markers.current.instanceColor) markers.current.instanceColor.needsUpdate = true;
-  }, [g.buildings, g.city.dayTime, settings.dayNight, mode, r]);
-  if (!g.city.enabled) return null;
+  }, [g.buildings, g.city.dayTime, settings.dayNight, mode, r, g.vertical]);
+  if (!g.city.enabled || g.vertical?.view === 'structure' || g.vertical?.view === 'blueprint')
+    return null;
   return (
     <>
-      <instancedMesh ref={warnings} args={[undefined, undefined, 256]} frustumCulled={false}>
+      <instancedMesh ref={warnings} args={[undefined, undefined, 1792]} frustumCulled={false}>
         <octahedronGeometry args={[1, 0]} />
         <meshBasicMaterial />
       </instancedMesh>
@@ -222,11 +260,11 @@ export function LivingCity() {
         <boxGeometry />
         <meshStandardMaterial color="#72bad1" />
       </instancedMesh>
-      <instancedMesh ref={lights} args={[undefined, undefined, 256]} frustumCulled={false}>
+      <instancedMesh ref={lights} args={[undefined, undefined, 1792]} frustumCulled={false}>
         <boxGeometry />
         <meshBasicMaterial color="#ffd68c" />
       </instancedMesh>
-      <instancedMesh ref={markers} args={[undefined, undefined, 256]} frustumCulled={false}>
+      <instancedMesh ref={markers} args={[undefined, undefined, 1792]} frustumCulled={false}>
         <boxGeometry />
         <meshBasicMaterial transparent opacity={0.7} depthTest={false} />
       </instancedMesh>

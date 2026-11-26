@@ -1,3 +1,5 @@
+import { verticalPlacement } from './vertical/placement';
+import { isLink } from './vertical/geometry';
 import { canUse } from './campaign/runtime';
 import { stage } from './campaign/definitions';
 import { canPay } from './city/inventory';
@@ -5,7 +7,7 @@ import { constructionCost } from './city/actions';
 import type { Game, Piece, Cell, Placement, PlacementReason } from '../types/game';
 import { cellsOf, inBounds, key, neighbors } from './grid';
 import { analyze } from './analysis';
-import { PHYSICAL, STRUCTURE, isPlatform } from '../data/rules';
+import { PHYSICAL, STRUCTURE, isPlatform, VERTICAL_KINDS } from '../data/rules';
 import { projectPlacement, braceTarget } from './building';
 import { costFor, targetInfo } from './repair/maintenance';
 export function validatePlacement(
@@ -29,6 +31,12 @@ export function validatePlacement(
       g.campaign.used >= stage(g.campaign.stage).limit!)
   )
     return result(false, 'resourcesNeeded');
+  if (!g.vertical && (VERTICAL_KINDS.includes(p.kind) || (cursor.y ?? 0) !== 0))
+    return result(false, 'verticalLocked');
+  if (g.vertical) {
+    const error = verticalPlacement(g, p, cursor);
+    if (error) return result(false, error);
+  }
   if (cells.some((c) => !inBounds(c))) return result(false, 'bounds');
   if (cells.some((c) => c.x === 0 && c.z === 0)) return result(false, 'core');
   const reserved = new Set(g.structure.pending);
@@ -40,15 +48,20 @@ export function validatePlacement(
   const occupied = new Set(g.buildings.flatMap((b) => cellsOf(b, b.origin).map(key)));
   if (isPlatform(p.kind)) {
     if (cells.some((c) => platforms.has(key(c)))) return result(false, 'overlap');
-    if (!cells.some((c) => neighbors(c).some((n) => platforms.has(key(n)))))
+    if (
+      !(g.vertical && cells.some((c) => (c.y ?? 0) !== 0)) &&
+      !cells.some((c) => neighbors(c).some((n) => platforms.has(key(n))))
+    )
       return result(false, 'disconnectedPlatform');
   } else {
-    if (cells.some((c) => !platforms.has(key(c)))) return result(false, 'missingPlatform');
+    if (!isLink(p) && cells.some((c) => !platforms.has(key(c))))
+      return result(false, 'missingPlatform');
     if (p.kind === 'brace') {
       const info = targetInfo(g, braceTarget(g, p, cursor));
       if (!info || info.hp <= 0 || info.reinforcement >= STRUCTURE.maxReinforcement)
         return result(false, 'reinforcementLimit');
-    } else if (cells.some((c) => occupied.has(key(c)))) return result(false, 'overlap');
+    } else if (!g.vertical && cells.some((c) => occupied.has(key(c))))
+      return result(false, 'overlap');
   }
   if (
     g.city.enabled

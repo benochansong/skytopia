@@ -5,7 +5,7 @@ import { makeBuilding, makePlatform, edgeKey } from './stability/state';
 import { reinforce } from './repair/maintenance';
 export function braceTarget(g: Game, p: Piece, cursor: Cell) {
   const direction = rotate({ x: 1, z: 0 }, p.rotation),
-    other = { x: cursor.x + direction.x, z: cursor.z + direction.z };
+    other = { x: cursor.x + direction.x, z: cursor.z + direction.z, y: cursor.y ?? 0 };
   return g.platforms.some((v) => key(v) === key(other))
     ? { type: 'edge' as const, id: edgeKey(key(cursor), key(other)) }
     : { type: 'platform' as const, id: key(cursor) };

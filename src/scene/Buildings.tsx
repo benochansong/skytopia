@@ -1,10 +1,11 @@
+import { VERTICAL } from '../data/rules';
 import { BLOCKS, PHYSICAL } from '../data/rules';
 import { memo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import type { Group } from 'three';
 import type { Building, Kind } from '../types/game';
-import { cellsOf, key, neighbors } from '../game/grid';
+import { cellsOf, key, neighbors, floorOf } from '../game/grid';
 import { useGame } from '../stores/gameStore';
 type Vec = [number, number, number];
 export function Box({
@@ -345,7 +346,7 @@ export const BuildingModel = memo(function BuildingModel({
   return (
     <group>
       {cells.map((c) => (
-        <group key={key(c)} position={[c.x, 0.08, c.z]}>
+        <group key={key(c)} position={[c.x, floorOf(c) * VERTICAL.height + 0.08, c.z]}>
           {b.kind === 'road' ? (
             <group>
               <Box position={[0, 0.015, 0]} size={[0.92, 0.035, 0.92]} color="#7b8d8a" />
@@ -374,7 +375,7 @@ export const BuildingModel = memo(function BuildingModel({
       {!cityEnabled && (!connected || !powered) && b.kind !== 'road' ? (
         <Html
           zIndexRange={[3, 0]}
-          position={[b.origin.x, 1.2, b.origin.z]}
+          position={[b.origin.x, b.y * VERTICAL.height + 1.2, b.origin.z]}
           center
           distanceFactor={18}
           style={{ pointerEvents: 'none' }}

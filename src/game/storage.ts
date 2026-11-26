@@ -1,3 +1,6 @@
+import { VERTICAL, VERTICAL_KINDS, SHAPES, isLift } from '../data/rules';
+import { volume, isLink, segments } from './vertical/geometry';
+import { parseKey, floorOf, inBounds } from './grid';
 import { facility, OPERATION, CITY_RULES } from '../data/cityRules';
 import { inventory } from './city/inventory';
 import { freshCity } from './city/state';
@@ -7,17 +10,31 @@ import { KINDS } from '../data/rules';
 import { z } from 'zod';
 import { BLOCKS, DEFAULT_SETTINGS, PHYSICAL, RULES, STRUCTURE, isPlatform } from '../data/rules';
 import type { Game, Settings } from '../types/game';
-import { cellsOf, key, neighbors } from './grid';
+import { key, neighbors } from './grid';
 import { analyze } from './analysis';
 import { edgeKey, freshStructure, platformMaxHP } from './stability/state';
 const finite = z.number().finite(),
   coord = finite.int().min(RULES.min).max(RULES.max),
-  cell = z.object({ x: coord, z: coord });
-const kind = z.enum(KINDS as [(typeof KINDS)[number], ...(typeof KINDS)[number][]]);
-const shape = z.enum(['single', 'D', 'I', 'L', 'T', 'O', 'S']);
+  height = finite.int().min(VERTICAL.min).max(VERTICAL.max),
+  cell = z.object({ x: coord, z: coord, y: height.optional() });
+const kind = z.enum([...KINDS, ...VERTICAL_KINDS] as [
+  (typeof KINDS)[number],
+  ...(typeof KINDS)[number][],
+]);
+const shape = z.enum(Object.keys(SHAPES) as [keyof typeof SHAPES, ...(keyof typeof SHAPES)[]]);
 const piece = z
-  .object({ kind, shape, rotation: finite.int().min(0).max(3) })
-  .refine((p) => BLOCKS[p.kind].shapes.includes(p.shape));
+  .object({
+    kind,
+    shape,
+    rotation: finite.int().min(0).max(3),
+    pitch: finite.int().min(0).max(3).optional(),
+    roll: finite.int().min(0).max(3).optional(),
+  })
+  .refine(
+    (p) =>
+      BLOCKS[p.kind].shapes.includes(p.shape) &&
+      (!(p.pitch || p.roll) || ['beam', 'truss'].includes(p.kind)),
+  );
 export const settingsSchema = z.object({
   dayNight: z.boolean().default(true),
   citizens: finite.int().min(0).max(48).default(32),
@@ -34,15 +51,20 @@ export const settingsSchema = z.object({
 });
 const platform = cell.extend({
   id: z.string().min(1).max(60),
-  y: z.literal(0),
+  y: height,
   variant: z.enum(['grass', 'rock', 'metal']),
   material: z.enum(['basic', 'metal']),
-  mass: finite.positive().max(12),
+  kind: kind.optional(),
+  mass: finite.positive().max(35),
   durability: finite.min(0).max(550),
   reinforcement: finite.int().min(0).max(3),
   anchor: z.boolean(),
 });
 const building = z.object({
+  reinforcement: finite.int().min(0).max(3).optional(),
+  temporary: finite.nonnegative().max(30).optional(),
+  pitch: finite.int().min(0).max(3).optional(),
+  roll: finite.int().min(0).max(3).optional(),
   level: finite.int().min(0).max(2).optional(),
   priority: finite.int().min(0).max(5).optional(),
   id: finite.int().positive(),
@@ -50,7 +72,7 @@ const building = z.object({
   shape,
   rotation: finite.int().min(0).max(3),
   origin: cell,
-  y: z.literal(0),
+  y: height,
   initial: z.boolean(),
   durability: finite.min(0).max(250),
   enabled: z.boolean(),
@@ -68,7 +90,7 @@ const structure = z.object({
   accumulator: finite.min(0).max(2),
   grace: finite.min(0).max(60),
   criticalTime: finite.nonnegative(),
-  pending: z.array(z.string()).max(256),
+  pending: z.array(z.string()).max(VERTICAL.maxPlatforms),
   events: z
     .array(
       z.object({
@@ -90,7 +112,7 @@ const structure = z.object({
         target: z.string().max(60),
         cell,
         platforms: z.array(platform).max(8),
-        buildings: z.array(building).max(255),
+        buildings: z.array(building).max(VERTICAL.maxBuildings),
       }),
     )
     .max(STRUCTURE.maxEvents),
@@ -106,7 +128,7 @@ const structure = z.object({
   repairsDone: finite.int().nonnegative(),
   reinforcementsDone: finite.int().nonnegative(),
   collapsedCount: finite.int().nonnegative(),
-  maxCitySize: finite.int().min(0).max(512),
+  maxCitySize: finite.int().min(0).max(3000),
   loss: z
     .object({
       reason: z.enum(['lift', 'balance', 'core']),
@@ -116,7 +138,18 @@ const structure = z.object({
     .nullable(),
 });
 const schema = z.object({
-  version: z.literal(3),
+  version: z.literal(4),
+  vertical: z
+    .object({
+      version: z.literal(1),
+      floor: height,
+      view: z.enum(['all', 'active', 'cutaway', 'structure', 'lower', 'blueprint']),
+      example: z.enum(['A', 'B', 'C', 'D', 'E']),
+      builtColumns: finite.int().nonnegative(),
+      builtBridges: finite.int().nonnegative(),
+      emergencyCooldown: finite.nonnegative(),
+    })
+    .optional(),
   city: citySchema,
   mode: z.enum(['mission', 'training', 'lab', 'citylab']),
   missionId: z.union([
@@ -137,8 +170,8 @@ const schema = z.object({
   difficulty: z.enum(['easy', 'normal', 'hard']),
   structure,
   reservedActive: piece.nullable(),
-  platforms: z.array(platform).max(256),
-  buildings: z.array(building).max(255),
+  platforms: z.array(platform).max(VERTICAL.maxPlatforms),
+  buildings: z.array(building).max(VERTICAL.maxBuildings),
   active: piece,
   next: z.array(piece).length(3),
   hold: piece.nullable(),
@@ -210,7 +243,7 @@ export function decodeSave(raw: string | null): SaveResult {
     const parsed = object(JSON.parse(raw)),
       legacy = parsed.version === 1;
     const v2 = object(legacy ? migrateV1(parsed) : parsed);
-    let g = schema.parse(
+    const upgraded = object(
       v2.version === 2
         ? {
             ...v2,
@@ -218,8 +251,16 @@ export function decodeSave(raw: string | null): SaveResult {
             city: freshCity(false, Number(v2.resources), v2.difficulty as Game['difficulty']),
           }
         : v2,
-    ) as Game;
+    );
+    const migrate = upgraded.version === 3 ? { ...upgraded, version: 4 } : upgraded;
+    let g = schema.parse(migrate) as Game;
     if (v2.version === 2) g = reconcileResidents(g);
+    if (
+      !g.vertical &&
+      (g.platforms.some((p) => p.y !== 0 || p.kind !== undefined) ||
+        g.buildings.some((b) => b.y !== 0 || VERTICAL_KINDS.includes(b.kind)))
+    )
+      throw Error('Missing vertical state');
     const platforms = new Set(g.platforms.map(key)),
       ids = new Set(g.platforms.map((p) => p.id));
     if (platforms.size !== g.platforms.length || ids.size !== g.platforms.length)
@@ -227,7 +268,8 @@ export function decodeSave(raw: string | null): SaveResult {
     for (const p of g.platforms)
       if (
         p.durability > platformMaxHP(p) ||
-        (p.anchor && (p.x < -3 || p.x > 2 || p.z < -3 || p.z > 2))
+        (p.anchor && (p.y !== 0 || p.x < -3 || p.x > 2 || p.z < -3 || p.z > 2)) ||
+        (p.kind !== undefined && !isPlatform(p.kind))
       )
         throw Error('Invalid support');
     const occupied = new Set<string>(),
@@ -243,29 +285,56 @@ export function decodeSave(raw: string | null): SaveResult {
       )
         throw Error('Invalid building');
       buildingIds.add(b.id);
-      for (const c of cellsOf(b, b.origin)) {
+      if (isLink(b) && !platforms.has(key(b.origin))) throw Error('Missing member foundation');
+      if (
+        g.vertical &&
+        volume(b, b.origin).some((c) => floorOf(c) < 0 && Math.abs(c.x) <= 2 && Math.abs(c.z) <= 2)
+      )
+        throw Error('Rock volume');
+      if (b.y !== floorOf(b.origin)) throw Error('Mismatched floor');
+      if ((b.pitch || b.roll) && !['beam', 'truss'].includes(b.kind))
+        throw Error('Invalid rotation');
+      if (
+        isLink(b) &&
+        segments(b, b.origin)
+          .flat()
+          .some((c) => !inBounds(c))
+      )
+        throw Error('Invalid member');
+      for (const c of volume(b, b.origin)) {
         const k = key(c);
-        if (occupied.has(k) || !platforms.has(k) || k === '0,0') throw Error('Invalid occupancy');
+        if (
+          occupied.has(k) ||
+          (!isLink(b) &&
+            ((floorOf(c) === b.y && !platforms.has(k)) ||
+              (floorOf(c) !== b.y && platforms.has(k)))) ||
+          !inBounds(c) ||
+          (c.x === 0 && c.z === 0)
+        )
+          throw Error('Invalid occupancy ' + b.kind + ' ' + k);
         occupied.add(k);
       }
     }
-    if (Object.keys(g.structure.edges).length > 480 || Object.keys(g.structure.lifts).length > 255)
+    if (
+      Object.keys(g.structure.edges).length > 6000 ||
+      Object.keys(g.structure.lifts).length > VERTICAL.maxBuildings
+    )
       throw Error('Too many records');
     for (const [id, e] of Object.entries(g.structure.edges)) {
       const [a, b, ...rest] = id.split('|');
       if (rest.length || !platforms.has(a) || !platforms.has(b) || id !== edgeKey(a, b))
         throw Error('Invalid edge');
-      const [ax, az] = a.split(',').map(Number),
-        [bx, bz] = b.split(',').map(Number);
-      if (Math.abs(ax - bx) + Math.abs(az - bz) !== 1 || e.durability > 100 + e.reinforcement * 100)
+      const ac = parseKey(a),
+        bc = parseKey(b);
+      if (
+        floorOf(ac) !== floorOf(bc) ||
+        Math.abs(ac.x - bc.x) + Math.abs(ac.z - bc.z) !== 1 ||
+        e.durability > 100 + e.reinforcement * 100
+      )
         throw Error('Invalid connection');
     }
     for (const id of Object.keys(g.structure.lifts))
-      if (
-        !g.buildings.some(
-          (b) => String(b.id) === id && (b.kind === 'liftSmall' || b.kind === 'liftLarge'),
-        )
-      )
+      if (!g.buildings.some((b) => String(b.id) === id && isLift(b.kind)))
         throw Error('Invalid lift');
     if (
       new Set(g.structure.pending).size !== g.structure.pending.length ||
@@ -340,6 +409,13 @@ export function loadGame(slot: 'campaign' | 'lab' | 'city' = 'campaign'): SaveRe
     );
     const result = decodeSave(
       raw ??
+        localStorage.getItem(
+          slot === 'city'
+            ? RULES.phase3CitySaveKey
+            : slot === 'lab'
+              ? RULES.phase3LabSaveKey
+              : RULES.phase3SaveKey,
+        ) ??
         (slot === 'campaign'
           ? (localStorage.getItem(RULES.phase2SaveKey) ?? localStorage.getItem(RULES.legacySaveKey))
           : slot === 'lab'
@@ -362,12 +438,15 @@ export function loadGame(slot: 'campaign' | 'lab' | 'city' = 'campaign'): SaveRe
 }
 export function saveGame(g: Game): boolean {
   try {
+    if (!decodeSave(JSON.stringify(g)).ok) return false;
     localStorage.setItem(
-      g.mode === 'citylab'
-        ? RULES.citySaveKey
-        : g.mode === 'lab'
-          ? RULES.labSaveKey
-          : RULES.saveKey,
+      g.vertical && g.mode === 'citylab'
+        ? RULES.verticalSaveKey
+        : g.mode === 'citylab'
+          ? RULES.citySaveKey
+          : g.mode === 'lab'
+            ? RULES.labSaveKey
+            : RULES.saveKey,
       JSON.stringify(g),
     );
     return true;
@@ -391,5 +470,16 @@ export function saveSettings(settings: Settings): boolean {
     return true;
   } catch {
     return false;
+  }
+}
+
+export function loadVertical(): SaveResult {
+  try {
+    const r = decodeSave(localStorage.getItem(RULES.verticalSaveKey));
+    return r.ok && (!r.game.vertical || r.game.mode !== 'citylab' || r.game.campaign)
+      ? { ok: false, reason: 'corrupt' }
+      : r;
+  } catch {
+    return { ok: false, reason: 'unavailable' };
   }
 }

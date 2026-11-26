@@ -28,7 +28,10 @@ export function cityReport(g: Game): CityReport {
     for (const b of g.buildings) {
       const d = OPERATION[b.kind],
         other = o.operations.get(b.id)!,
-        distance = Math.abs(b.origin.x - h.origin.x) + Math.abs(b.origin.z - h.origin.z);
+        distance =
+          Math.abs(b.origin.x - h.origin.x) +
+          Math.abs(b.origin.z - h.origin.z) +
+          Math.abs(b.y - h.y) * 2;
       if (distance > 4 || !b.enabled || !other.road || other.road !== op.road) continue;
       const activity = other.efficiency;
       amenity += d.amenity * activity * Math.max(0, 1 - distance / 5);

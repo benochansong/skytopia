@@ -1,7 +1,7 @@
 import { z } from 'zod';
-import { BLOCKS, KINDS } from '../../data/rules';
+import { BLOCKS, KINDS, VERTICAL_KINDS, SHAPES } from '../../data/rules';
 const n = z.number().finite().nonnegative(),
-  record = z.record(n).refine((r) => Object.keys(r).length <= 256),
+  record = z.record(n).refine((r) => Object.keys(r).length <= 1200),
   stock = z.object({ food: n, materials: n, aether: n });
 export const citySchema = z.object({
   enabled: z.boolean(),
@@ -13,7 +13,7 @@ export const citySchema = z.object({
   migrationClock: n.max(5),
   dayTime: n.max(360),
   credits: n,
-  stocks: z.record(stock).refine((r) => Object.keys(r).length <= 256 && !!r.core),
+  stocks: z.record(stock).refine((r) => Object.keys(r).length <= 1200 && !!r.core),
   batteries: record,
   residents: record,
   displaced: n,
@@ -28,14 +28,17 @@ export const citySchema = z.object({
   missionRewarded: z.boolean(),
   arrivals: n,
   departures: n,
-  activity: z.record(n.max(1)).refine((r) => Object.keys(r).length <= 256),
+  activity: z.record(n.max(1)).refine((r) => Object.keys(r).length <= 1200),
   orders: z
     .array(
       z.object({
         piece: z
           .object({
-            kind: z.enum(KINDS as [(typeof KINDS)[number], ...(typeof KINDS)[number][]]),
-            shape: z.enum(['single', 'D', 'I', 'L', 'T', 'O', 'S']),
+            kind: z.enum([...KINDS, ...VERTICAL_KINDS] as [
+              (typeof KINDS)[number],
+              ...(typeof KINDS)[number][],
+            ]),
+            shape: z.enum(Object.keys(SHAPES) as [keyof typeof SHAPES, ...(keyof typeof SHAPES)[]]),
             rotation: n.int().max(3),
           })
           .refine((p) => BLOCKS[p.kind].shapes.includes(p.shape)),

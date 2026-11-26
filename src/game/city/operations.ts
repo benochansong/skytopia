@@ -5,8 +5,8 @@ import type { City, Network } from '../stability/types';
 import { networks } from './networks';
 import { inventory } from './inventory';
 const clamp = (v: number) => Math.max(0, Math.min(1, v));
-function calculateOperations(city: City) {
-  const { road, power: grid } = networks(city),
+function calculateOperations(city: City, elevators?: Set<number>) {
+  const { road, power: grid, freight, vehicle } = networks(city, elevators),
     inv = inventory(city, road),
     operations = new Map<number, Operation>(),
     settings = cityDifficulty[city.difficulty ?? 'normal'];
@@ -144,9 +144,13 @@ function calculateOperations(city: City) {
     // Generators self-start using labor and fuel; their own supply ratio never feeds back.
     if (!f.power) o.efficiency *= ratio * happiness * activity;
     else o.efficiency *= activity;
-    o.food = f.food * o.efficiency;
-    o.materials = f.materials * o.efficiency;
-    o.aether = f.aether * o.efficiency;
+    o.food =
+      f.food *
+      o.efficiency *
+      (b.y !== 0 && freight.attachments.get(b.id) !== freight.root ? 0.35 : 1);
+    const freightFactor = b.y !== 0 && freight.attachments.get(b.id) !== freight.root ? 0.35 : 1;
+    o.materials = f.materials * o.efficiency * freightFactor;
+    o.aether = f.aether * o.efficiency * freightFactor;
     o.income = f.income * o.efficiency * clamp((city.population ?? 0) / 25);
     if (o.status === 'running' && ratio < 0.99 && o.demand) o.status = 'power';
     if (o.status === 'running' && (o.food || o.materials || o.aether) && o.road) {
@@ -208,6 +212,8 @@ function calculateOperations(city: City) {
   };
   return {
     network,
+    freight,
+    vehicle,
     road,
     grid,
     inv,
@@ -236,7 +242,22 @@ export function operatingNetwork(city: City) {
       c.city.structure?.edges === city.structure?.edges,
   );
   if (hit) return hit.result;
-  const result = calculateOperations(city);
+  let result = calculateOperations(city);
+  const lifts = city.buildings.filter((b) =>
+    ['elevator', 'cargoElevator', 'aetherElevator', 'aetherBridge'].includes(b.kind),
+  );
+  if (lifts.length) {
+    let enabled = new Set(lifts.filter((b) => b.enabled && b.durability > 0).map((b) => b.id));
+    for (let i = 0; i < lifts.length + 1; i++) {
+      // Monotone removal prevents circular power/transport feedback and unbounded iteration.
+      const next = new Set(
+        [...enabled].filter((id) => (result.network.powerRatios.get(id) ?? 0) >= 0.99),
+      );
+      if (next.size === enabled.size) break;
+      enabled = next;
+      result = calculateOperations(city, enabled);
+    }
+  }
   operationCache.unshift({ city, result });
   if (operationCache.length > 6) operationCache.pop();
   return result;

@@ -1,3 +1,5 @@
+import { VERTICAL_DEFS } from '../../data/rules';
+import { endpoints, hasPlatform } from '../vertical/geometry';
 import type { Game } from '../../types/game';
 import type { Goal, Metric, RunResult } from '../../types/campaign';
 import { analyze } from '../analysis';
@@ -17,7 +19,54 @@ export function metrics(g: Game): Record<Metric, number> {
   const newTiles = new Set(
     g.platforms.filter((p) => !c.initialPlatforms.includes(key(p))).map(key),
   );
+  const links = g.buildings.filter(
+    (b) => b.enabled && b.durability > 0 && endpoints(b, b.origin).every((c) => hasPlatform(g, c)),
+  );
   return {
+    upperDecks: g.platforms.filter((p) => p.y > 0).length,
+    columns: links.filter((b) => VERTICAL_DEFS[b.kind]?.role === 'column').length,
+    upperHomes: homes.filter(
+      (b) => b.y > 0 && s.connectedIds.has(b.id) && (s.powerRatios.get(b.id) ?? 0) >= 1,
+    ).length,
+    verticalAccess: links.filter(
+      (b) =>
+        VERTICAL_DEFS[b.kind]?.role === 'transport' &&
+        (b.kind === 'stairs' || (s.powerRatios.get(b.id) ?? 0) >= 1),
+    ).length,
+    bridges: links.filter((b) => VERTICAL_DEFS[b.kind]?.role === 'bridge').length,
+    freightLinks: links.filter(
+      (b) =>
+        VERTICAL_DEFS[b.kind]?.freight &&
+        (VERTICAL_DEFS[b.kind]?.role === 'bridge' || (s.powerRatios.get(b.id) ?? 0) >= 1),
+    ).length,
+    lowerDecks: g.platforms.filter((p) => p.y < 0).length,
+    lowerIndustry: ops.filter(
+      (o) =>
+        (o.materials > 0.05 || o.aether > 0.01) && g.buildings.find((b) => b.id === o.id)!.y < 0,
+    ).length,
+    cargoLifts: links.filter(
+      (b) =>
+        ['cargoElevator', 'aetherElevator'].includes(b.kind) && (s.powerRatios.get(b.id) ?? 0) >= 1,
+    ).length,
+    lowerPower: g.buildings.filter(
+      (b) => b.y < 0 && facility(b).demand > 0 && (s.powerRatios.get(b.id) ?? 0) >= 1,
+    ).length,
+    usedFloors: new Set(
+      g.buildings
+        .filter(
+          (b) =>
+            b.enabled &&
+            b.durability > 0 &&
+            !VERTICAL_DEFS[b.kind]?.role?.match(/column|beam|hanger|power|brace/),
+        )
+        .map((b) => b.y),
+    ).size,
+    skyGardens: ops.filter(
+      (o) =>
+        o.kind === 'skyGarden' &&
+        o.efficiency > 0.5 &&
+        g.buildings.find((b) => b.id === o.id)!.y > 0,
+    ).length,
     newPower: g.buildings.filter(
       (b) => !b.initial && ['power', 'advancedPower', 'aetherPower'].includes(b.kind),
     ).length,
@@ -43,7 +92,10 @@ export function metrics(g: Game): Record<Metric, number> {
       g.platforms.some((p) => p.x === 4 && p.z === -1)
         ? 1
         : 0,
-    overloads: s.structural.unsafeEdges,
+    overloads:
+      s.structural.unsafeEdges +
+      (g.vertical ? [...s.structural.nodes.values()].filter((n) => n.ratio > 1).length : 0),
+    critical: s.structural.critical ? 1 : 0,
     repairs: g.structure.repairsDone,
     industry: ops.filter((o) => o.materials > 0.1).length,
     materials: r?.materialsProduction ?? 0,

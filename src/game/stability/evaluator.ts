@@ -1,3 +1,5 @@
+import { memberCapacity } from '../vertical/support';
+import { hasVertical } from '../vertical/geometry';
 import { DIFFICULTIES, STRUCTURE } from '../../data/rules';
 import { key } from '../grid';
 import { analyzeNetwork } from './network';
@@ -93,11 +95,16 @@ export function evaluateStructure(
           reinforcement = state?.reinforcement ?? 0;
         const edgeHP = STRUCTURE.linkHP + reinforcement * STRUCTURE.braceHP,
           health = state?.durability ?? edgeHP;
-        const allowed =
-          Math.min(platformDefinition(p).linkStrength, platformDefinition(other).linkStrength) *
-          (1 + reinforcement * STRUCTURE.braceCapacity) *
-          difficulty.strength *
-          (0.35 + 0.65 * Math.min(1, health / edgeHP));
+        const support = graph.members.get(eid);
+        const allowed = support
+          ? support.reduce(
+              (n, b) => n + memberCapacity(b, city, (network.powerRatios.get(b.id) ?? 0) >= 0.99),
+              0,
+            ) * difficulty.strength
+          : Math.min(platformDefinition(p).linkStrength, platformDefinition(other).linkStrength) *
+            (1 + reinforcement * STRUCTURE.braceCapacity) *
+            difficulty.strength *
+            (0.35 + 0.65 * Math.min(1, health / edgeHP));
         const edgeLoad =
           Math.abs(potential.get(k)! - potential.get(n)!) *
           (1 + Math.max(d, distance.get(n) ?? 0) * STRUCTURE.momentPerSpan);
@@ -108,8 +115,8 @@ export function evaluateStructure(
           load: edgeLoad,
           capacity: allowed,
           ratio: edgeLoad / Math.max(1, allowed),
-          hp: health,
-          maxHP: edgeHP,
+          hp: support ? Math.min(...support.map((b) => b.durability)) : health,
+          maxHP: support ? 200 : edgeHP,
           reinforcement,
         });
       }
@@ -118,8 +125,8 @@ export function evaluateStructure(
 
   for (const [k, p] of graph.nodes)
     for (const q of [
-      { x: p.x + 1, z: p.z },
-      { x: p.x, z: p.z + 1 },
+      { x: p.x + 1, y: p.y, z: p.z },
+      { x: p.x, y: p.y, z: p.z + 1 },
     ])
       if (graph.nodes.has(key(q))) {
         const eid = edgeKey(k, key(q));
@@ -153,7 +160,16 @@ export function evaluateStructure(
   const angle = (v: number) =>
     Math.max(
       -STRUCTURE.maxTilt,
-      Math.min(STRUCTURE.maxTilt, (Math.atan(v / STRUCTURE.stiffness) * 180) / Math.PI),
+      Math.min(
+        STRUCTURE.maxTilt,
+        (Math.atan(
+          v /
+            (STRUCTURE.stiffness /
+              (hasVertical(city) ? 1 + Math.max(0, mass.center.y - lift.center.y) * 0.08 : 1)),
+        ) *
+          180) /
+          Math.PI,
+      ),
     );
   const tilt = { x: angle(torque.x), z: angle(torque.z) },
     separation = Math.hypot(mass.center.x - lift.center.x, mass.center.z - lift.center.z);

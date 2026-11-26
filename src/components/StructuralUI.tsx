@@ -1,3 +1,4 @@
+import { isLink } from '../game/vertical/geometry';
 import { useMemo, useState } from 'react';
 import { useGame } from '../stores/gameStore';
 import type { AnalysisMode } from '../stores/gameStore';
@@ -429,7 +430,8 @@ export function StructuralPanel() {
               >
                 {t.repair} <small>{costFor(g, info.cost)}</small>
               </button>
-              {selected.type !== 'building' ? (
+              {selected.type !== 'building' ||
+              g.buildings.some((b) => String(b.id) === selected.id && isLink(b)) ? (
                 <button
                   disabled={
                     info.reinforcement >= 3 ||

@@ -1,3 +1,5 @@
+import { footprint } from '../vertical/geometry';
+import { VERTICAL } from '../../data/rules';
 import { BLOCKS, STRUCTURE } from '../../data/rules';
 import type { Game } from '../../types/game';
 import { analyze } from '../analysis';
@@ -12,7 +14,7 @@ export function processCollapse(g: Game): Game {
   const removedKeys = new Set([...queue].sort().slice(0, STRUCTURE.maxCollapsePerStep));
   const platforms = g.platforms.filter((p) => removedKeys.has(key(p)));
   const buildings = g.buildings.filter(
-    (b) => b.durability <= 0 || cellsOf(b, b.origin).some((c) => removedKeys.has(key(c))),
+    (b) => b.durability <= 0 || footprint(b).some((c) => removedKeys.has(key(c))),
   );
   if (!platforms.length && !buildings.length) return g;
   const removedIds = new Set(buildings.map((b) => b.id));
@@ -28,7 +30,23 @@ export function processCollapse(g: Game): Game {
   );
   let next: Game = {
     ...g,
-    platforms: remaining,
+    platforms: remaining.map((p) => {
+      if (!g.vertical) return p;
+      const above = platforms.filter(
+        (v) =>
+          v.x === p.x &&
+          v.z === p.z &&
+          v.y > p.y &&
+          !remaining.some((q) => q.x === p.x && q.z === p.z && q.y > p.y && q.y < v.y),
+      );
+      if (!above.length) return p;
+      const hit =
+        above.reduce((n, v) => n + v.mass * 1.5, 0) +
+        buildings
+          .filter((b) => b.y > p.y && cellsOf(b, b.origin).some((c) => c.x === p.x && c.z === p.z))
+          .reduce((n, b) => n + BLOCKS[b.kind].mass * 0.15, 0);
+      return { ...p, durability: Math.max(0, p.durability - Math.min(VERTICAL.impactLimit, hit)) };
+    }),
     buildings: g.buildings.filter((b) => !removedIds.has(b.id)),
     structure: {
       ...g.structure,

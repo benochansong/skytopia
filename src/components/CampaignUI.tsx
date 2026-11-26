@@ -251,7 +251,7 @@ export function CampaignOverlay() {
           </span>
           <h1>{d.title[lang]}</h1>
           <p>
-            {d.id === 15
+            {d.id === 20
               ? text(
                   '오리온: 저 구름 너머에 무엇이 있는지, 이제 우리가 알아낼 차례입니다.',
                   'Orion: Now it is our turn to discover what lies beyond those clouds.',
@@ -407,7 +407,7 @@ export default function CampaignScreens() {
           ))}
         </div>
         <h2>
-          {text('도전 과제', 'Achievements')} · {Object.keys(p.achievements).length}/16
+          {text('도전 과제', 'Achievements')} · {Object.keys(p.achievements).length}/24
         </h2>
         <div className="achievement-grid">
           {ACHIEVEMENTS.map(([id, label]) => (
@@ -486,7 +486,7 @@ export default function CampaignScreens() {
           <h1>{text('하늘의 개척자', 'Pioneers of the sky')}</h1>
         </div>
         <div>
-          <span>★ {total}/45</span>
+          <span>★ {total}/60</span>
           <button onClick={() => useGame.getState().setScreen('menu')}>
             {text('메인 메뉴', 'Main menu')}
           </button>
@@ -518,8 +518,8 @@ export default function CampaignScreens() {
                 [150, 100],
               ].map(([x, y], i) => (
                 <g key={i} transform={'translate(' + x + ' ' + y + ')'}>
-                  <ellipse rx="65" ry="22" fill={CHAPTERS[i].color} opacity={i < 3 ? 0.65 : 0.15} />
-                  <path d="M-65 0 0 85 65 0 0 22Z" fill={i < 3 ? '#345f65' : '#344550'} />
+                  <ellipse rx="65" ry="22" fill={CHAPTERS[i].color} opacity={i < 4 ? 0.65 : 0.15} />
+                  <path d="M-65 0 0 85 65 0 0 22Z" fill={i < 4 ? '#345f65' : '#344550'} />
                   <path d="M-35 -4 0 -35 40 -5 0 10Z" fill={CHAPTERS[i].color} opacity=".65" />
                 </g>
               ))}

@@ -86,6 +86,15 @@ export default function Runtime() {
         s.cycleAnalysis();
         return;
       }
+      if (s.game.vertical && ['PageUp', 'PageDown', 'KeyR', 'KeyF'].includes(e.code)) {
+        e.preventDefault();
+        if (e.repeat) return;
+        if (e.code === 'PageUp') s.setFloor(s.game.vertical.floor + 1);
+        if (e.code === 'PageDown') s.setFloor(s.game.vertical.floor - 1);
+        if (e.code === 'KeyR') s.rotateAxis('pitch');
+        if (e.code === 'KeyF') s.rotateAxis('roll');
+        return;
+      }
       const moves: Record<string, [number, number]> = {
         KeyW: [0, -1],
         ArrowUp: [0, -1],

@@ -19,6 +19,14 @@ export const ACHIEVEMENTS = [
   ['chapter2', t('하늘의 기술자', 'Engineer of the Sky')],
   ['chapter3', t('살아있는 문명', 'Living Civilization')],
   ['perfect', t('완벽한 챕터', 'Perfect Chapter')],
+  ['firstFloor', t('첫 번째 상층', 'First Upper Floor')],
+  ['threeFloors', t('세 겹의 하늘', 'Three Skies')],
+  ['pillar', t('하늘을 떠받치다', 'Pillars of Civilization')],
+  ['skyBridge', t('이어진 하늘', 'Connected Skies')],
+  ['underCity', t('도시 아래의 도시', 'The City Beneath')],
+  ['cargo', t('수직 물류', 'Vertical Freight')],
+  ['gardens', t('공중 정원', 'Hanging Gardens')],
+  ['chapter4', t('수직 문명', 'Vertical Civilization')],
 ] as const;
 export const freshProfile = (name = 'Architect'): Profile => ({
   version: 1,
@@ -83,7 +91,7 @@ export function updateProfile(
       maxStars = starsFor(p, c.stage),
       r = c.result,
       d = stage(c.stage);
-    const unlocked = [...new Set([...p.unlocked, ...(campaign ? available(d.next ?? 15) : [])])];
+    const unlocked = [...new Set([...p.unlocked, ...(campaign ? available(d.next ?? 20) : [])])];
     const freshUnlocks = unlocked.length - p.unlocked.length;
     const deltaStars = Math.max(0, r.stars - (c.daily ? (old?.stars ?? 0) : maxStars));
     const xp = c.daily ? 0 : (maxStars === 0 ? d.xp : 0) + deltaStars * 25 + freshUnlocks * 10;
@@ -120,7 +128,15 @@ export function updateProfile(
       chapter1: chapterDone(1),
       chapter2: chapterDone(2),
       chapter3: chapterDone(3),
-      perfect: [1, 2, 3].some((n) => chapterDone(n, 3)),
+      firstFloor: v.upperHomes >= 1,
+      threeFloors: v.usedFloors >= 3,
+      pillar: v.columns >= 3 && v.overloads === 0,
+      skyBridge: v.bridges >= 2,
+      underCity: v.lowerIndustry > 0,
+      cargo: v.cargoLifts > 0,
+      gardens: v.skyGardens >= 2,
+      chapter4: chapterDone(4),
+      perfect: [1, 2, 3, 4].some((n) => chapterDone(n, 3)),
     };
     const earned = Object.keys(conditions).filter((k) => conditions[k] && !next.achievements[k]);
     if (earned.length)

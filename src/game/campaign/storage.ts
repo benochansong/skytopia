@@ -4,8 +4,8 @@ import type { CampaignSave, CampaignRun, Profile } from '../../types/campaign';
 import { decodeSave, loadGame } from '../storage';
 import { freshProfile } from './progress';
 import { allStages, LEGACY_MAP, available, stage } from './definitions';
-import { KINDS } from '../../data/rules';
-export const CAMPAIGN_KEY = 'skytopia.campaign.v1';
+import { KINDS, VERTICAL_KINDS } from '../../data/rules';
+export const CAMPAIGN_KEY = 'skytopia.campaign.v2';
 const num = z.number().finite().min(0).max(1e9),
   count = num.int(),
   str = z.string().max(100),
@@ -26,16 +26,21 @@ const run = z.object({
     .object({
       xp: count,
       unlocked: z
-        .array(z.enum(KINDS as [(typeof KINDS)[number], ...(typeof KINDS)[number][]]))
-        .max(32),
+        .array(
+          z.enum([...KINDS, ...VERTICAL_KINDS] as [
+            (typeof KINDS)[number],
+            ...(typeof KINDS)[number][],
+          ]),
+        )
+        .max(64),
       achievements: list,
     })
     .optional(),
   stage: count.refine((n) => allStages.some((s) => s.id === n)),
   seed: count.max(4294967295),
-  initialPlatforms: list,
-  initialBuildings: count.max(255),
-  protectedIds: z.array(count).max(255),
+  initialPlatforms: z.array(str).max(1792),
+  initialBuildings: count.max(1200),
+  protectedIds: z.array(count).max(1200),
   placed: count,
   spent: num,
   used: count,
@@ -70,7 +75,14 @@ const profile = z.object({
   achievements: z.record(z.string().datetime()),
   xp: count.max(100000),
   seen: list,
-  unlocked: z.array(z.enum(KINDS as [(typeof KINDS)[number], ...(typeof KINDS)[number][]])).max(32),
+  unlocked: z
+    .array(
+      z.enum([...KINDS, ...VERTICAL_KINDS] as [
+        (typeof KINDS)[number],
+        ...(typeof KINDS)[number][],
+      ]),
+    )
+    .max(64),
   choices: z.record(z.enum(['accept', 'defer', 'research'])),
   stats: z.object({
     time: num,
@@ -96,11 +108,11 @@ export function decodeCampaignGame(raw: unknown): Game | null {
   return { ...decoded.game, campaign: c };
 }
 export function freshCampaign(): CampaignSave {
-  return { version: 1, profile: freshProfile(), current: null, checkpoint: null, free: null };
+  return { version: 2, profile: freshProfile(), current: null, checkpoint: null, free: null };
 }
 export function decodeCampaign(raw: string): { save: CampaignSave; recovered: boolean } {
   const value = JSON.parse(raw);
-  if (value.version !== 1) throw Error('Unknown campaign version');
+  if (value.version !== 1 && value.version !== 2) throw Error('Unknown campaign version');
   const p = profile.parse(value.profile) as Profile;
   if (
     Object.keys(p.records).length > 300 ||
@@ -133,7 +145,7 @@ export function decodeCampaign(raw: string): { save: CampaignSave; recovered: bo
   }
   return {
     save: {
-      version: 1,
+      version: 2,
       profile: p,
       current,
       checkpoint:
@@ -152,7 +164,7 @@ export function decodeCampaign(raw: string): { save: CampaignSave; recovered: bo
 export function loadCampaign(): { save: CampaignSave; issue: string } {
   let raw: string | null;
   try {
-    raw = localStorage.getItem(CAMPAIGN_KEY);
+    raw = localStorage.getItem(CAMPAIGN_KEY) ?? localStorage.getItem('skytopia.campaign.v1');
   } catch {
     return { save: freshCampaign(), issue: 'unavailable' };
   }

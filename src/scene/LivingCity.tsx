@@ -1,3 +1,4 @@
+import { CHAPTERS, stage } from '../game/campaign/definitions';
 import { useMemo, useRef, useLayoutEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Color, InstancedMesh, Object3D, Group } from 'three';
@@ -10,7 +11,12 @@ export function DayLight() {
   const g = useGame((s) => s.game),
     settings = useGame((s) => s.settings),
     day = settings.dayNight ? Math.max(0, Math.sin((g.city.dayTime / 360) * Math.PI * 2)) : 1,
-    color = new Color('#263c66').lerp(new Color('#add2e2'), day);
+    color = new Color('#263c66').lerp(
+      new Color(
+        g.campaign ? (CHAPTERS[stage(g.campaign.stage).chapter - 1].sky ?? '#add2e2') : '#add2e2',
+      ),
+      day,
+    );
   return (
     <>
       <color attach="background" args={[color]} />

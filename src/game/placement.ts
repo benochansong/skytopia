@@ -1,3 +1,5 @@
+import { canUse } from './campaign/runtime';
+import { stage } from './campaign/definitions';
 import { canPay } from './city/inventory';
 import { constructionCost } from './city/actions';
 import type { Game, Piece, Cell, Placement, PlacementReason } from '../types/game';
@@ -19,6 +21,14 @@ export function validatePlacement(
     warning = false,
     risk: 0 | 1 | 2 | 3 = 0,
   ): Placement => ({ valid, reason, warning, cells, risk });
+  if (
+    !canUse(g, p.kind) ||
+    (g.campaign &&
+      !g.campaign.continued &&
+      stage(g.campaign.stage).limit &&
+      g.campaign.used >= stage(g.campaign.stage).limit!)
+  )
+    return result(false, 'resourcesNeeded');
   if (cells.some((c) => !inBounds(c))) return result(false, 'bounds');
   if (cells.some((c) => c.x === 0 && c.z === 0)) return result(false, 'core');
   const reserved = new Set(g.structure.pending);

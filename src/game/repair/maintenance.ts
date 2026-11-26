@@ -1,3 +1,4 @@
+import { canUse } from '../campaign/runtime';
 import { BLOCKS } from '../../data/rules';
 import { pay, canPay, adjustStock, inventory } from '../city/inventory';
 import { reconcileResidents } from '../city/population';
@@ -46,6 +47,7 @@ export function targetInfo(g: Game, target: Target) {
 export const costFor = (g: Game, base: number) =>
   g.mode === 'lab' || g.city.unlimited ? 0 : Math.ceil(base * DIFFICULTIES[g.difficulty].cost);
 export function repair(g: Game, target: Target): Game {
+  if (g.campaign && !g.campaign.continued && g.campaign.stage < 6) return g;
   const info = targetInfo(g, target);
   if (
     !info ||
@@ -103,6 +105,7 @@ export function restoreTarget(g: Game, target: Target): Game {
   return recordEvent(next, 'repair', target.id, info.cell);
 }
 export function reinforce(g: Game, target: Target, free = false): Game {
+  if (g.campaign && !g.campaign.continued && g.campaign.stage < 6) return g;
   if (target.type === 'building' || g.structure.loss) return g;
   const info = targetInfo(g, target);
   if (!info || info.reinforcement >= STRUCTURE.maxReinforcement || info.hp <= 0) return g;
@@ -192,6 +195,7 @@ export function demolish(g: Game, target: Target): Game {
   );
 }
 export function emergencyLift(g: Game, cell: Cell): Game {
+  if (g.campaign && !g.campaign.continued && g.campaign.stage < 6) return g;
   const cost = costFor(g, STRUCTURE.emergencyCost);
   if (
     g.structure.loss ||
@@ -232,6 +236,7 @@ export const EMERGENCY_KINDS: Kind[] = [
   'ballast',
 ];
 export function selectBlueprint(g: Game, kind: Kind): Game {
+  if (!canUse(g, kind) || g.campaign?.stage === 101) return g;
   if (g.structure.loss || (!['lab', 'citylab'].includes(g.mode) && !EMERGENCY_KINDS.includes(kind)))
     return g;
   return {

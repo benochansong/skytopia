@@ -1,3 +1,14 @@
+import type { CampaignSave } from '../types/campaign';
+import { loadCampaign, saveCampaign } from '../game/campaign/storage';
+import { loadStage } from '../game/campaign/loader';
+import {
+  canStart,
+  freshProfile,
+  updateProfile,
+  dailySeed,
+  localDate,
+} from '../game/campaign/progress';
+import { advanceDialogue, chooseStory, campaignStep } from '../game/campaign/runtime';
 import { cityExample } from '../game/city/scenarios';
 import { create } from 'zustand';
 import type { Cell, Game, Settings, Kind, Target } from '../types/game';
@@ -6,7 +17,18 @@ import { loadGame, loadSettings, saveGame, saveSettings } from '../game/storage'
 import { validatePlacement } from '../game/placement';
 import { cameraMove } from '../game/grid';
 import * as maintenance from '../game/repair/maintenance';
-type Screen = 'menu' | 'playing' | 'paused' | 'victory' | 'settings' | 'about' | 'gameover';
+type Screen =
+  | 'campaign'
+  | 'profile'
+  | 'challenges'
+  | 'opening'
+  | 'menu'
+  | 'playing'
+  | 'paused'
+  | 'victory'
+  | 'settings'
+  | 'about'
+  | 'gameover';
 export type AnalysisMode =
   | 'off'
   | 'load'
@@ -20,6 +42,22 @@ export type AnalysisMode =
   | 'logistics'
   | 'economy';
 type Store = {
+  campaignSave: CampaignSave;
+  campaignIssue: string;
+  freeMode: boolean;
+  openingReplay: boolean;
+  newCampaign: (name: string) => void;
+  startStage: (id: number, daily?: boolean) => void;
+  resumeCampaign: () => void;
+  campaignMap: () => void;
+  dialogueNext: (skip?: boolean) => void;
+  storyChoice: (choice: string) => void;
+  checkpoint: (restore?: boolean) => void;
+  continueCity: () => void;
+  startFree: (resume?: boolean) => void;
+  finishOpening: () => void;
+  replayOpening: () => void;
+
   game: Game;
   screen: Screen;
   settings: Settings;
@@ -70,20 +108,195 @@ type Store = {
 };
 const settings = loadSettings();
 const saved = loadGame();
+const campaignLoaded = loadCampaign();
 export const useGame = create<Store>((set, get) => {
   const apply = (next: Game) => {
     const current = get();
+    if (next.campaign) {
+      next = campaignStep(next, 0);
+      const profile = updateProfile(current.campaignSave.profile, current.game, next);
+      const finished =
+        !!(next.campaign!.result || next.campaign!.failed) && !next.campaign!.claimed;
+      if (finished)
+        next = {
+          ...next,
+          campaign: {
+            ...next.campaign!,
+            claimed: true,
+            rewards: {
+              xp: profile.xp - current.campaignSave.profile.xp,
+              unlocked: profile.unlocked.filter(
+                (k) => !current.campaignSave.profile.unlocked.includes(k),
+              ),
+              achievements: Object.keys(profile.achievements).filter(
+                (k) => !current.campaignSave.profile.achievements[k],
+              ),
+            },
+          },
+        };
+      const campaignSave = { ...current.campaignSave, profile, current: next };
+      set({ campaignSave });
+      if (finished && !saveCampaign(campaignSave))
+        set({ campaignIssue: 'unavailable', notice: 'saveFailed' });
+    }
     set({
       game: next,
-      ...(next.structure.loss
+      ...(next.structure.loss || next.campaign?.failed
         ? { screen: 'gameover' as const }
         : next.won && !current.game.won
           ? { screen: 'victory' as const }
           : {}),
     });
   };
-  const active = () => get().screen === 'playing';
+  const active = () => get().screen === 'playing' && !get().game.campaign?.dialogue;
   return {
+    campaignSave: campaignLoaded.save,
+    campaignIssue: campaignLoaded.issue,
+    freeMode: false,
+    openingReplay: false,
+    newCampaign: (name) => {
+      const campaignSave = {
+        ...get().campaignSave,
+        profile: freshProfile(name),
+        current: null,
+        checkpoint: null,
+      };
+      const ok = saveCampaign(campaignSave);
+      set({
+        campaignSave,
+        campaignIssue: ok ? '' : 'unavailable',
+        screen: 'opening',
+        openingReplay: false,
+        freeMode: false,
+      });
+    },
+    startStage: (id, daily = false) => {
+      if (get().campaignIssue === 'campaignCorrupt') return;
+      if (!canStart(get().campaignSave.profile, id)) return;
+      const date = daily ? localDate() : null;
+      let game = loadStage(id, get().settings, date ? dailySeed(date) : undefined);
+      if (date) game = { ...game, campaign: { ...game.campaign!, daily: date } };
+      const campaignSave = { ...get().campaignSave, current: game, checkpoint: null };
+      const ok = saveCampaign(campaignSave);
+      set({
+        game,
+        campaignSave,
+        campaignIssue: ok ? '' : 'unavailable',
+        screen: 'playing',
+        freeMode: false,
+        notice: '',
+        selected: null,
+        cameraFocus: null,
+        cameraMode: 'free',
+        cameraReset: get().cameraReset + 1,
+        toolMode: 'build',
+        analysisMode: 'off',
+      });
+    },
+    resumeCampaign: () => {
+      const saved = loadCampaign();
+      set({ campaignSave: saved.save, campaignIssue: saved.issue });
+      const game = saved.save.current;
+      if (game)
+        set({
+          game: { ...game, settings: get().settings },
+          screen:
+            game.campaign?.failed || game.structure.loss
+              ? 'gameover'
+              : game.campaign?.result && !game.campaign.continued
+                ? 'victory'
+                : 'playing',
+          freeMode: false,
+          selected: null,
+          cameraFocus: null,
+          analysisMode: 'off',
+          cameraReset: get().cameraReset + 1,
+        });
+    },
+    campaignMap: () => {
+      if (
+        get().game.campaign &&
+        ['playing', 'paused', 'victory', 'gameover'].includes(get().screen)
+      )
+        get().save(true);
+      set({ screen: 'campaign', selected: null });
+    },
+    dialogueNext: (skip = false) => {
+      const game = advanceDialogue(get().game, skip);
+      apply(game);
+      get().save(true);
+    },
+    storyChoice: (choice) => {
+      apply(chooseStory(get().game, choice));
+      get().save(true);
+    },
+    checkpoint: (restore = false) => {
+      const s = get();
+      if (restore) {
+        const snapshot = s.campaignSave.checkpoint;
+        if (!snapshot?.campaign || snapshot.campaign.stage !== s.game.campaign?.stage) return;
+        const game = structuredClone(snapshot);
+        game.campaign!.checkpointUsed = true;
+        const campaignSave = { ...s.campaignSave, current: game };
+        set({
+          game,
+          campaignSave,
+          screen: 'playing',
+          selected: null,
+          cameraReset: s.cameraReset + 1,
+        });
+        if (!saveCampaign(campaignSave)) set({ campaignIssue: 'unavailable' });
+      } else if (
+        s.game.campaign &&
+        !s.game.campaign.failed &&
+        !s.game.campaign.result &&
+        !s.game.structure.loss
+      ) {
+        const campaignSave = {
+          ...s.campaignSave,
+          checkpoint: structuredClone(s.game),
+          current: s.game,
+        };
+        set({ campaignSave, notice: saveCampaign(campaignSave) ? 'saved' : 'saveFailed' });
+      }
+    },
+    continueCity: () => {
+      const g = get().game;
+      if (!g.campaign?.result) return;
+      const game = { ...g, campaign: { ...g.campaign, continued: true, dialogue: null } };
+      set({ game, screen: 'playing' });
+      get().save(true);
+    },
+    startFree: (resume = false) => {
+      let game = resume ? get().campaignSave.free : null;
+      if (!game) {
+        game = cityExample(engine.newGame('citylab', Date.now() >>> 0, get().settings), 'C');
+        game = { ...game, labPaused: false, city: { ...game.city, unlimited: false } };
+      }
+      set({
+        game,
+        freeMode: true,
+        screen: 'playing',
+        selected: null,
+        analysisMode: 'off',
+        cameraReset: get().cameraReset + 1,
+      });
+    },
+    finishOpening: () => {
+      const s = get(),
+        campaignSave = {
+          ...s.campaignSave,
+          profile: {
+            ...s.campaignSave.profile,
+            seen: [...new Set([...s.campaignSave.profile.seen, 'opening'])],
+          },
+        };
+      set({ campaignSave });
+      if (s.campaignIssue !== 'campaignCorrupt') saveCampaign(campaignSave);
+      if (s.openingReplay) set({ screen: 'menu' });
+      else get().startStage(1);
+    },
+    replayOpening: () => set({ openingReplay: true, screen: 'opening' }),
     game: engine.newGame('mission', 2478, settings),
     screen: 'menu',
     returnScreen: 'menu',
@@ -115,6 +328,7 @@ export const useGame = create<Store>((set, get) => {
     start: (mode, missionId = 1, example = 'A') =>
       set({
         game: engine.newGame(mode, Date.now() >>> 0, get().settings, missionId, example),
+        freeMode: false,
         screen: 'playing',
         notice: '',
         cameraMode: 'free',
@@ -129,6 +343,7 @@ export const useGame = create<Store>((set, get) => {
       if (result.ok)
         set({
           game: { ...result.game, settings: get().settings },
+          freeMode: false,
           screen: result.game.structure.loss ? 'gameover' : 'playing',
           notice: '',
           selected: null,
@@ -147,12 +362,7 @@ export const useGame = create<Store>((set, get) => {
     },
     setScreen: (screen) => {
       const previous = get().screen;
-      if (
-        screen === 'menu' &&
-        previous !== 'menu' &&
-        previous !== 'about' &&
-        previous !== 'settings'
-      )
+      if (screen === 'menu' && ['playing', 'paused', 'victory', 'gameover'].includes(previous))
         get().save(true);
       set({
         screen,
@@ -240,6 +450,24 @@ export const useGame = create<Store>((set, get) => {
         });
     },
     save: (silent = false) => {
+      if (get().game.campaign || get().freeMode) {
+        if (get().campaignIssue === 'campaignCorrupt') {
+          set({ notice: 'saveFailed' });
+          return;
+        }
+        const s = get(),
+          campaignSave = {
+            ...s.campaignSave,
+            ...(s.freeMode ? { free: s.game } : { current: s.game }),
+          };
+        const ok = saveCampaign(campaignSave);
+        set({
+          campaignSave,
+          campaignIssue: ok ? '' : 'unavailable',
+          ...(!silent || !ok ? { notice: ok ? 'saved' : 'saveFailed' } : {}),
+        });
+        return;
+      }
       const ok = saveGame({ ...get().game, settings: get().settings });
       set({
         ...(get().game.mode === 'citylab'

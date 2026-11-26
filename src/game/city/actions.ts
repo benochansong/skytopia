@@ -1,3 +1,4 @@
+import { canUse } from '../campaign/runtime';
 import type { Game, Kind } from '../../types/game';
 import { BLOCKS, PHYSICAL } from '../../data/rules';
 import { OPERATION, CITY_RULES, facility, cityDifficulty } from '../../data/cityRules';
@@ -7,6 +8,7 @@ import { cityReport } from './report';
 import { cityEvent } from './state';
 import { analyze } from '../analysis';
 export function unlocked(g: Game, kind: Kind) {
+  if (g.campaign) return canUse(g, kind);
   return (
     g.mode === 'citylab' ||
     OPERATION[kind].unlock <=
@@ -33,6 +35,7 @@ export function orderBuilding(g: Game, kind: Kind): Game {
   const cost = orderCost(kind);
   if (
     !g.city.enabled ||
+    g.campaign?.stage === 101 ||
     !unlocked(g, kind) ||
     g.city.orders.length >= CITY_RULES.maxOrders ||
     g.city.orderCooldown > 0 ||
@@ -83,6 +86,7 @@ export function upgradePreview(g: Game, id: number) {
     after,
     stability: stats.stability,
     allowed:
+      (!g.campaign || g.campaign.continued || g.campaign.stage >= 11) &&
       g.city.enabled &&
       level < OPERATION[b.kind].maxLevel &&
       !!operation?.road &&

@@ -4,7 +4,7 @@ import { cellsOf, key, neighbors } from '../grid';
 import { edgeKey } from '../stability/state';
 import { makePlatform } from '../stability/state';
 import { reconcileResidents } from './population';
-export function configureLivingScenario(g: Game): Game {
+export function configureLivingScenario(g: Game, housing: Kind = 'apartment'): Game {
   const advanced = g.mode === 'citylab' || g.missionId >= 6;
   const radius = advanced ? 5 : 3;
   const platforms: Game['platforms'] = [];
@@ -78,9 +78,9 @@ export function configureLivingScenario(g: Game): Game {
     plot('battery');
     plot('refinery');
   } else {
-    plot('apartment');
-    plot('apartment');
-    plot('apartment');
+    plot(housing);
+    plot(housing);
+    plot(housing);
     plot('power');
     plot('power');
     plot('liftSmall');

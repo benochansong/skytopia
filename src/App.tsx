@@ -4,6 +4,10 @@ import { useGame } from './stores/gameStore';
 import { HUD, Menu, Overlay } from './components/Interface';
 import Runtime from './components/Runtime';
 import { TEXT } from './locales/text';
+const CampaignScreens = lazy(() => import('./components/CampaignUI'));
+const CampaignOverlay = lazy(() =>
+  import('./components/CampaignUI').then((m) => ({ default: m.CampaignOverlay })),
+);
 const World = lazy(() => import('./scene/World'));
 class SceneBoundary extends Component<{ children: ReactNode }, { error: boolean }> {
   state = { error: false };
@@ -24,6 +28,7 @@ class SceneBoundary extends Component<{ children: ReactNode }, { error: boolean 
   }
 }
 export default function App() {
+  const campaign = useGame((s) => s.game.campaign);
   const screen = useGame((s) => s.screen),
     language = useGame((s) => s.settings.language),
     reduced = useGame((s) => s.settings.reducedMotion),
@@ -33,22 +38,39 @@ export default function App() {
   }, [language]);
   const menu =
     screen === 'menu' || ((screen === 'settings' || screen === 'about') && returnScreen === 'menu');
+  const map = ['campaign', 'profile', 'challenges'].includes(screen);
   return (
     <main className={`game-app ${reduced ? 'reduced-motion' : ''}`}>
       <Runtime />
-      <SceneBoundary>
-        <Suspense
-          fallback={
-            <div className="loading-scene">
-              SKYTOPIA <span>Preparing the sky…</span>
-            </div>
-          }
-        >
-          <World />
+      {!map && (
+        <SceneBoundary>
+          <Suspense
+            fallback={
+              <div className="loading-scene">
+                SKYTOPIA <span>Preparing the sky…</span>
+              </div>
+            }
+          >
+            <World />
+          </Suspense>
+        </SceneBoundary>
+      )}
+      {map || screen === 'opening' ? (
+        <Suspense fallback={<div className="loading-scene">SKY CAMPAIGN…</div>}>
+          <CampaignScreens />
         </Suspense>
-      </SceneBoundary>
-      {menu ? <Menu /> : <HUD />}
-      <Overlay />
+      ) : menu ? (
+        <Menu />
+      ) : (
+        <HUD />
+      )}
+      {campaign && ['playing', 'paused', 'victory', 'gameover'].includes(screen) ? (
+        <Suspense fallback={null}>
+          <CampaignOverlay key={campaign.stage + ':' + campaign.seed} />
+        </Suspense>
+      ) : !map && screen !== 'opening' ? (
+        <Overlay />
+      ) : null}
     </main>
   );
 }

@@ -1,3 +1,5 @@
+import { stage } from './campaign/definitions';
+import { campaignDraw, campaignStep } from './campaign/runtime';
 import { freshCity, cityEvent } from './city/state';
 import { reconcileResidents } from './city/population';
 import { reconcileStores } from './city/simulation';
@@ -117,6 +119,16 @@ export function newGame(
 }
 function advance(g: Game): Game {
   if (g.reservedActive) return { ...g, active: g.reservedActive, reservedActive: null };
+  if (g.campaign) {
+    let next = campaignDraw(g);
+    if (g.city.orders[0]?.remaining === 0)
+      next = {
+        ...next,
+        next: [...next.next.slice(0, 2), g.city.orders[0].piece],
+        city: { ...next.city, orders: next.city.orders.slice(1) },
+      };
+    return next;
+  }
   if (g.mode === 'citylab' && g.city.orders[0]?.remaining === 0)
     return cityEvent(
       { ...g, active: g.city.orders[0].piece, city: { ...g.city, orders: g.city.orders.slice(1) } },
@@ -156,7 +168,13 @@ function advance(g: Game): Game {
   };
 }
 export function place(g: Game): Game {
-  if (g.structure.loss) return g;
+  if (
+    g.structure.loss ||
+    g.campaign?.dialogue ||
+    g.campaign?.failed ||
+    (g.campaign?.result && !g.campaign.continued)
+  )
+    return g;
   const v = validatePlacement(g);
   if (!v.valid) return g;
   if (g.mode === 'training' && g.tutorial < 4) return g;
@@ -189,14 +207,39 @@ export function place(g: Game): Game {
     )
       changed.tutorial++;
   }
+  if (g.campaign)
+    changed = {
+      ...changed,
+      campaign: {
+        ...g.campaign,
+        placed: g.campaign.placed + 1,
+        used: g.campaign.used + 1,
+        spent: g.campaign.spent + Math.max(0, g.resources - changed.resources),
+      },
+    };
   changed = advance(changed);
+  if (changed.campaign) return campaignStep(changed, 0);
   return {
     ...changed,
     won: g.won || (g.mode === 'mission' && g.missionId === 1 && objectives(changed).every(Boolean)),
   };
 }
 export function recycle(g: Game): Game {
-  if (g.structure.loss) return g;
+  if (
+    g.structure.loss ||
+    g.campaign?.dialogue ||
+    g.campaign?.failed ||
+    (g.campaign?.result && !g.campaign.continued)
+  )
+    return g;
+  if (g.campaign) {
+    const d = stage(g.campaign.stage);
+    if (d.limit && g.campaign.used >= d.limit) return g;
+    return campaignStep(
+      advance({ ...g, campaign: { ...g.campaign, used: g.campaign.used + 1 } }),
+      0,
+    );
+  }
   if (g.reservedActive || g.mode === 'lab' || g.mode === 'citylab') return advance(g);
   if (g.city.enabled) {
     const next = adjustStock(g, inventory(g).root, 'materials', RULES.recycleResources);
@@ -209,6 +252,7 @@ export function recycle(g: Game): Game {
   });
 }
 export function hold(g: Game): Game {
+  if (g.campaign && stage(g.campaign.stage).limit) return g;
   if (g.reservedActive || g.structure.loss || g.mode === 'lab' || g.mode === 'citylab') return g;
   if (g.holdUsed) return g;
   // Exchanging never resets the deadline: a hold cannot bypass the falling timer.
@@ -249,12 +293,20 @@ function tickStep(g: Game, dt: number): Game {
       ? g.population
       : Math.min(stats.poweredCapacity, g.population + dt * RULES.populationPerSecond),
     remaining:
-      g.mode !== 'mission' || g.reservedActive
+      g.mode !== 'mission' || g.reservedActive || (g.campaign && !stage(g.campaign.stage).fall)
         ? g.remaining
         : Math.max(
             0,
             g.remaining -
-              dt * (stats.structural.critical ? DIFFICULTIES[g.difficulty].fallSlow : 1),
+              dt *
+                (g.campaign
+                  ? g.difficulty === 'easy'
+                    ? 0.5
+                    : g.difficulty === 'hard'
+                      ? 1.25
+                      : 1
+                  : 1) *
+                (stats.structural.critical ? DIFFICULTIES[g.difficulty].fallSlow : 1),
           ),
     resources:
       g.resources +
@@ -267,12 +319,13 @@ function tickStep(g: Game, dt: number): Game {
     result.population = Math.min(stats.capacity, Math.max(g.population, result.population));
   if (result.remaining === 0)
     result = validatePlacement(result).valid ? place(result) : recycle(result);
-  result = simulateStructure(result, dt);
+  if (!g.campaign || stage(g.campaign.stage).structure) result = simulateStructure(result, dt);
   if (result.city.enabled) {
     if (result.buildings !== g.buildings) result = reconcileStores(reconcileResidents(result));
     result = tickCity(result, dt);
   } else
     result = { ...result, city: { ...result.city, dayTime: (result.city.dayTime + dt) % 360 } };
+  if (result.campaign) return campaignStep(result, dt);
   const complete = objectives(result).every(Boolean) && !result.structure.loss;
   const missionHold = complete ? result.missionHold + dt : 0;
   if (
@@ -295,18 +348,38 @@ function tickStep(g: Game, dt: number): Game {
 }
 
 export function tick(g: Game, dt: number): Game {
+  if (
+    g.campaign &&
+    (g.campaign.dialogue || g.campaign.failed || (g.campaign.result && !g.campaign.continued))
+  )
+    return g;
   if (!Number.isFinite(dt) || dt <= 0 || g.structure.loss || g.labPaused || g.city.speed === 0)
     return g;
   if (!g.city.enabled && g.city.speed === 1) return tickStep(g, dt);
   let next = g,
     acc = g.city.accumulator + Math.min(dt, 1) * g.city.speed,
     steps = 0;
-  while (acc + 1e-9 >= 0.25 && steps++ < 12 && !next.structure.loss) {
+  while (
+    acc + 1e-9 >= 0.25 &&
+    steps++ < 12 &&
+    !next.structure.loss &&
+    !next.campaign?.failed &&
+    !(next.campaign?.result && !next.campaign.continued)
+  ) {
     next = tickStep(next, 0.25);
     acc -= 0.25;
   }
   return {
     ...next,
-    city: { ...next.city, accumulator: next.structure.loss || acc < 1e-9 ? 0 : acc },
+    city: {
+      ...next.city,
+      accumulator:
+        next.structure.loss ||
+        next.campaign?.failed ||
+        (next.campaign?.result && !next.campaign.continued) ||
+        acc < 1e-9
+          ? 0
+          : acc,
+    },
   };
 }

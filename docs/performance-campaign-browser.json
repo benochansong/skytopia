@@ -1,0 +1,57 @@
+{
+  "browser": "158.0.8127.37",
+  "renderer": "SwiftShader, 1440×900, DPR1, shadows on, development build",
+  "snapshots": [
+    {
+      "mode": "stage1",
+      "drawCalls": 119,
+      "triangles": 5860,
+      "geometries": 129,
+      "textures": 2,
+      "elapsed": 6.423700000002982,
+      "samples": 22,
+      "medianMs": 139.20000000298023,
+      "p95Ms": 494.8999999985099,
+      "averageFps": 4.913895155348548
+    },
+    {
+      "mode": "stage1",
+      "drawCalls": 119,
+      "triangles": 5860,
+      "geometries": 131,
+      "textures": 2,
+      "elapsed": 4.941100000001489,
+      "samples": 26,
+      "medianMs": 128.89999999850988,
+      "p95Ms": 339,
+      "averageFps": 6.481366072541443
+    },
+    {
+      "mode": "stage1",
+      "drawCalls": 119,
+      "triangles": 5860,
+      "geometries": 129,
+      "textures": 2,
+      "elapsed": 5.894,
+      "samples": 27,
+      "medianMs": 130.30000000074506,
+      "p95Ms": 308.19999999925494,
+      "averageFps": 6.717754777071309
+    },
+    {
+      "mode": "stage15-continued",
+      "population": 285.6320389578189,
+      "platforms": 169,
+      "buildings": 87,
+      "drawCalls": 375,
+      "triangles": 40528,
+      "geometries": 385,
+      "textures": 2,
+      "elapsed": 175.5,
+      "samples": 26,
+      "medianMs": 270,
+      "p95Ms": 811.8999999985099,
+      "averageFps": 2.8347452545267244
+    }
+  ]
+}

@@ -1,3 +1,4 @@
+import { CHAPTERS } from './campaign/definitions';
 import type { EventKind, Settings } from '../types/game';
 type Channel = 'music' | 'effects' | 'warning';
 /** Small synthesized sound palette; no downloads or autoplay before user interaction. */
@@ -46,6 +47,13 @@ export class Soundscape {
       o.disconnect();
       g.disconnect();
     };
+  }
+  chapter(chapter: number) {
+    const now = this.context.currentTime;
+    if (now - (this.last.get('chapter') ?? -Infinity) < 6) return;
+    this.last.set('chapter', now);
+    for (const hz of CHAPTERS[chapter - 1]?.music ?? [])
+      this.tone('music', hz, hz, 5.5, chapter === 2 ? 'triangle' : 'sine', 0.006);
   }
   cue(
     kind:

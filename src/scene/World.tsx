@@ -1,3 +1,4 @@
+import { CHAPTERS, stage } from '../game/campaign/definitions';
 import { DayLight, LivingCity } from './LivingCity';
 import { memo, useEffect, useMemo, useRef } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
@@ -15,15 +16,17 @@ import { BuildingField, INSTANCED_KINDS } from './BuildingField';
 import { PerformanceProbe } from './PerformanceProbe';
 import { PlatformField, StructuralEffects } from './StructuralEffects';
 const Foundation = memo(function Foundation() {
+  const campaign = useGame((s) => s.game.campaign);
+  const rock = campaign ? CHAPTERS[stage(campaign.stage).chapter - 1].rock : undefined;
   return (
     <group position={[-0.5, -0.3, -0.5]}>
       <mesh position={[0, -1.5, 0]} rotation={[Math.PI, 0.2, 0]} castShadow receiveShadow>
         <coneGeometry args={[3.7, 2.8, 7, 1]} />
-        <meshStandardMaterial color="#697e7a" flatShading />
+        <meshStandardMaterial color={rock ?? '#697e7a'} flatShading />
       </mesh>
       <mesh position={[0.4, -1.8, -0.3]} rotation={[Math.PI, 0.6, 0.14]} castShadow>
         <coneGeometry args={[2.3, 3.5, 5, 1]} />
-        <meshStandardMaterial color="#526c73" flatShading />
+        <meshStandardMaterial color={rock ?? '#526c73'} flatShading />
       </mesh>
       {Array.from({ length: 13 }, (_, i) => {
         const a = i * 2.399,
@@ -128,6 +131,11 @@ const Scenery = memo(function Scenery() {
   );
 });
 function Camera() {
+  const cinematic = useGame(
+    (s) =>
+      s.screen === 'opening' ||
+      (!!s.game.campaign && (!!s.game.campaign.dialogue || s.screen === 'victory')),
+  );
   const controls = useRef<OrbitImpl>(null);
   const { camera } = useThree();
   const mode = useGame((s) => s.cameraMode),
@@ -159,7 +167,7 @@ function Camera() {
       screenSpacePanning={false}
       mouseButtons={{ LEFT: undefined, RIGHT: MOUSE.ROTATE, MIDDLE: MOUSE.PAN }}
       enableRotate={mode === 'free'}
-      autoRotate={screen === 'menu' && !reduced}
+      autoRotate={(screen === 'menu' || cinematic) && !reduced}
       autoRotateSpeed={0.2}
       onChange={() => {
         if (!controls.current) return;

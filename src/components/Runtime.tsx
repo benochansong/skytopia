@@ -1,3 +1,4 @@
+import { stage } from '../game/campaign/definitions';
 import { useEffect, useRef } from 'react';
 import { Soundscape } from '../game/audio';
 import { useGame } from '../stores/gameStore';
@@ -10,7 +11,13 @@ export default function Runtime() {
       const now = performance.now();
       if (!document.hidden) useGame.getState().tick(Math.min((now - last) / 1000, 1));
       last = now;
-      if (useGame.getState().screen === 'playing' && useGame.getState().settings.musicVolume > 0)
+      if (useGame.getState().game.campaign && useGame.getState().screen === 'playing')
+        audio.current?.chapter(stage(useGame.getState().game.campaign!.stage).chapter);
+      if (
+        !useGame.getState().game.campaign &&
+        useGame.getState().screen === 'playing' &&
+        useGame.getState().settings.musicVolume > 0
+      )
         audio.current?.cue(
           useGame.getState().game.city.enabled
             ? useGame.getState().game.city.dayTime > 180

@@ -1,3 +1,5 @@
+import { stage } from '../game/campaign/definitions';
+import { CampaignEntry, CampaignObjectives } from './CampaignControls';
 import { CityMenu, CityHUD, CitySettings } from './CityUI';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -270,7 +272,7 @@ export function Menu() {
     <div className="menu-screen">
       <header className="menu-top">
         <span className="edition">
-          GRAVITY AND COLLAPSE <i>02</i>
+          SKY CAMPAIGN <i>04</i>
         </span>
         <button
           className="language-button"
@@ -302,6 +304,7 @@ export function Menu() {
         </h1>
         <p>{t.subtitle}</p>
         <div className="menu-actions">
+          <CampaignEntry />
           <button className="primary" onClick={() => start('mission')}>
             <Icon name="play" size={17} />
             {t.newGame}
@@ -336,7 +339,7 @@ export function Menu() {
       <footer className="menu-footer">
         <span>BUILD ABOVE. BALANCE THE SKY. RISE BEYOND.</span>
         <span>
-          PHASE 3 <b>·</b> v0.3.0
+          PHASE 4 <b>·</b> v0.4.0
         </span>
       </footer>
       {pending ? (
@@ -354,6 +357,7 @@ export function Menu() {
   );
 }
 export function HUD() {
+  const freeMode = useGame((s) => s.freeMode);
   const g = useGame((s) => s.game),
     lang = useGame((s) => s.settings.language),
     t = TEXT[lang];
@@ -436,62 +440,80 @@ export function HUD() {
         </button>
       </header>
       <aside className="left-rail">
-        <section className="mission-card panel">
-          <div className="section-label">
-            <Icon name="flag" size={15} />
-            {g.mode === 'citylab' ? 'CITY LAB' : g.mode === 'lab' ? P2[lang].lab : t.mission}
-            <span>
-              {g.mode === 'citylab'
-                ? g.city.example
-                : g.mode === 'lab'
-                  ? g.labExample
-                  : `0${g.missionId}`}{' '}
-            </span>
-          </div>
-          <span className="eyebrow">
-            {g.mode === 'citylab'
-              ? 'LIVING CITY'
-              : g.mode === 'lab'
-                ? 'STRUCTURAL LAB'
-                : MISSIONS[g.missionId].subtitle}
-          </span>
-          <h1>
-            {g.mode === 'citylab'
-              ? lang === 'ko'
-                ? '도시 운영 실험실'
-                : 'City Lab'
-              : g.mode === 'lab'
-                ? LAB_EXAMPLES[g.labExample][lang]
-                : MISSIONS[g.missionId][lang]}
-          </h1>
-          <p>
-            {g.mode === 'citylab'
-              ? lang === 'ko'
-                ? '도시 운영 패널에서 예제·시설·시간을 조절하세요.'
-                : 'Use City management to control facilities, scenarios and time.'
-              : g.mode === 'lab'
-                ? P2[lang].unlimited
-                : g.missionId === 1
-                  ? t.missionHint
-                  : `${P2[lang].hold} ${g.missionHold.toFixed(1)} / ${MISSIONS[g.missionId].hold}s`}
-          </p>
-          {!['lab', 'citylab'].includes(g.mode) ? (
-            <div className="mission-progress">
-              <i style={{ width: `${(goals.filter(Boolean).length / goals.length) * 100}%` }} />
+        {g.campaign ? (
+          <CampaignObjectives />
+        ) : (
+          <section className="mission-card panel">
+            <div className="section-label">
+              <Icon name="flag" size={15} />
+              {freeMode
+                ? 'FREE BUILD'
+                : g.mode === 'citylab'
+                  ? 'CITY LAB'
+                  : g.mode === 'lab'
+                    ? P2[lang].lab
+                    : t.mission}
+              <span>
+                {g.mode === 'citylab'
+                  ? g.city.example
+                  : g.mode === 'lab'
+                    ? g.labExample
+                    : `0${g.missionId}`}{' '}
+              </span>
             </div>
-          ) : null}
-          <ul className="objectives">
-            {(g.mode === 'citylab' ? [] : labels).map((label, i) => (
-              <li key={label} className={goals[i] ? 'done' : ''}>
-                <span className="goal-check">
-                  {goals[i] ? <Icon name="check" size={12} /> : null}
-                </span>
-                <span>{label}</span>
-                <small>{g.missionId === 1 ? progress[i] : goals[i] ? '✓' : '—'}</small>
-              </li>
-            ))}
-          </ul>
-        </section>
+            <span className="eyebrow">
+              {g.mode === 'citylab'
+                ? 'LIVING CITY'
+                : g.mode === 'lab'
+                  ? 'STRUCTURAL LAB'
+                  : MISSIONS[g.missionId].subtitle}
+            </span>
+            <h1>
+              {freeMode
+                ? lang === 'ko'
+                  ? '자유 건설'
+                  : 'Free build'
+                : g.mode === 'citylab'
+                  ? lang === 'ko'
+                    ? '도시 운영 실험실'
+                    : 'City Lab'
+                  : g.mode === 'lab'
+                    ? LAB_EXAMPLES[g.labExample][lang]
+                    : MISSIONS[g.missionId][lang]}
+            </h1>
+            <p>
+              {freeMode
+                ? lang === 'ko'
+                  ? '자유롭게 도시를 운영하세요. 진행 기록과 별도로 저장됩니다.'
+                  : 'Manage your city freely. Saved separately from campaign progress.'
+                : g.mode === 'citylab'
+                  ? lang === 'ko'
+                    ? '도시 운영 패널에서 예제·시설·시간을 조절하세요.'
+                    : 'Use City management to control facilities, scenarios and time.'
+                  : g.mode === 'lab'
+                    ? P2[lang].unlimited
+                    : g.missionId === 1
+                      ? t.missionHint
+                      : `${P2[lang].hold} ${g.missionHold.toFixed(1)} / ${MISSIONS[g.missionId].hold}s`}
+            </p>
+            {!['lab', 'citylab'].includes(g.mode) ? (
+              <div className="mission-progress">
+                <i style={{ width: `${(goals.filter(Boolean).length / goals.length) * 100}%` }} />
+              </div>
+            ) : null}
+            <ul className="objectives">
+              {(g.mode === 'citylab' ? [] : labels).map((label, i) => (
+                <li key={label} className={goals[i] ? 'done' : ''}>
+                  <span className="goal-check">
+                    {goals[i] ? <Icon name="check" size={12} /> : null}
+                  </span>
+                  <span>{label}</span>
+                  <small>{g.missionId === 1 ? progress[i] : goals[i] ? '✓' : '—'}</small>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
         {g.mode === 'lab' ? (
           <LabPanel />
         ) : g.mode === 'training' ? (
@@ -575,7 +597,7 @@ export function HUD() {
         <button
           className={`hold-block ${g.holdUsed ? 'used' : ''}`}
           aria-label={`${t.hold} · C`}
-          disabled={g.holdUsed}
+          disabled={g.holdUsed || !!(g.campaign && stage(g.campaign.stage).limit)}
           onClick={() => useGame.getState().hold()}
         >
           <span className="section-label">
@@ -586,9 +608,19 @@ export function HUD() {
         </button>
         <div className="build-actions">
           <div className="fall-label">
-            <span>{g.mode !== 'mission' || g.reservedActive ? t.noTimer : t.remaining}</span>
+            <span>
+              {g.mode !== 'mission' ||
+              g.reservedActive ||
+              (g.campaign && !stage(g.campaign.stage).fall)
+                ? t.noTimer
+                : t.remaining}
+            </span>
             <strong>
-              {g.mode !== 'mission' || g.reservedActive ? '∞' : `${g.remaining.toFixed(1)}s`}
+              {g.mode !== 'mission' ||
+              g.reservedActive ||
+              (g.campaign && !stage(g.campaign.stage).fall)
+                ? '∞'
+                : `${g.remaining.toFixed(1)}s`}
             </strong>
           </div>
           <div className="fall-track">
@@ -648,6 +680,9 @@ export function Overlay() {
       <Dialog title={t.settings} onClose={close}>
         <div className="settings-rows">
           <CitySettings />
+          <button onClick={() => useGame.getState().replayOpening()}>
+            {settings.language === 'ko' ? '오프닝 다시 보기' : 'Replay opening'}
+          </button>
           <label>
             {t.language}
             <select

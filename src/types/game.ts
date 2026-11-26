@@ -113,6 +113,7 @@ export type Settings = {
   environment: boolean;
 };
 export type Game = {
+  campaign?: import('./campaign').CampaignRun;
   version: 3;
   city: import('./city').CityState;
   mode: 'mission' | 'training' | 'lab' | 'citylab';

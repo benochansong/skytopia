@@ -1,0 +1,85 @@
+{
+  "environment": {
+    "node": "v24.14.0",
+    "cpu": "AMD Ryzen AI 9 365 w/ Radeon 880M              ",
+    "platform": "win32"
+  },
+  "fixture": {
+    "stage": 15,
+    "platforms": 169,
+    "buildings": 76,
+    "population": 200,
+    "saveBytes": 74410
+  },
+  "results": [
+    {
+      "name": "load stage 1",
+      "samples": 50,
+      "medianMs": 0.4918999999999869,
+      "p95Ms": 0.8533999999999651
+    },
+    {
+      "name": "load stage 15",
+      "samples": 20,
+      "medianMs": 535.0296999999991,
+      "p95Ms": 636.6900000000005
+    },
+    {
+      "name": "campaign goals",
+      "samples": 500,
+      "medianMs": 0.06979999999930442,
+      "p95Ms": 0.16589999999996508
+    },
+    {
+      "name": "quarter-second engine",
+      "samples": 50,
+      "medianMs": 10.807999999999083,
+      "p95Ms": 16.90810000000056
+    },
+    {
+      "name": "profile update",
+      "samples": 50,
+      "medianMs": 0.0738999999994121,
+      "p95Ms": 0.2500999999974738
+    },
+    {
+      "name": "validated campaign plus checkpoint decode",
+      "samples": 50,
+      "medianMs": 7.0737999999983,
+      "p95Ms": 10.346700000001874
+    }
+  ],
+  "initial": {
+    "newPower": 0,
+    "population": 200,
+    "placed": 0,
+    "homes": 4,
+    "expansion": 0,
+    "outerHome": 0,
+    "connection": 1,
+    "powerMargin": 156.39999999999998,
+    "stability": 71.00546951269807,
+    "foodMargin": 5.265625000000002,
+    "foodStock": 180,
+    "farms": 3,
+    "amenities": 5,
+    "lifts": 4,
+    "separationGain": 0,
+    "reinforced": 0,
+    "alternatePath": 1,
+    "overloads": 0,
+    "repairs": 0,
+    "industry": 2,
+    "materials": 0.8942500000000001,
+    "net": 3.0015000000000005,
+    "happiness": 75,
+    "housingSpare": 88,
+    "clinic": 1,
+    "noise": 0,
+    "liftMargin": -63.79999999999973,
+    "workers": 0,
+    "survive": 0,
+    "credits": 600,
+    "collapse": 0
+  }
+}

@@ -23,7 +23,12 @@ export function bestBuild(
     if (!validatePlacement(candidate, piece, candidate.cursor, false).valid) continue;
     const projected = projectPlacement(candidate),
       report = cityReport(projected);
-    if (!report.operations.get(g.nextId)?.road) continue;
+    if (
+      g.city.enabled
+        ? !report.operations.get(g.nextId)?.road
+        : !analyze(projected).connectedIds.has(g.nextId)
+    )
+      continue;
     const value = metric(projected);
     if (value > score) {
       score = value;

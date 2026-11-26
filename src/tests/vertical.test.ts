@@ -146,7 +146,7 @@ describe('vertical grid, structure and migration', () => {
     const campaign = loadCampaign();
     expect(saveCampaign(campaign.save)).toBe(true);
     expect(data.get('skytopia.campaign.v1')).toBe(original);
-    expect(JSON.parse(data.get(CAMPAIGN_KEY)!).version).toBe(3);
+    expect(JSON.parse(data.get(CAMPAIGN_KEY)!).version).toBe(4);
   });
   it('round trips upper deck identity and rejects mismatched floors', () => {
     const g = upper(),

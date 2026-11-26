@@ -1,3 +1,4 @@
+import { worldReport } from './world/management';
 import { verticalPlacement } from './vertical/placement';
 import { isLink } from './vertical/geometry';
 import { canUse } from './campaign/runtime';
@@ -31,6 +32,21 @@ export function validatePlacement(
       g.campaign.used >= stage(g.campaign.stage).limit!)
   )
     return result(false, 'resourcesNeeded');
+  if (p.kind === 'nexus') {
+    const w = g.world,
+      c = w?.cities.find((c) => c.id === w.active);
+    if (
+      !w ||
+      !c ||
+      w.capital !== c.id ||
+      c.rare.pureAether < 20 ||
+      c.rare.ancientAlloy < 20 ||
+      !w.research.completed.includes('distributedCore') ||
+      worldReport(g).tier < 5 ||
+      analyze(g).stability < 80
+    )
+      return result(false, 'resourcesNeeded');
+  }
   if (!g.vertical && (VERTICAL_KINDS.includes(p.kind) || (cursor.y ?? 0) !== 0))
     return result(false, 'verticalLocked');
   if (g.vertical) {

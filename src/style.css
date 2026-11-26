@@ -2459,3 +2459,334 @@ kbd {
 .wave-reward h3 {
   width: 100%;
 }
+.world-entry {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0;
+  padding: 12px;
+  border: 1px solid #81c5d84d;
+  border-radius: 12px;
+  background: #13384775;
+}
+.world-setup {
+  display: grid;
+  gap: 8px;
+}
+.world-entry details {
+  font-size: 12px;
+}
+.world-city-toggle {
+  position: absolute;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 15;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 14px;
+}
+.world-dashboard {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  background: radial-gradient(ellipse at top, #244c5f, #101f2b 70%);
+  color: #e1ebe9;
+  z-index: 10;
+  font-family: inherit;
+}
+.world-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 22px 28px;
+  border-bottom: 1px solid #ffffff20;
+}
+.world-header > div > small {
+  display: block;
+  margin-bottom: 4px;
+}
+.world-header h1 {
+  margin: 3px 0;
+  font-family: Georgia, serif;
+  font-size: 28px;
+  letter-spacing: 3px;
+}
+.world-header small {
+  color: #a3d8d5;
+  font-size: 10px;
+  letter-spacing: 2px;
+}
+.world-header > div:nth-child(2) {
+  display: grid;
+  gap: 5px;
+  margin-right: auto;
+}
+.world-header span {
+  color: #a9c4c9;
+  font-size: 12px;
+}
+.world-dashboard button {
+  cursor: pointer;
+  border: 1px solid #a2cdd34d;
+  background: #2a53616b;
+  color: #e8f5ef;
+  padding: 9px 13px;
+  border-radius: 7px;
+  font: inherit;
+  font-size: 12px;
+}
+.world-dashboard button:hover {
+  background: #46717b;
+}
+.world-dashboard button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.world-dashboard button:focus-visible,
+.world-island:focus-visible {
+  outline: 3px solid #efd9a1;
+  outline-offset: 3px;
+}
+.world-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 14px 28px;
+}
+.world-tabs button[aria-pressed='true'] {
+  background: #b9d5c3;
+  color: #172f37;
+  border-color: #cbe6d7;
+}
+.world-status {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  padding: 0 28px 10px;
+  font-size: 12px;
+  color: #c2d9db;
+}
+.world-status label {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.world-dashboard input,
+.world-dashboard select,
+.world-setup input,
+.world-setup select {
+  padding: 8px;
+  background: #122c39;
+  color: #e4efea;
+  border: 1px solid #70959970;
+  border-radius: 5px;
+  max-width: 100%;
+  font: inherit;
+  font-size: 12px;
+}
+.world-dashboard input[type='checkbox'] {
+  width: auto;
+}
+.world-dashboard label {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+  margin: 8px 0;
+}
+.world-warnings {
+  display: flex;
+  gap: 8px;
+  padding: 4px 28px;
+}
+.world-warnings button {
+  color: #f1c895;
+  border-color: #d9a76f60;
+}
+.world-content {
+  padding: 12px 28px 32px;
+}
+.world-map-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 290px;
+  gap: 18px;
+  min-height: 550px;
+}
+.world-map {
+  position: relative;
+  border: 1px solid #8eacb933;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #112a39;
+}
+.world-map svg {
+  display: block;
+  width: 100%;
+  height: 540px;
+  touch-action: none;
+}
+.world-map text {
+  font: 11px system-ui;
+  fill: #e2e9df;
+  pointer-events: none;
+}
+.world-island {
+  cursor: pointer;
+}
+.world-map-tools {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  gap: 4px;
+  z-index: 1;
+}
+.world-map p {
+  margin: 0;
+  padding: 12px;
+  color: #a7bfc8;
+  font-size: 11px;
+}
+.world-card {
+  padding: 18px;
+  background: linear-gradient(140deg, #244655d9, #18323ed9);
+  border: 1px solid #98c0c02b;
+  border-radius: 12px;
+}
+.world-card h2,
+.world-card h3 {
+  margin: 8px 0 12px;
+  font-family: Georgia, serif;
+}
+.world-card h2 {
+  font-size: 22px;
+}
+.world-card h3 {
+  font-size: 17px;
+}
+.world-card p,
+.world-card small {
+  font-size: 12px;
+  line-height: 1.65;
+  color: #b7cbd0;
+}
+.world-card input {
+  width: 100%;
+}
+.world-card select {
+  width: 100%;
+}
+.world-card dl {
+  font-size: 12px;
+  line-height: 1.7;
+}
+.world-card dt {
+  color: #92b6bd;
+}
+.world-card dd {
+  margin: 0 0 10px;
+}
+.world-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 12px 0;
+}
+.world-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+  margin: 14px 0;
+}
+.world-form {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.world-card progress {
+  width: 100%;
+  accent-color: #a0dac5;
+}
+.world-content > p {
+  color: #b9ced3;
+  font-size: 13px;
+}
+.world-content > h2 {
+  font-size: 20px;
+}
+.world-dashboard input[type='checkbox'] {
+  accent-color: #9acdb4;
+}
+@media (max-width: 850px) {
+  .world-header {
+    flex-wrap: wrap;
+    padding: 16px;
+  }
+  .world-map-layout {
+    grid-template-columns: 1fr;
+  }
+  .world-map svg {
+    height: 400px;
+  }
+  .world-content {
+    padding: 12px;
+  }
+  .world-tabs {
+    padding: 12px;
+    flex-wrap: wrap;
+  }
+  .world-form {
+    grid-template-columns: 1fr 1fr;
+  }
+  .world-status {
+    padding: 10px 12px;
+    flex-wrap: wrap;
+  }
+  .world-warnings {
+    padding: 0 12px;
+    flex-wrap: wrap;
+  }
+  .world-city-toggle {
+    bottom: 80px;
+  }
+}
+.world-ending {
+  position: absolute;
+  left: 50%;
+  bottom: 6vh;
+  transform: translateX(-50%);
+  width: min(720px, 90vw);
+  z-index: 45;
+  padding: 26px 32px;
+  background: #122a39ed;
+  border: 1px solid #aacbc260;
+  border-radius: 16px;
+  text-align: center;
+}
+.world-ending h1 {
+  font-family: Georgia, serif;
+  letter-spacing: 4px;
+  font-size: 32px;
+}
+.world-ending p {
+  font-size: 16px;
+  line-height: 1.8;
+}
+.world-ending small {
+  color: #aec8c9;
+}
+.world-ending .world-buttons {
+  justify-content: center;
+}
+.world-dashboard input.world-name {
+  font:
+    26px Georgia,
+    serif;
+  letter-spacing: 2px;
+  width: 240px;
+  background: transparent;
+  border-color: transparent;
+  padding: 2px 0;
+}
+.world-dashboard input.world-name:focus {
+  border-color: #a0d6cd;
+}

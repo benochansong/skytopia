@@ -21,6 +21,7 @@ export function draw(
   source: Supply,
   training = false,
   context: {
+    world?: import('../types/world').WorldContext;
     script?: Kind[];
     vertical?: boolean;
     disaster?: boolean;
@@ -36,6 +37,15 @@ export function draw(
   if (!bag.length) {
     bag = [...BAG, ...(context.vertical ? VERTICAL_KINDS : [])];
     if (context.disaster) bag.push(...DISASTER_KINDS);
+    if (context.world) {
+      const specialty = context.world.specialty;
+      if (specialty === 'agriculture') bag.push('farm', 'greenhouse', 'farm');
+      if (specialty === 'industry') bag.push('factory', 'workshop', 'warehouse');
+      if (specialty === 'energy') bag.push('power', 'refinery', 'battery');
+      if (specialty === 'residential') bag.push('home', 'park', 'clinic');
+      if (specialty === 'research') bag.push('researchLab', 'power');
+      if (specialty === 'trade') bag.push('portSmall', 'warehouse');
+    }
     if (context.hazard) bag.push(...forecastSupply(context.hazard));
     if (source.policy === 'adaptive' && !training) {
       bag.push(

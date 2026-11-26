@@ -48,7 +48,9 @@ export function disasterBefore(g: Game, dt: number): Game {
   next = recoveryStep(next, dt);
   const state = next.disaster!;
   if (
-    ((state.phase === 'calm' && state.clock >= 30) ||
+    ((state.phase === 'calm' &&
+      state.clock >=
+        (g.worldContext ? 120 / Math.max(0.25, g.worldContext.disasterFrequency ?? 1) : 30)) ||
       (state.phase === 'recovery' && state.clock >= state.threat!.recovery)) &&
     state.reward === null &&
     ['survival', 'free'].includes(state.mode)

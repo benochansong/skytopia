@@ -1,3 +1,4 @@
+import { WorldEntry, WorldControls } from './WorldUI';
 import { DisasterEntry, DisasterControls } from './DisasterUI';
 import { VerticalEntry, VerticalControls } from './VerticalUI';
 import { stage } from '../game/campaign/definitions';
@@ -311,6 +312,7 @@ export function Menu() {
         <div className="menu-actions">
           <CampaignEntry />
           <VerticalEntry />
+          <WorldEntry />
           <DisasterEntry />
           <button className="primary" onClick={() => start('mission')}>
             <Icon name="play" size={17} />
@@ -346,7 +348,7 @@ export function Menu() {
       <footer className="menu-footer">
         <span>BUILD ABOVE. BALANCE THE SKY. RISE BEYOND.</span>
         <span>
-          PHASE 5 <b>·</b> v0.5.0
+          PHASE 7 <b>·</b> v0.7.0
         </span>
       </footer>
       {pending ? (
@@ -448,11 +450,26 @@ export function HUD() {
           <Icon name="pause" />
         </button>
       </header>
+      <WorldControls />
       <VerticalControls />
       <DisasterControls />
       <aside className="left-rail">
         {g.campaign ? (
           <CampaignObjectives />
+        ) : g.world ? (
+          <section className="mission-card panel">
+            <div className="section-label">
+              {g.world.mode === 'lab' ? 'WORLD LAB' : 'CIVILIZATION'} · {g.world.cities.length}/
+              {g.world.config.maxCities}
+            </div>
+            <span className="eyebrow">BEYOND THE CLOUDS</span>
+            <h1>{g.world.cities.find((c) => c.id === g.world!.active)?.name}</h1>
+            <p>
+              {lang === 'ko'
+                ? '이 도시의 구조와 생활을 돌보세요. 세계 지도에서 탐사·운송·연구와 다른 도시를 관리합니다.'
+                : 'Care for this city’s structure and people. Manage exploration, freight, research and other cities on the world map.'}
+            </p>
+          </section>
         ) : (
           <section className="mission-card panel">
             <div className="section-label">

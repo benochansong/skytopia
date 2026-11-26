@@ -1,3 +1,4 @@
+import { tickWorld } from './world/runtime';
 import { disasterBefore, disasterAfter } from './disasters/manager';
 import { stage } from './campaign/definitions';
 import { campaignDraw, campaignStep } from './campaign/runtime';
@@ -24,7 +25,7 @@ import { draw } from './supply';
 import { analyze, objectives } from './analysis';
 import { validatePlacement } from './placement';
 import { freshStructure, makePlatform } from './stability/state';
-import { simulateStructure } from './stability/simulation';
+import { simulateStructure, structureStep } from './stability/simulation';
 import { configureScenario } from './scenarios';
 import { projectPlacement } from './building';
 import { costFor } from './repair/maintenance';
@@ -135,10 +136,14 @@ function advance(g: Game): Game {
       { ...g, active: g.city.orders[0].piece, city: { ...g.city, orders: g.city.orders.slice(1) } },
       'delivery',
     );
-  if (g.mode === 'lab' || (g.mode === 'citylab' && g.disaster?.mode !== 'survival'))
-    return { ...g, remaining: RULES.fallSeconds, holdUsed: false };
+  if (
+    g.mode === 'lab' ||
+    (g.mode === 'citylab' && !g.worldContext && g.disaster?.mode !== 'survival')
+  )
+    return { ...g, remaining: g.worldContext?.blockTime || RULES.fallSeconds, holdUsed: false };
   const s = analyze(g);
   const [randomPiece, randomSupply] = draw(g.supply, g.mode === 'training', {
+    world: g.worldContext,
     vertical: !!g.vertical,
     disaster: !!g.disaster && !['off', 'weather'].includes(g.disaster.setting),
     hazard: g.disaster?.phase === 'forecast' ? g.disaster.threat?.kind : undefined,
@@ -167,7 +172,7 @@ function advance(g: Game): Game {
     active: g.next[0],
     next: [...g.next.slice(1), piece],
     supply,
-    remaining: RULES.fallSeconds,
+    remaining: g.worldContext?.blockTime || RULES.fallSeconds,
     holdUsed: false,
   };
 }
@@ -237,6 +242,26 @@ export function place(g: Game): Game {
           changed.vertical.builtBridges + (g.active.kind.toLowerCase().includes('bridge') ? 1 : 0),
       },
     };
+  if (g.world && g.active.kind === 'nexus') {
+    changed = {
+      ...changed,
+      world: {
+        ...g.world,
+        cities: g.world.cities.map((c) =>
+          c.id === g.world!.active
+            ? {
+                ...c,
+                rare: {
+                  ...c.rare,
+                  pureAether: c.rare.pureAether - 20,
+                  ancientAlloy: c.rare.ancientAlloy - 20,
+                },
+              }
+            : c,
+        ),
+      },
+    };
+  }
   changed = advance(changed);
   if (changed.campaign) return campaignStep(changed, 0);
   return {
@@ -273,7 +298,13 @@ export function recycle(g: Game): Game {
 }
 export function hold(g: Game): Game {
   if (g.campaign && stage(g.campaign.stage).limit) return g;
-  if (g.reservedActive || g.structure.loss || g.mode === 'lab' || g.mode === 'citylab') return g;
+  if (
+    g.reservedActive ||
+    g.structure.loss ||
+    g.mode === 'lab' ||
+    (g.mode === 'citylab' && !g.worldContext)
+  )
+    return g;
   if (g.holdUsed) return g;
   // Exchanging never resets the deadline: a hold cannot bypass the falling timer.
   if (g.hold) return { ...g, active: g.hold, hold: g.active, holdUsed: true };
@@ -302,7 +333,7 @@ export function turn(g: Game, delta: number): Game {
     tutorial: g.mode === 'training' && g.tutorial === 3 ? 4 : g.tutorial,
   };
 }
-function tickStep(g: Game, dt: number): Game {
+export function tickStep(g: Game, dt: number, background = false): Game {
   if (!Number.isFinite(dt) || dt <= 0 || g.structure.loss || g.labPaused) return g;
   dt = Math.min(dt, 1); // Never punish players for a hidden tab or a stalled frame.
   const stats = analyze(g);
@@ -341,7 +372,8 @@ function tickStep(g: Game, dt: number): Game {
   if (result.remaining === 0)
     result = validatePlacement(result).valid ? place(result) : recycle(result);
   result = disasterBefore(result, dt);
-  if (!g.campaign || stage(g.campaign.stage).structure) result = simulateStructure(result, dt);
+  if (!g.campaign || stage(g.campaign.stage).structure)
+    result = background ? structureStep(result, dt) : simulateStructure(result, dt);
   if (result.city.enabled) {
     if (result.buildings !== g.buildings) result = reconcileStores(reconcileResidents(result));
     result = tickCity(result, dt);
@@ -371,6 +403,12 @@ function tickStep(g: Game, dt: number): Game {
 }
 
 export function tick(g: Game, dt: number): Game {
+  if (g.world) {
+    const next = tickWorld(g, dt, tickStep, (city) =>
+      validatePlacement(city).valid ? place(city) : recycle(city),
+    );
+    return next.campaign ? campaignStep(next, next.world!.clock - g.world.clock) : next;
+  }
   if (
     g.campaign &&
     (g.campaign.dialogue || g.campaign.failed || (g.campaign.result && !g.campaign.continued))

@@ -10,7 +10,11 @@ export function recoveryStep(g: Game, dt: number): Game {
   const d = g.disaster!;
   if (!d.autoRepair) return g;
   let next = { ...g, disaster: { ...d, repairClock: d.repairClock + dt } };
-  if (next.disaster.repairClock < DISASTER.repairInterval) return next;
+  if (
+    next.disaster.repairClock <
+    DISASTER.repairInterval * (g.worldContext?.techs.includes('rapidRepair') ? 0.75 : 1)
+  )
+    return next;
   next.disaster.repairClock = 0;
   const centers = g.buildings.filter((b) => b.kind === 'repairCenter' && defenseReady(g, b));
   if (!centers.length) return next;

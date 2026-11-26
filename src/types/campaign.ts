@@ -1,6 +1,27 @@
 import type { Game, Kind } from './game';
 export type LocalText = { ko: string; en: string };
 export type Metric =
+  | 'worldInspected'
+  | 'worldTarget'
+  | 'worldAgriIndustry'
+  | 'worldExplored'
+  | 'worldCities'
+  | 'worldRoutes'
+  | 'worldFood'
+  | 'worldMaterials'
+  | 'worldResearch'
+  | 'worldArtifacts'
+  | 'worldAdvanced'
+  | 'worldStable'
+  | 'worldResilience'
+  | 'worldPopulation'
+  | 'worldSpecialties'
+  | 'worldNexus'
+  | 'worldRescue'
+  | 'worldPower'
+  | 'worldFoodBalance'
+  | 'worldIndustry'
+  | 'worldReturned'
   | 'observations'
   | 'windDefenses'
   | 'shieldUnits'
@@ -157,7 +178,7 @@ export type Profile = {
   legacyImported: boolean;
 };
 export type CampaignSave = {
-  version: 3;
+  version: 4;
   profile: Profile;
   current: Game | null;
   checkpoint: Game | null;

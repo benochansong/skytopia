@@ -1,3 +1,6 @@
+import { decodeWorld } from '../world/storage';
+import { syncWorld } from '../world/state';
+import { WORLD_KINDS } from '../../data/rules';
 import { z } from 'zod';
 import type { Game } from '../../types/game';
 import type { CampaignSave, CampaignRun, Profile } from '../../types/campaign';
@@ -5,7 +8,7 @@ import { decodeSave, loadGame } from '../storage';
 import { freshProfile } from './progress';
 import { allStages, LEGACY_MAP, available, stage } from './definitions';
 import { KINDS, VERTICAL_KINDS, DISASTER_KINDS } from '../../data/rules';
-export const CAMPAIGN_KEY = 'skytopia.campaign.v3';
+export const CAMPAIGN_KEY = 'skytopia.campaign.v4';
 const num = z.number().finite().min(0).max(1e9),
   count = num.int(),
   str = z.string().max(100),
@@ -27,7 +30,7 @@ const run = z.object({
       xp: count,
       unlocked: z
         .array(
-          z.enum([...KINDS, ...VERTICAL_KINDS, ...DISASTER_KINDS] as [
+          z.enum([...KINDS, ...VERTICAL_KINDS, ...DISASTER_KINDS, ...WORLD_KINDS] as [
             (typeof KINDS)[number],
             ...(typeof KINDS)[number][],
           ]),
@@ -77,7 +80,7 @@ const profile = z.object({
   seen: list,
   unlocked: z
     .array(
-      z.enum([...KINDS, ...VERTICAL_KINDS, ...DISASTER_KINDS] as [
+      z.enum([...KINDS, ...VERTICAL_KINDS, ...DISASTER_KINDS, ...WORLD_KINDS] as [
         (typeof KINDS)[number],
         ...(typeof KINDS)[number][],
       ]),
@@ -97,22 +100,28 @@ const profile = z.object({
 export function decodeCampaignGame(raw: unknown): Game | null {
   if (!raw) return null;
   const data = raw as Game,
-    decoded = decodeSave(JSON.stringify(data));
+    decoded = data.world
+      ? decodeWorld(JSON.stringify(syncWorld(data)))
+      : decodeSave(JSON.stringify(data));
   if (!decoded.ok) throw Error('Invalid city snapshot');
   if (!data.campaign) return decoded.game;
   const c = run.parse(data.campaign) as CampaignRun;
-  if (data.mode !== 'mission' || data.missionId !== stage(c.stage).source)
+  if (
+    (!data.world && data.mode !== 'mission') ||
+    data.missionId !== stage(c.stage).source ||
+    (c.stage >= 26 && c.stage <= 30 && !data.world)
+  )
     throw Error('Mismatched mission snapshot');
   if (c.result && (!data.won || c.failed)) throw Error('Invalid result');
   if (c.claimed && !c.result && !c.failed) throw Error('Invalid claim');
-  return { ...decoded.game, campaign: c };
+  return { ...decoded.game, won: data.won, campaign: c };
 }
 export function freshCampaign(): CampaignSave {
-  return { version: 3, profile: freshProfile(), current: null, checkpoint: null, free: null };
+  return { version: 4, profile: freshProfile(), current: null, checkpoint: null, free: null };
 }
 export function decodeCampaign(raw: string): { save: CampaignSave; recovered: boolean } {
   const value = JSON.parse(raw);
-  if (value.version !== 1 && value.version !== 2 && value.version !== 3)
+  if (value.version !== 1 && value.version !== 2 && value.version !== 3 && value.version !== 4)
     throw Error('Unknown campaign version');
   const p = profile.parse(value.profile) as Profile;
   if (
@@ -146,7 +155,7 @@ export function decodeCampaign(raw: string): { save: CampaignSave; recovered: bo
   }
   return {
     save: {
-      version: 3,
+      version: 4,
       profile: p,
       current,
       checkpoint:
@@ -167,6 +176,7 @@ export function loadCampaign(): { save: CampaignSave; issue: string } {
   try {
     raw =
       localStorage.getItem(CAMPAIGN_KEY) ??
+      localStorage.getItem('skytopia.campaign.v3') ??
       localStorage.getItem('skytopia.campaign.v2') ??
       localStorage.getItem('skytopia.campaign.v1');
   } catch {

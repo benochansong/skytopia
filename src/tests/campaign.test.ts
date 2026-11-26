@@ -8,8 +8,8 @@ import { volume } from '../game/vertical/geometry';
 import { tick } from '../game/engine';
 import { advanceDialogue } from '../game/campaign/runtime';
 describe('Sky Campaign data and safety', () => {
-  it('loads 25 stages and three fixed challenges with valid cities, supply and bilingual content', () => {
-    expect(new Set(allStages.map((s) => s.id)).size).toBe(28);
+  it('loads 30 stages and three fixed challenges with valid cities, supply and bilingual content', () => {
+    expect(new Set(allStages.map((s) => s.id)).size).toBe(33);
     for (const d of allStages) {
       const g = loadStage(d.id, DEFAULT_SETTINGS);
       const occupied = g.buildings.flatMap((b) => volume(b, b.origin).map(key));
@@ -24,14 +24,16 @@ describe('Sky Campaign data and safety', () => {
       expect(g.campaign?.result).toBeNull();
       if (d.next) expect(stage(d.next)).toBeTruthy();
     }
-  }, 60000);
+  }, 180000);
   it('all difficulty presets start with valid physical stock and mission state', () => {
     for (const difficulty of ['easy', 'normal', 'hard'] as const)
-      for (const id of [1, 4, 5, 8, 11, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25])
+      for (const id of [
+        1, 4, 5, 8, 11, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
+      ])
         expect(() =>
           decodeCampaignGame(loadStage(id, { ...DEFAULT_SETTINGS, difficulty })),
         ).not.toThrow();
-  }, 60000);
+  }, 180000);
   it('pauses simulation in dialogue and starts after skip', () => {
     const g = loadStage(1, DEFAULT_SETTINGS);
     expect(tick(g, 1)).toBe(g);

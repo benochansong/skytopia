@@ -72,7 +72,23 @@ export type Kind =
   | 'emergencyGranary'
   | 'shelter'
   | 'repairCenter'
-  | 'climateControl';
+  | 'climateControl'
+  | 'portSmall'
+  | 'port'
+  | 'portLarge'
+  | 'explorationPort'
+  | 'shipyard'
+  | 'shipMaintenance'
+  | 'internationalWarehouse'
+  | 'metalRefinery'
+  | 'advancedAetherRefinery'
+  | 'researchLab'
+  | 'artifactAnalysis'
+  | 'worldObservatory'
+  | 'skybridgeAnchor'
+  | 'distributedLiftCore'
+  | 'centralControl'
+  | 'nexus';
 export type Shape =
   | 'single'
   | 'D'
@@ -179,6 +195,8 @@ export type Settings = {
   environment: boolean;
 };
 export type Game = {
+  world?: import('./world').WorldState;
+  worldContext?: import('./world').WorldContext;
   campaign?: import('./campaign').CampaignRun;
   version: 5;
   disaster?: import('./disaster').DisasterState;

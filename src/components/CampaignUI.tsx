@@ -1,3 +1,4 @@
+import WorldEnding from './WorldEnding';
 import { useEffect, useState } from 'react';
 import { useGame } from '../stores/gameStore';
 import { Dialog, clockText } from './Interface';
@@ -241,9 +242,11 @@ export function CampaignOverlay() {
       </Dialog>
     );
   }
+  if (screen === 'victory' && c.result && c.stage === 30 && g.world && !g.world.ending.seen)
+    return <WorldEnding />;
   if (screen === 'victory' && c.result) {
     const r = c.result;
-    if (tour)
+    if (tour && c.stage !== 30)
       return (
         <div className="campaign-cinematic panel">
           <span className="eyebrow">
@@ -407,7 +410,8 @@ export default function CampaignScreens() {
           ))}
         </div>
         <h2>
-          {text('도전 과제', 'Achievements')} · {Object.keys(p.achievements).length}/34
+          {text('도전 과제', 'Achievements')} · {Object.keys(p.achievements).length}/
+          {ACHIEVEMENTS.length}
         </h2>
         <div className="achievement-grid">
           {ACHIEVEMENTS.map(([id, label]) => (
@@ -486,7 +490,7 @@ export default function CampaignScreens() {
           <h1>{text('하늘의 개척자', 'Pioneers of the sky')}</h1>
         </div>
         <div>
-          <span>★ {total}/75</span>
+          <span>★ {total}/90</span>
           <button onClick={() => useGame.getState().setScreen('menu')}>
             {text('메인 메뉴', 'Main menu')}
           </button>
@@ -518,8 +522,8 @@ export default function CampaignScreens() {
                 [150, 100],
               ].map(([x, y], i) => (
                 <g key={i} transform={'translate(' + x + ' ' + y + ')'}>
-                  <ellipse rx="65" ry="22" fill={CHAPTERS[i].color} opacity={i < 4 ? 0.65 : 0.15} />
-                  <path d="M-65 0 0 85 65 0 0 22Z" fill={i < 4 ? '#345f65' : '#344550'} />
+                  <ellipse rx="65" ry="22" fill={CHAPTERS[i].color} opacity={0.65} />
+                  <path d="M-65 0 0 85 65 0 0 22Z" fill="#345f65" />
                   <path d="M-35 -4 0 -35 40 -5 0 10Z" fill={CHAPTERS[i].color} opacity=".65" />
                 </g>
               ))}

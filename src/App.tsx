@@ -1,3 +1,4 @@
+import WorldUI from './components/WorldUI';
 import { Component, Suspense, lazy, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { useGame } from './stores/gameStore';
@@ -29,6 +30,12 @@ class SceneBoundary extends Component<{ children: ReactNode }, { error: boolean 
 }
 export default function App() {
   const campaign = useGame((s) => s.game.campaign);
+  const worldMap = useGame(
+    (s) =>
+      !!s.game.world &&
+      s.game.world.view === 'map' &&
+      ['playing', 'paused', 'settings', 'victory'].includes(s.screen),
+  );
   const screen = useGame((s) => s.screen),
     language = useGame((s) => s.settings.language),
     reduced = useGame((s) => s.settings.reducedMotion),
@@ -42,7 +49,7 @@ export default function App() {
   return (
     <main className={`game-app ${reduced ? 'reduced-motion' : ''}`}>
       <Runtime />
-      {!map && (
+      {!map && !worldMap && (
         <SceneBoundary>
           <Suspense
             fallback={
@@ -55,7 +62,9 @@ export default function App() {
           </Suspense>
         </SceneBoundary>
       )}
-      {map || screen === 'opening' ? (
+      {worldMap ? (
+        <WorldUI />
+      ) : map || screen === 'opening' ? (
         <Suspense fallback={<div className="loading-scene">SKY CAMPAIGN…</div>}>
           <CampaignScreens />
         </Suspense>

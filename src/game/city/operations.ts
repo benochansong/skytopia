@@ -1,3 +1,4 @@
+import { productionFactor, demandFactor, hasTech } from '../world/effects';
 import { operationalFactor, temperatureDemand, harvestFactor } from '../disasters/effects';
 import { isBattery } from '../../data/rules';
 import { BLOCKS, PHYSICAL, isLift } from '../../data/rules';
@@ -57,7 +58,8 @@ function calculateOperations(city: City, elevators?: Set<number>) {
             : 1;
     const efficiency =
       b.enabled && group ? labor * condition * input * operationalFactor(city, b) : 0;
-    const output = f.power * efficiency * (city.city?.activity[b.id] ?? 1);
+    const output =
+      f.power * productionFactor(city, 'power') * efficiency * (city.city?.activity[b.id] ?? 1);
     if (powerGrid) generation.set(powerGrid, (generation.get(powerGrid) ?? 0) + output);
     operations.set(b.id, {
       id: b.id,
@@ -67,7 +69,9 @@ function calculateOperations(city: City, elevators?: Set<number>) {
       workers: assigned,
       jobs,
       power: output,
-      demand: b.enabled ? f.demand * temperatureDemand(city, b) * operationalFactor(city, b) : 0,
+      demand: b.enabled
+        ? f.demand * demandFactor(city) * temperatureDemand(city, b) * operationalFactor(city, b)
+        : 0,
       efficiency,
       status: !b.enabled
         ? 'paused'
@@ -84,7 +88,9 @@ function calculateOperations(city: City, elevators?: Set<number>) {
       materials: 0,
       aether: 0,
       income: 0,
-      upkeep: b.enabled ? f.upkeep * settings.upkeep : 0,
+      upkeep: b.enabled
+        ? f.upkeep * settings.upkeep * (hasTech(city, 'efficientCity') ? 0.9 : 1)
+        : 0,
       condition,
       environment: 0,
     });
@@ -156,12 +162,13 @@ function calculateOperations(city: City, elevators?: Set<number>) {
     else o.efficiency *= activity;
     o.food =
       f.food *
+      productionFactor(city, 'food') *
       harvestFactor(city, b) *
       o.efficiency *
       (b.y !== 0 && freight.attachments.get(b.id) !== freight.root ? 0.35 : 1);
     const freightFactor = b.y !== 0 && freight.attachments.get(b.id) !== freight.root ? 0.35 : 1;
-    o.materials = f.materials * o.efficiency * freightFactor;
-    o.aether = f.aether * o.efficiency * freightFactor;
+    o.materials = f.materials * productionFactor(city, 'materials') * o.efficiency * freightFactor;
+    o.aether = f.aether * productionFactor(city, 'aether') * o.efficiency * freightFactor;
     o.income = f.income * o.efficiency * clamp((city.population ?? 0) / 25);
     if (o.status === 'running' && ratio < 0.99 && o.demand) o.status = 'power';
     if (o.status === 'running' && (o.food || o.materials || o.aether) && o.road) {
@@ -245,6 +252,7 @@ const operationCache: { city: City; result: ReturnType<typeof calculateOperation
 export function operatingNetwork(city: City) {
   const hit = operationCache.find(
     (c) =>
+      c.city.worldContext === city.worldContext &&
       c.city.disaster === city.disaster &&
       c.city.city === city.city &&
       c.city.population === city.population &&
@@ -271,6 +279,6 @@ export function operatingNetwork(city: City) {
     }
   }
   operationCache.unshift({ city, result });
-  if (operationCache.length > 6) operationCache.pop();
+  if (operationCache.length > 12) operationCache.pop();
   return result;
 }

@@ -1,6 +1,6 @@
 import type { Goal, LocalText, Metric, Stage } from '../../types/campaign';
 import type { Kind } from '../../types/game';
-import { KINDS, VERTICAL_KINDS, DISASTER_KINDS } from '../../data/rules';
+import { KINDS, VERTICAL_KINDS, DISASTER_KINDS, WORLD_KINDS } from '../../data/rules';
 export const t = (ko: string, en: string): LocalText => ({ ko, en });
 const goal = (
   id: Metric,
@@ -21,34 +21,36 @@ const industry = (n: number) =>
   goal('industry', '산업시설 ' + n + '개 가동', n + ' working industries', n);
 const base: Kind[] = ['platform', 'home', 'road', 'power'];
 export const available = (id: number): Kind[] =>
-  id >= 21
-    ? [
-        ...KINDS,
-        ...VERTICAL_KINDS,
-        ...DISASTER_KINDS.filter(
-          (k) =>
-            id >= 24 ||
-            (id >= 23 &&
-              ['stabilizer', 'emergencyBattery', 'surgeRelay', 'climateControl'].includes(k)) ||
-            (id >= 22 &&
-              ['weatherTower', 'shieldSmall', 'shieldLarge', 'lightningTower'].includes(k)) ||
-            ['weatherStation', 'windbreak', 'reinforcedWindbreak', 'lightningRod'].includes(k),
-        ),
-      ]
-    : id >= 16
+  id >= 26
+    ? [...KINDS, ...VERTICAL_KINDS, ...DISASTER_KINDS, ...WORLD_KINDS]
+    : id >= 21
       ? [
           ...KINDS,
-          ...VERTICAL_KINDS.filter((k) => id >= 19 || !['hanger', 'suspendedDeck'].includes(k)),
+          ...VERTICAL_KINDS,
+          ...DISASTER_KINDS.filter(
+            (k) =>
+              id >= 24 ||
+              (id >= 23 &&
+                ['stabilizer', 'emergencyBattery', 'surgeRelay', 'climateControl'].includes(k)) ||
+              (id >= 22 &&
+                ['weatherTower', 'shieldSmall', 'shieldLarge', 'lightningTower'].includes(k)) ||
+              ['weatherStation', 'windbreak', 'reinforcedWindbreak', 'lightningRod'].includes(k),
+          ),
         ]
-      : id >= 11
-        ? [...KINDS]
-        : [
-            ...base,
-            ...(id >= 4 ? (['farm', 'warehouse', 'park', 'largeHome'] as Kind[]) : []),
-            ...(id >= 6 ? (['metalPlatform', 'brace', 'liftSmall', 'ballast'] as Kind[]) : []),
-            ...(id >= 7 ? (['liftLarge'] as Kind[]) : []),
-            ...(id >= 10 ? (['factory', 'workshop'] as Kind[]) : []),
-          ];
+      : id >= 16
+        ? [
+            ...KINDS,
+            ...VERTICAL_KINDS.filter((k) => id >= 19 || !['hanger', 'suspendedDeck'].includes(k)),
+          ]
+        : id >= 11
+          ? [...KINDS]
+          : [
+              ...base,
+              ...(id >= 4 ? (['farm', 'warehouse', 'park', 'largeHome'] as Kind[]) : []),
+              ...(id >= 6 ? (['metalPlatform', 'brace', 'liftSmall', 'ballast'] as Kind[]) : []),
+              ...(id >= 7 ? (['liftLarge'] as Kind[]) : []),
+              ...(id >= 10 ? (['factory', 'workshop'] as Kind[]) : []),
+            ];
 export const CHAPTERS = [
   {
     id: 1,
@@ -105,7 +107,10 @@ export const CHAPTERS = [
     title: t('구름 너머', 'Beyond the Clouds'),
     region: 'Beyond the Clouds',
     color: '#d3c39e',
-    planned: true,
+    sky: '#bad7df',
+    rock: '#758b8a',
+    music: [196, 246.94, 329.63, 392],
+    planned: false,
   },
 ];
 export const CHARACTERS: Record<
@@ -165,7 +170,7 @@ const seedStage = (
   hold: id === 1 ? 0 : 10,
   optional: [stable(90), goal('collapse', '추가 붕괴 없음', 'No additional collapse', 0, true)],
   speaker: id <= 3 ? 'elena' : id <= 5 ? 'maya' : id <= 10 ? 'elena' : 'maya',
-  next: id < 25 ? id + 1 : undefined,
+  next: id < 30 ? id + 1 : undefined,
   xp: 100 + id * 10,
   ...patch,
 });
@@ -759,6 +764,109 @@ export const STAGES: Stage[] = [
     },
   ),
 ];
+STAGES.push(
+  seedStage(
+    26,
+    t('잃어버린 섬들', 'The Lost Islands'),
+    'EXPAND',
+    8,
+    'world',
+    [
+      goal('worldExplored', '섬 3곳 탐사', 'Explore three islands', 3),
+      goal('worldInspected', '발견한 섬의 자원 확인', 'Inspect discovered resources', 1),
+      goal('worldTarget', '개척 후보 선택', 'Choose a colony target', 1),
+      goal('worldReturned', '비공정 안전 귀환', 'Safely return an airship', 1),
+      stable(75),
+    ],
+    t(
+      '구름 너머의 섬들을 찾아갑니다. 탐사 항구를 세우고 탐사선을 보내 자원을 조사하세요.',
+      'Find the islands beyond the clouds. Build an exploration port, send a ship and survey resources.',
+    ),
+    { fall: false, hold: 5, script: ['explorationPort', 'road', 'power'], speaker: 'orion' },
+  ),
+  seedStage(
+    27,
+    t('고대의 빛', 'Ancient Light'),
+    'EXPAND',
+    8,
+    'world',
+    [
+      goal('worldArtifacts', '고대 유물 회수', 'Recover an ancient artifact', 1),
+      goal('worldAdvanced', '고급 부양 연구 완료', 'Complete advanced levitation research', 1),
+      goal('worldReturned', '연구선 귀환', 'Return the expedition', 1),
+    ],
+    t(
+      '연구선을 유적으로 보내세요. 데이터와 에테르 이론을 결합해 더 높은 하늘을 엽니다.',
+      'Send a research vessel to the ruins. Combine ancient data and aether theory to open a higher sky.',
+    ),
+    { fall: false, hold: 5, speaker: 'kael' },
+  ),
+  seedStage(
+    28,
+    t('하늘의 교역로', 'Sky Trade Routes'),
+    'EXPAND',
+    8,
+    'world',
+    [
+      goal('worldCities', '수도와 개척 도시 2곳', 'Capital and two colonies', 3),
+      goal('worldAgriIndustry', '농업과 산업 특화', 'Agriculture and industry specialties', 1),
+      goal('worldStable', '세 도시 안정 운영', 'Three stable cities', 3),
+      goal('worldRoutes', '실제 배송한 자동 항로 2개', 'Two automatic routes with deliveries', 2),
+      goal('worldFood', '식량 30 배송', 'Deliver 30 food', 30),
+      goal('worldMaterials', '자재 30 배송', 'Deliver 30 materials', 30),
+      goal('worldPower', '모든 도시 전력 공급', 'Power every city', 1),
+    ],
+    t(
+      '두 개의 섬에 정착지를 세우고 식량과 자재를 실제로 운송하세요. 각 도시의 비축을 지켜야 합니다.',
+      'Found two settlements and physically transport food and materials. Protect each city’s reserves.',
+    ),
+    { fall: false, hold: 5, speaker: 'maya' },
+  ),
+  seedStage(
+    29,
+    t('하나로 연결된 도시들', 'United Cities'),
+    'REPAIR',
+    8,
+    'world',
+    [
+      goal('worldStable', '안전하게 운영되는 도시 3개', 'Three stable operating cities', 3),
+      goal('worldRoutes', '중단된 교역로 2개 복구', 'Restore two trade routes', 2),
+      goal('worldRescue', '구호 물자 80 배송', 'Deliver 80 rescue supplies', 80),
+      goal('worldAdvanced', '고급 에테르 기술', 'Advanced aether technology', 1),
+      goal('worldResilience', '세계 회복력 70', 'Global resilience 70', 70),
+    ],
+    t(
+      '교역이 끊겼습니다. 구호선으로 생필품을 보내고 항로를 복구해 도시들을 다시 연결하세요.',
+      'Trade has stopped. Deliver supplies by rescue ship and restore routes to reunite the cities.',
+    ),
+    { fall: false, hold: 10, speaker: 'elena' },
+  ),
+  seedStage(
+    30,
+    t('새로운 문명', 'SKYTOPIA'),
+    'BUILD',
+    8,
+    'world',
+    [
+      goal('worldCities', '도시 4개', 'Four cities', 4),
+      goal('worldPopulation', '총인구 1000명', 'Total population 1000', 1000),
+      goal('worldSpecialties', '도시 특화 3종', 'Three specialties', 3),
+      goal('worldRoutes', '활성 교역로 5개', 'Five working trade routes', 5),
+      goal('worldPower', '모든 도시 전력 공급', 'Power every city', 1),
+      goal('worldFoodBalance', '세계 식량 자급', 'World food self-sufficiency', 0),
+      goal('worldIndustry', '자재 생산 2/s', 'Produce 2 materials per second', 2),
+      goal('worldAdvanced', '고급 부양 기술', 'Advanced levitation', 1),
+      goal('worldStable', '네 도시 안정도 80', 'Four cities at stability 80', 4),
+      goal('worldResilience', '세계 회복력 85', 'Global resilience 85', 85),
+      goal('worldNexus', '넥서스 가동', 'Operate the SKYTOPIA Nexus', 1),
+    ],
+    t(
+      '이제 하늘은 하나의 문명입니다. 네 도시의 삶과 교역을 지탱하고 수도에 넥서스를 완성하세요.',
+      'The sky is now one civilization. Sustain four cities and their trade, then complete the Nexus in your capital.',
+    ),
+    { fall: false, hold: 20, speaker: 'orion' },
+  ),
+);
 export const CHALLENGES: Stage[] = [
   {
     ...STAGES[0],

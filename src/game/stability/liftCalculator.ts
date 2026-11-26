@@ -6,7 +6,7 @@ import { footprintCenter } from './state';
 import { cellsOf, key } from '../grid';
 export function calculateLift(city: City, network: Network) {
   const core =
-    STRUCTURE.coreLift *
+    (STRUCTURE.coreLift + (city.worldContext?.liftOffset ?? 0)) *
     Math.max(0, (city.structure?.coreDurability ?? STRUCTURE.coreHP) / STRUCTURE.coreHP) *
     (city.platforms.some((p) => p.x === 0 && p.z === 0 && p.y === 0 && p.durability > 0) ? 1 : 0);
   let total = core,
@@ -21,7 +21,10 @@ export function calculateLift(city: City, network: Network) {
       state = city.structure?.lifts[b.id];
     const desired = b.enabled ? (network.powerRatios.get(b.id) ?? 0) : 0;
     const factor = b.enabled ? (state?.factor ?? desired) : 0,
-      max = facility(b).lift * health;
+      max =
+        facility(b).lift *
+        health *
+        (city.worldContext?.techs.includes('advancedAether') ? 1.12 : 1);
     const output = max * factor * aetherFactor(city, b),
       cell = footprintCenter(b);
     total += output;

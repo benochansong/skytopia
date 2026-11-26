@@ -10,6 +10,9 @@ import { cellsOf, key } from '../game/grid';
 import { validatePlacement } from '../game/placement';
 import { BLOCKS } from '../data/rules';
 import { Box, BuildingModel, Reactor, Tree } from './Buildings';
+import { BuildingField, INSTANCED_KINDS } from './BuildingField';
+import { PerformanceProbe } from './PerformanceProbe';
+import { PlatformField, StructuralEffects } from './StructuralEffects';
 const Foundation = memo(function Foundation() {
   return (
     <group position={[-0.5, -0.3, -0.5]}>
@@ -128,6 +131,7 @@ function Camera() {
   const { camera } = useThree();
   const mode = useGame((s) => s.cameraMode),
     reset = useGame((s) => s.cameraReset);
+  const focus = useGame((s) => s.cameraFocus);
   const screen = useGame((s) => s.screen),
     reduced = useGame((s) => s.settings.reducedMotion);
   useEffect(() => {
@@ -135,8 +139,12 @@ function Camera() {
       ...((mode === 'top' ? [0, 20, 0.01] : [11.5, 12, 15]) as [number, number, number]),
     );
     controls.current?.target.set(-0.5, -0.3, -0.5);
+    if (focus) {
+      camera.position.set(focus.x + 11.5, 12, focus.z + 15);
+      controls.current?.target.set(focus.x, 0, focus.z);
+    }
     controls.current?.update();
-  }, [camera, mode, reset]);
+  }, [camera, mode, reset, focus]);
   return (
     <OrbitControls
       ref={controls}
@@ -168,19 +176,31 @@ function Ghost() {
     cursor = useGame((s) => s.game.cursor);
   const platforms = useGame((s) => s.game.platforms),
     buildings = useGame((s) => s.game.buildings);
+  const structure = useGame((s) => s.game.structure),
+    reserved = useGame((s) => s.game.reservedActive);
   const falling = useRef<Group>(null);
   const validity = useMemo(
     () => validatePlacement(useGame.getState().game),
-    [active, cursor, platforms, buildings],
+    [active, cursor, platforms, buildings, structure, reserved],
   );
   useFrame((_, dt) => {
     if (falling.current) {
       const s = useGame.getState();
-      const target = s.game.mode === 'training' ? 2.1 : 0.3 + (s.game.remaining / 20) * 3.5;
+      const target =
+        s.game.mode !== 'mission' || s.game.reservedActive
+          ? 2.1
+          : 0.3 + (s.game.remaining / 20) * 3.5;
       falling.current.position.y += (target - falling.current.position.y) * Math.min(1, dt * 10);
     }
   });
-  const color = !validity.valid ? '#f17670' : validity.warning ? '#f5ca77' : '#80f1c2';
+  const color =
+    !validity.valid || validity.risk === 3
+      ? '#f17670'
+      : validity.risk === 2
+        ? '#ff9d50'
+        : validity.warning
+          ? '#f5ca77'
+          : '#80f1c2';
   return (
     <group>
       {validity.cells.map((c) => (
@@ -255,11 +275,24 @@ function City() {
     buildings = useGame((s) => s.game.buildings);
   const screen = useGame((s) => s.screen),
     balance = useGame((s) => s.balanceVisible);
+  const structure = useGame((s) => s.game.structure),
+    difficulty = useGame((s) => s.game.difficulty),
+    analysisMode = useGame((s) => s.analysisMode);
   const root = useRef<Group>(null);
-  const stats = useMemo(() => analyze({ platforms, buildings }), [platforms, buildings]);
+  const lastAim = useRef<{ x: number; y: number } | null>(null);
+  const fallAge = useRef(0);
+  const stats = useMemo(
+    () => analyze({ platforms, buildings, structure, difficulty }),
+    [platforms, buildings, structure, difficulty],
+  );
   const balanceDirection = useMemo(
-    () => new Vector3(stats.center.x, 0, stats.center.z).normalize(),
-    [stats.center.x, stats.center.z],
+    () =>
+      new Vector3(
+        stats.center.x - stats.structural.centerLift.x,
+        0,
+        stats.center.z - stats.structural.centerLift.z,
+      ).normalize(),
+    [stats.center.x, stats.center.z, stats.structural.centerLift.x, stats.structural.centerLift.z],
   );
   const allRoads = useMemo(
     () =>
@@ -274,63 +307,55 @@ function City() {
     !(screen === 'settings' && useGame.getState().returnScreen === 'menu');
   useFrame((_, dt) => {
     if (!root.current) return;
-    const multiplier = useGame.getState().settings.reducedMotion ? 0 : 0.018;
+    const multiplier = Math.PI / 180;
+    const blend = useGame.getState().settings.reducedMotion ? 1 : Math.min(dt * 3, 1);
     root.current.rotation.z +=
-      (-stats.center.x * multiplier - root.current.rotation.z) * Math.min(dt * 3, 1);
+      (-stats.structural.tilt.z * multiplier - root.current.rotation.z) * blend;
     root.current.rotation.x +=
-      (stats.center.z * multiplier - root.current.rotation.x) * Math.min(dt * 3, 1);
+      (-stats.structural.tilt.x * multiplier - root.current.rotation.x) * blend;
+    if (structure.loss && !useGame.getState().settings.reducedMotion) {
+      fallAge.current += dt;
+      root.current.position.y = -Math.min(40, fallAge.current * fallAge.current * 0.7);
+    } else {
+      fallAge.current = 0;
+      root.current.position.y = 0;
+    }
   });
   function aim(e: ThreeEvent<PointerEvent | MouseEvent>, place = false) {
     if (!root.current || useGame.getState().screen !== 'playing') return;
     e.stopPropagation();
+    // Some browsers replay pointermove before click while camera damping continues.
+    // A stationary pointer must not silently move the preview to a different tile.
+    if (!place) {
+      if (lastAim.current?.x === e.clientX && lastAim.current?.y === e.clientY) return;
+      lastAim.current = { x: e.clientX, y: e.clientY };
+    }
     const p = root.current.worldToLocal(e.point.clone());
     const c = { x: Math.round(p.x), z: Math.round(p.z) };
-    if (place) useGame.getState().place(c);
+    // Commit the visible preview even while camera damping / island tilt is moving.
+    if (place) useGame.getState().place(useGame.getState().toolMode === 'inspect' ? c : undefined);
     else useGame.getState().aim(c);
   }
   return (
     <group ref={root}>
       <Foundation />
-      {platforms.map((p) => (
-        <group key={key(p)} position={[p.x, 0, p.z]}>
-          <Box
-            position={[0, -0.16, 0]}
-            size={[0.99, 0.3, 0.99]}
-            color={p.variant === 'metal' ? '#889e9d' : '#a2ad8e'}
-          />
-          <Box
-            position={[0, 0.015, 0]}
-            size={[0.965, 0.055, 0.965]}
-            color={
-              p.variant === 'rock'
-                ? '#afb9a2'
-                : p.variant === 'metal'
-                  ? '#9fafaa'
-                  : (p.x + p.z) % 2
-                    ? '#86af78'
-                    : '#95b881'
-            }
-          />
-          {p.x < -3 || p.x > 2 || p.z < -3 || p.z > 2 ? (
-            <mesh position={[0, -0.5, 0]} rotation={[Math.PI, 0, 0]} castShadow>
-              <coneGeometry args={[0.68, 0.75, 4]} />
-              <meshStandardMaterial color="#778e88" flatShading />
-            </mesh>
-          ) : null}
-        </group>
-      ))}
+      <PlatformField />
       <group position={[0, 0.08, 0]}>
         <Reactor core />
       </group>
-      {buildings.map((b) => (
-        <BuildingModel
-          key={b.id}
-          building={b}
-          connected={stats.connectedIds.has(b.id)}
-          powered={BLOCKS[b.kind].demand === 0 || stats.power >= stats.demand}
-          roads={allRoads}
-        />
-      ))}
+      <BuildingField />
+      {buildings
+        .filter((b) => !INSTANCED_KINDS.includes(b.kind))
+        .map((b) => (
+          <BuildingModel
+            key={b.id}
+            building={b}
+            connected={stats.connectedIds.has(b.id)}
+            powered={(stats.powerRatios.get(b.id) ?? 0) >= 1}
+            output={stats.structural.lifts.find((l) => l.id === b.id)?.factor ?? 1}
+            roads={allRoads}
+          />
+        ))}
       {[
         [-3.3, -2.9],
         [2.45, 1.6],
@@ -361,14 +386,15 @@ function City() {
           />
           <Ghost />
           <PlacementEffect />
-          {balance ? (
+          <StructuralEffects />
+          {balance || analysisMode === 'center' ? (
             <group>
               {Math.hypot(stats.center.x, stats.center.z) > 0.05 ? (
                 <arrowHelper
                   args={[
                     balanceDirection,
-                    new Vector3(0, 0.2, 0),
-                    Math.hypot(stats.center.x, stats.center.z),
+                    new Vector3(stats.structural.centerLift.x, 0.2, stats.structural.centerLift.z),
+                    stats.structural.separation,
                     0xe4c18b,
                     0.15,
                     0.1,
@@ -382,7 +408,10 @@ function City() {
                 <ringGeometry args={[0.13, 0.19, 24]} />
                 <meshBasicMaterial color="#ffcd79" depthTest={false} />
               </mesh>
-              <mesh position={[0, 0.19, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+              <mesh
+                position={[stats.structural.centerLift.x, 0.19, stats.structural.centerLift.z]}
+                rotation={[-Math.PI / 2, 0, 0]}
+              >
                 <ringGeometry args={[0.47, 0.49, 32]} />
                 <meshBasicMaterial color="#9fffee" depthTest={false} />
               </mesh>
@@ -429,6 +458,7 @@ export default function World() {
           shadow-camera-bottom={-12}
           shadow-normalBias={0.04}
         />
+        {import.meta.env.DEV && import.meta.env.MODE === 'test' ? <PerformanceProbe /> : null}
         <Scenery />
         <City />
         <Camera />

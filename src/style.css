@@ -1231,3 +1231,323 @@ kbd {
   scrollbar-color: #70988e55 transparent;
   pointer-events: auto;
 }
+/* Phase 2: compact overview with expandable engineering tools. */
+.analysis-toolbar {
+  position: absolute;
+  top: 161px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px;
+  pointer-events: auto;
+  z-index: 2;
+}
+.analysis-toolbar button {
+  font-size: 12px;
+  padding: 8px 10px;
+  border: 0;
+}
+.analysis-toolbar select {
+  background: #20444d;
+  color: #e1e9dd;
+  border: 1px solid #759d9060;
+  border-radius: 4px;
+  padding: 7px;
+  font-size: 12px;
+}
+.right-rail {
+  width: 245px;
+}
+.structural-panel {
+  padding: 17px 15px;
+}
+.structural-panel .section-label {
+  justify-content: space-between;
+}
+.structural-panel .section-label strong {
+  font-size: 23px;
+  color: #e7d39e;
+}
+.stability-breakdown {
+  display: grid;
+  gap: 9px;
+  margin: 14px 0 20px;
+}
+.stability-breakdown > div {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 5px;
+  font-size: 12px;
+  color: #b6cec3;
+}
+.stability-breakdown b {
+  font-weight: 500;
+  color: #e3e6cf;
+}
+.stability-breakdown meter {
+  grid-column: 1/-1;
+  width: 100%;
+  height: 5px;
+  accent-color: #a4d3b6;
+}
+.structural-panel .city-stats > div {
+  margin-bottom: 9px;
+  font-size: 12px;
+}
+.structural-panel details {
+  border-top: 1px solid #a9c5b425;
+  padding-top: 11px;
+  margin-top: 11px;
+  pointer-events: auto;
+}
+.structural-panel summary {
+  font-size: 13px;
+  cursor: pointer;
+  color: #dfd4ae;
+  padding: 2px 0;
+}
+.structural-panel p {
+  font-size: 12px;
+  line-height: 1.65;
+  color: #b5cac1;
+  margin: 10px 0;
+}
+.structural-panel h3 {
+  font-size: 13px;
+  margin: 15px 0 8px;
+  font-weight: 500;
+}
+.compact-stats {
+  font-size: 11px;
+  display: grid;
+  gap: 9px;
+}
+.compact-stats > div {
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+}
+.compact-stats dt {
+  color: #a1bdb4;
+}
+.compact-stats dd {
+  margin: 0;
+  text-align: right;
+  max-width: 110px;
+  overflow-wrap: anywhere;
+  color: #e4e9d4;
+}
+.emergency-alert {
+  background: #8b4b322e;
+  border: 1px solid #d8945355;
+  border-radius: 5px;
+  padding: 12px;
+  margin-top: 12px;
+  display: grid;
+  gap: 7px;
+}
+.emergency-alert strong {
+  font-size: 13px;
+  color: #f2c193;
+}
+.emergency-alert p {
+  margin: 0;
+  font-size: 12px;
+}
+.emergency-alert > span {
+  font-size: 11px;
+  color: #e0c5a5;
+}
+.emergency-alert button {
+  padding: 6px;
+  font-size: 12px;
+}
+.selected-label {
+  font-size: 13px;
+  color: #c8e4d3;
+  margin-top: 12px;
+}
+.maintenance-actions {
+  display: flex;
+  gap: 6px;
+}
+.maintenance-actions button {
+  flex: 1;
+  font-size: 12px;
+  padding: 8px 5px;
+}
+.maintenance-actions small {
+  color: #e3c587;
+}
+.edge-selector {
+  display: grid;
+  gap: 5px;
+  margin-top: 10px;
+}
+.edge-selector button {
+  font-size: 11px;
+  justify-content: space-between;
+  padding: 7px 6px;
+}
+.edge-selector small {
+  font-size: 9px;
+  color: #b0cbbb;
+}
+.blueprint-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+}
+.blueprint-grid button {
+  font-size: 11px;
+  padding: 8px 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.blueprint-grid small {
+  font-size: 10px;
+  color: #e1c58b;
+}
+.lift-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 12px 0;
+  font-size: 12px;
+}
+.lift-row button {
+  font-size: 10px;
+  padding: 5px;
+}
+.event-log {
+  padding-left: 17px;
+  font-size: 12px;
+  text-align: left;
+  color: #c7cfb9;
+  line-height: 1.8;
+  max-height: 150px;
+  overflow: auto;
+}
+.event-log small {
+  color: #90aea4;
+}
+.lab-panel {
+  padding: 16px;
+  margin-top: 10px;
+}
+.lab-panel h3 {
+  font-size: 13px;
+  margin: 14px 0 8px;
+}
+.lab-panel p {
+  font-size: 12px;
+  color: #c0d3c7;
+  margin: 10px 0;
+}
+.lab-panel .eyebrow {
+  font-size: 9px;
+}
+.lab-panel .full {
+  font-size: 12px;
+  padding: 9px;
+}
+.lab-panel .text-button {
+  margin-top: 10px;
+}
+.scenario-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.scenario-grid button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  padding: 18px;
+  gap: 10px;
+}
+.scenario-grid small {
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: #d3ba8b;
+}
+.scenario-grid strong {
+  font-size: 18px;
+  font-weight: 500;
+}
+.scenario-grid span {
+  font-size: 11px;
+  line-height: 1.7;
+  color: #99b7ad;
+}
+.menu-card {
+  top: 31%;
+  max-height: calc(69% - 55px);
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #7eaa9d55 transparent;
+}
+.settings-rows input[type='range'] {
+  width: 115px;
+  height: 18px;
+}
+.placement-status.critical {
+  background: #713e41e6;
+  color: #ffd8b6;
+}
+.placement-status.overload {
+  background: #795034e6;
+  color: #ffe3a9;
+}
+.structural-panel .modal-shade {
+  position: fixed;
+}
+@media (max-width: 1150px) {
+  .right-rail {
+    width: 210px;
+  }
+  .structural-panel {
+    padding: 14px 12px;
+  }
+  .analysis-toolbar button,
+  .analysis-toolbar select {
+    font-size: 11px;
+    padding: 7px;
+  }
+  .scenario-grid strong {
+    font-size: 16px;
+  }
+}
+@media (max-height: 780px) {
+  .analysis-toolbar {
+    top: 151px;
+  }
+  .menu-card h1 {
+    font-size: 23px;
+  }
+  .menu-actions button {
+    padding: 9px 12px;
+  }
+  .structural-panel details {
+    padding-top: 8px;
+    margin-top: 8px;
+  }
+}
+.analysis-legend {
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  padding: 5px 9px;
+  border-radius: 5px;
+  background: rgba(24, 54, 63, 0.9);
+  color: #e9e0c5;
+  font-size: 10px;
+  pointer-events: none;
+}

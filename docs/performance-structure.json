@@ -1,0 +1,42 @@
+{
+  "environment": {
+    "node": "v24.14.0",
+    "cpu": "AMD Ryzen AI 9 365 w/ Radeon 880M              ",
+    "platform": "win32"
+  },
+  "fixture": {
+    "platforms": 256,
+    "buildings": 255,
+    "bytes": 99795
+  },
+  "results": [
+    {
+      "name": "full structural evaluation",
+      "samples": 200,
+      "medianMs": 10.004599999999755,
+      "p95Ms": 14.225800000000163,
+      "maxMs": 21.560599999999795
+    },
+    {
+      "name": "cached analysis",
+      "samples": 10000,
+      "medianMs": 0.0005000000001018634,
+      "p95Ms": 0.0010000000002037268,
+      "maxMs": 0.500199999999495
+    },
+    {
+      "name": "fixed structural step (snapshot)",
+      "samples": 100,
+      "medianMs": 20.384100000000217,
+      "p95Ms": 33.75680000000011,
+      "maxMs": 37.30280000000039
+    },
+    {
+      "name": "validate and reconstruct save",
+      "samples": 100,
+      "medianMs": 12.195199999999204,
+      "p95Ms": 16.52469999999994,
+      "maxMs": 17.74619999999959
+    }
+  ]
+}

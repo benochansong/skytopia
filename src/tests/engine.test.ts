@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SHAPES, BLOCKS, KINDS } from '../data/rules';
+import { SHAPES, BLOCKS, LEGACY_KINDS } from '../data/rules';
 import { cellsOf, cameraMove, rotate } from '../game/grid';
 import { newGame, place, hold, recycle, turn, tick, move } from '../game/engine';
 import { validatePlacement } from '../game/placement';
@@ -99,7 +99,7 @@ describe('supply, time and hold', () => {
         s = next;
         expect(BLOCKS[p.kind].shapes).toContain(p.shape);
       }
-      expect(new Set(kinds).size).toBe(KINDS.length);
+      expect(new Set(kinds).size).toBe(LEGACY_KINDS.length);
       expect(kinds.filter((k) => k === 'road')).toHaveLength(2);
       expect(kinds.filter((k) => k === 'platform')).toHaveLength(2);
     }
@@ -152,7 +152,7 @@ describe('connections, power, mass and mission', () => {
     expect(s.demand).toBe(2);
     expect(s.poweredCapacity).toBe(5);
     expect(s.disconnected).toBe(0);
-    expect(s.mass).toBe(221);
+    expect(s.mass).toBe(301);
   });
   it('BFS enables disconnected homes when a road joins the central network', () => {
     let g = place(candidate(newGame(), 'home', -2, -1));
@@ -178,7 +178,7 @@ describe('connections, power, mass and mission', () => {
   it('multi-cell building capacity and weight count once per facility', () => {
     const g = place(candidate(newGame(), 'home', -2, 0, 'O'));
     expect(analyze(g).capacity).toBe(10);
-    expect(analyze(g).mass).toBe(231);
+    expect(analyze(g).mass).toBe(311);
   });
   it('completes First Light through legal construction and population growth', () => {
     let g = newGame('mission', 2478);
@@ -221,7 +221,7 @@ describe('save integrity', () => {
         g.buildings[1].origin = g.buildings[0].origin;
       },
       (g: Game) => {
-        g.platforms.pop();
+        g.platforms = g.platforms.filter((p) => !(p.x === -1 && p.z === -2));
       },
       (g: Game) => {
         g.buildings[1].id = 1;

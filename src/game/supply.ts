@@ -15,11 +15,29 @@ export function random(seed: number): [number, number] {
   const next = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
   return [next / 4294967296, next];
 }
-export function draw(source: Supply, training = false): [Piece, Supply] {
+export function draw(
+  source: Supply,
+  training = false,
+  context: { script?: Kind[]; needsLift?: boolean; needsSpace?: boolean; needsRoad?: boolean } = {},
+): [Piece, Supply] {
   let { seed } = source;
   let bag = [...source.bag];
   if (!bag.length) {
     bag = [...BAG];
+    if (source.policy === 'adaptive' && !training) {
+      bag.push(
+        'metalPlatform',
+        'largeHome',
+        'factory',
+        'liftSmall',
+        'liftLarge',
+        'brace',
+        'ballast',
+      );
+      if (context.needsLift) bag.push('liftSmall');
+      else if (context.needsSpace) bag.push('platform');
+      else if (context.needsRoad) bag.push('road');
+    }
     for (let i = bag.length - 1; i > 0; i--) {
       const [r, s] = random(seed);
       seed = s;
@@ -28,12 +46,21 @@ export function draw(source: Supply, training = false): [Piece, Supply] {
     }
   }
   const tutorialKinds: Kind[] = ['home', 'platform', 'road', 'power', 'park'];
-  const kind =
-    training && source.draws < tutorialKinds.length ? tutorialKinds[source.draws] : bag.pop()!;
+  const scripted = training ? tutorialKinds[source.draws] : context.script?.[source.draws];
+  const kind = scripted ?? bag.pop()!;
   const [r, nextSeed] = random(seed);
   const shapes = BLOCKS[kind].shapes;
   return [
-    { kind, shape: training ? 'single' : shapes[Math.floor(r * shapes.length)], rotation: 0 },
-    { seed: nextSeed, bag, draws: source.draws + 1 },
+    {
+      kind,
+      shape: training || scripted ? shapes[0] : shapes[Math.floor(r * shapes.length)],
+      rotation: 0,
+    },
+    {
+      seed: nextSeed,
+      bag,
+      draws: source.draws + 1,
+      ...(source.policy ? { policy: source.policy } : {}),
+    },
   ];
 }

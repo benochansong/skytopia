@@ -1,3 +1,6 @@
+import { disasterSchema, validateDisaster } from './disasters/schema';
+import { evacuatedTotal } from './disasters/effects';
+import { DISASTER_KINDS, isBattery } from '../data/rules';
 import { VERTICAL, VERTICAL_KINDS, SHAPES, isLift } from '../data/rules';
 import { volume, isLink, segments } from './vertical/geometry';
 import { parseKey, floorOf, inBounds } from './grid';
@@ -17,7 +20,7 @@ const finite = z.number().finite(),
   coord = finite.int().min(RULES.min).max(RULES.max),
   height = finite.int().min(VERTICAL.min).max(VERTICAL.max),
   cell = z.object({ x: coord, z: coord, y: height.optional() });
-const kind = z.enum([...KINDS, ...VERTICAL_KINDS] as [
+const kind = z.enum([...KINDS, ...VERTICAL_KINDS, ...DISASTER_KINDS] as [
   (typeof KINDS)[number],
   ...(typeof KINDS)[number][],
 ]);
@@ -36,6 +39,11 @@ const piece = z
       (!(p.pitch || p.roll) || ['beam', 'truss'].includes(p.kind)),
   );
 export const settingsSchema = z.object({
+  stormParticles: finite.int().min(0).max(200).default(96),
+  reducedFlashes: z.boolean().default(true),
+  cameraShake: finite.min(0).max(1).default(0),
+  disasterCamera: z.boolean().default(false),
+  warningScale: finite.min(1).max(2).default(1),
   dayNight: z.boolean().default(true),
   citizens: finite.int().min(0).max(48).default(32),
   vehicles: finite.int().min(0).max(16).default(12),
@@ -138,7 +146,8 @@ const structure = z.object({
     .nullable(),
 });
 const schema = z.object({
-  version: z.literal(4),
+  version: z.literal(5),
+  disaster: disasterSchema(building, platform, piece, cell, target).optional(),
   vertical: z
     .object({
       version: z.literal(1),
@@ -252,8 +261,11 @@ export function decodeSave(raw: string | null): SaveResult {
           }
         : v2,
     );
-    const migrate = upgraded.version === 3 ? { ...upgraded, version: 4 } : upgraded;
+    const migrate = [3, 4].includes(Number(upgraded.version))
+      ? { ...upgraded, version: 5, disaster: undefined }
+      : upgraded;
     let g = schema.parse(migrate) as Game;
+    validateDisaster(g);
     if (v2.version === 2) g = reconcileResidents(g);
     if (
       !g.vertical &&
@@ -350,7 +362,10 @@ export function decodeSave(raw: string | null): SaveResult {
     if (!g.city.enabled && g.population > analyze(g).capacity) throw Error('Invalid population');
     if (g.city.enabled) {
       const inv = inventory(g),
-        total = Object.values(g.city.residents).reduce((a, b) => a + b, 0) + g.city.displaced;
+        total =
+          Object.values(g.city.residents).reduce((a, b) => a + b, 0) +
+          g.city.displaced +
+          evacuatedTotal(g);
       if (Math.abs(total - g.population) > 1e-5) throw Error('Population accounting');
       for (const [id, count] of Object.entries(g.city.residents)) {
         const b = g.buildings.find((b) => String(b.id) === id);
@@ -368,7 +383,7 @@ export function decodeSave(raw: string | null): SaveResult {
           throw Error('Invalid stocks');
       }
       for (const [id, amount] of Object.entries(g.city.batteries)) {
-        const b = g.buildings.find((b) => String(b.id) === id && b.kind === 'battery');
+        const b = g.buildings.find((b) => String(b.id) === id && isBattery(b.kind));
         if (!b || amount > CITY_RULES.batteryCapacity * (1 + 0.5 * (b.level ?? 0)))
           throw Error('Invalid battery');
       }
@@ -411,6 +426,13 @@ export function loadGame(slot: 'campaign' | 'lab' | 'city' = 'campaign'): SaveRe
       raw ??
         localStorage.getItem(
           slot === 'city'
+            ? RULES.phase5CitySaveKey
+            : slot === 'lab'
+              ? RULES.phase5LabSaveKey
+              : RULES.phase5SaveKey,
+        ) ??
+        localStorage.getItem(
+          slot === 'city'
             ? RULES.phase3CitySaveKey
             : slot === 'lab'
               ? RULES.phase3LabSaveKey
@@ -440,13 +462,17 @@ export function saveGame(g: Game): boolean {
   try {
     if (!decodeSave(JSON.stringify(g)).ok) return false;
     localStorage.setItem(
-      g.vertical && g.mode === 'citylab'
-        ? RULES.verticalSaveKey
-        : g.mode === 'citylab'
-          ? RULES.citySaveKey
-          : g.mode === 'lab'
-            ? RULES.labSaveKey
-            : RULES.saveKey,
+      g.disaster?.mode === 'lab'
+        ? RULES.disasterSaveKey
+        : g.disaster?.mode === 'survival'
+          ? RULES.survivalSaveKey
+          : g.vertical && g.mode === 'citylab'
+            ? RULES.verticalSaveKey
+            : g.mode === 'citylab'
+              ? RULES.citySaveKey
+              : g.mode === 'lab'
+                ? RULES.labSaveKey
+                : RULES.saveKey,
       JSON.stringify(g),
     );
     return true;
@@ -475,8 +501,25 @@ export function saveSettings(settings: Settings): boolean {
 
 export function loadVertical(): SaveResult {
   try {
-    const r = decodeSave(localStorage.getItem(RULES.verticalSaveKey));
-    return r.ok && (!r.game.vertical || r.game.mode !== 'citylab' || r.game.campaign)
+    const r = decodeSave(
+      localStorage.getItem(RULES.verticalSaveKey) ??
+        localStorage.getItem(RULES.phase5VerticalSaveKey),
+    );
+    return r.ok &&
+      (!r.game.vertical || !!r.game.disaster || r.game.mode !== 'citylab' || r.game.campaign)
+      ? { ok: false, reason: 'corrupt' }
+      : r;
+  } catch {
+    return { ok: false, reason: 'unavailable' };
+  }
+}
+
+export function loadDisaster(mode: 'lab' | 'survival'): SaveResult {
+  try {
+    const r = decodeSave(
+      localStorage.getItem(mode === 'lab' ? RULES.disasterSaveKey : RULES.survivalSaveKey),
+    );
+    return r.ok && (r.game.disaster?.mode !== mode || r.game.mode !== 'citylab' || r.game.campaign)
       ? { ok: false, reason: 'corrupt' }
       : r;
   } catch {

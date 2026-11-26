@@ -1,3 +1,4 @@
+import { weatherLoads, gravityFactor } from '../disasters/effects';
 import { memberCapacity } from '../vertical/support';
 import { hasVertical } from '../vertical/geometry';
 import { DIFFICULTIES, STRUCTURE } from '../../data/rules';
@@ -20,7 +21,13 @@ export function evaluateStructure(
     lift = calculateLift(city, network),
     graph = buildGraph(city),
     difficulty = DIFFICULTIES[city.difficulty ?? 'normal'];
-  const residual = new Map(mass.local),
+  const weather = weatherLoads(city);
+  const residual = new Map(
+      [...mass.local].map(([k, n]) => [
+        k,
+        n * gravityFactor(city, graph.nodes.get(k) ?? { x: 0, z: 0 }) + (weather.local.get(k) ?? 0),
+      ]),
+    ),
     nodes = new Map<string, StructuralNode>(),
     edges = new Map<string, StructuralEdge>();
   for (const l of lift.lifts) {
@@ -39,7 +46,10 @@ export function evaluateStructure(
   }
   const components = graph.components.map((c, index) => ({
     ...c,
-    mass: c.keys.reduce((s, k) => s + (mass.local.get(k) ?? 0), 0),
+    mass: c.keys.reduce(
+      (s, k) => s + (mass.local.get(k) ?? 0) * gravityFactor(city, graph.nodes.get(k)!),
+      0,
+    ),
     lift: lift.lifts.reduce(
       (s, l) => s + (l.output * l.cells.filter((k) => c.keys.includes(k)).length) / l.cells.length,
       0,
@@ -154,8 +164,8 @@ export function evaluateStructure(
       }
   const usedLift = Math.min(mass.mass, lift.total),
     torque = {
-      x: usedLift * lift.center.z - mass.mass * mass.center.z,
-      z: mass.mass * mass.center.x - usedLift * lift.center.x,
+      x: usedLift * lift.center.z - mass.mass * mass.center.z + weather.torqueX,
+      z: mass.mass * mass.center.x - usedLift * lift.center.x + weather.torqueZ,
     };
   const angle = (v: number) =>
     Math.max(

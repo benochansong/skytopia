@@ -4,8 +4,8 @@ import type { CampaignSave, CampaignRun, Profile } from '../../types/campaign';
 import { decodeSave, loadGame } from '../storage';
 import { freshProfile } from './progress';
 import { allStages, LEGACY_MAP, available, stage } from './definitions';
-import { KINDS, VERTICAL_KINDS } from '../../data/rules';
-export const CAMPAIGN_KEY = 'skytopia.campaign.v2';
+import { KINDS, VERTICAL_KINDS, DISASTER_KINDS } from '../../data/rules';
+export const CAMPAIGN_KEY = 'skytopia.campaign.v3';
 const num = z.number().finite().min(0).max(1e9),
   count = num.int(),
   str = z.string().max(100),
@@ -27,17 +27,17 @@ const run = z.object({
       xp: count,
       unlocked: z
         .array(
-          z.enum([...KINDS, ...VERTICAL_KINDS] as [
+          z.enum([...KINDS, ...VERTICAL_KINDS, ...DISASTER_KINDS] as [
             (typeof KINDS)[number],
             ...(typeof KINDS)[number][],
           ]),
         )
-        .max(64),
+        .max(96),
       achievements: list,
     })
     .optional(),
   stage: count.refine((n) => allStages.some((s) => s.id === n)),
-  seed: count.max(4294967295),
+  seed: z.number().finite().int().min(0).max(4294967295),
   initialPlatforms: z.array(str).max(1792),
   initialBuildings: count.max(1200),
   protectedIds: z.array(count).max(1200),
@@ -77,12 +77,12 @@ const profile = z.object({
   seen: list,
   unlocked: z
     .array(
-      z.enum([...KINDS, ...VERTICAL_KINDS] as [
+      z.enum([...KINDS, ...VERTICAL_KINDS, ...DISASTER_KINDS] as [
         (typeof KINDS)[number],
         ...(typeof KINDS)[number][],
       ]),
     )
-    .max(64),
+    .max(96),
   choices: z.record(z.enum(['accept', 'defer', 'research'])),
   stats: z.object({
     time: num,
@@ -108,11 +108,12 @@ export function decodeCampaignGame(raw: unknown): Game | null {
   return { ...decoded.game, campaign: c };
 }
 export function freshCampaign(): CampaignSave {
-  return { version: 2, profile: freshProfile(), current: null, checkpoint: null, free: null };
+  return { version: 3, profile: freshProfile(), current: null, checkpoint: null, free: null };
 }
 export function decodeCampaign(raw: string): { save: CampaignSave; recovered: boolean } {
   const value = JSON.parse(raw);
-  if (value.version !== 1 && value.version !== 2) throw Error('Unknown campaign version');
+  if (value.version !== 1 && value.version !== 2 && value.version !== 3)
+    throw Error('Unknown campaign version');
   const p = profile.parse(value.profile) as Profile;
   if (
     Object.keys(p.records).length > 300 ||
@@ -145,7 +146,7 @@ export function decodeCampaign(raw: string): { save: CampaignSave; recovered: bo
   }
   return {
     save: {
-      version: 2,
+      version: 3,
       profile: p,
       current,
       checkpoint:
@@ -164,7 +165,10 @@ export function decodeCampaign(raw: string): { save: CampaignSave; recovered: bo
 export function loadCampaign(): { save: CampaignSave; issue: string } {
   let raw: string | null;
   try {
-    raw = localStorage.getItem(CAMPAIGN_KEY) ?? localStorage.getItem('skytopia.campaign.v1');
+    raw =
+      localStorage.getItem(CAMPAIGN_KEY) ??
+      localStorage.getItem('skytopia.campaign.v2') ??
+      localStorage.getItem('skytopia.campaign.v1');
   } catch {
     return { save: freshCampaign(), issue: 'unavailable' };
   }

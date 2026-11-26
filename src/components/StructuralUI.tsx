@@ -638,7 +638,13 @@ export function GameOver() {
         <button onClick={() => useGame.getState().setScreen('menu')}>{t.menu}</button>
         <button
           className="primary"
-          onClick={() => useGame.getState().start(g.mode, g.missionId, g.labExample)}
+          onClick={() =>
+            g.disaster && ['lab', 'survival'].includes(g.disaster.mode)
+              ? useGame
+                  .getState()
+                  .startDisaster(g.disaster.mode as 'lab' | 'survival', g.disaster.example)
+              : useGame.getState().start(g.mode, g.missionId, g.labExample)
+          }
         >
           {t.retry}
         </button>

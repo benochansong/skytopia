@@ -8,6 +8,7 @@ const cache: { g: Game; r: CityReport }[] = [];
 export function cityReport(g: Game): CityReport {
   const old = cache.find(
     (c) =>
+      c.g.disaster === g.disaster &&
       c.g.city === g.city &&
       c.g.buildings === g.buildings &&
       c.g.platforms === g.platforms &&
@@ -49,10 +50,16 @@ export function cityReport(g: Game): CityReport {
     materialsProduction = operations.reduce((n, b) => n + b.materials, 0),
     aetherProduction = operations.reduce((n, b) => n + b.aether, 0);
   const foodCoverage = g.population
-    ? Object.entries(g.city.residents).reduce((n, [id, count]) => {
-        const pool = o.road.attachments.get(Number(id));
-        return n + (pool && (o.inv.poolStocks.get(pool)?.food ?? 0) > 0 ? count : 0);
-      }, 0) / g.population
+    ? Object.entries(g.city.residents).reduce(
+        (n, [id, count]) => {
+          const pool = o.road.attachments.get(Number(id));
+          return n + (pool && (o.inv.poolStocks.get(pool)?.food ?? 0) > 0 ? count : 0);
+        },
+        (g.disaster?.evacuated ?? []).reduce((n, e) => {
+          const pool = o.road.attachments.get(e.shelter);
+          return n + (pool && (o.inv.poolStocks.get(pool)?.food ?? 0) > 0 ? e.count : 0);
+        }, 0),
+      ) / g.population
     : 1;
   const powerCoverage = houses.length
     ? houses.reduce((n, b) => n + (o.network.powerRatios.get(b.id) ?? 0), 0) / houses.length

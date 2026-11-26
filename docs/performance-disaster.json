@@ -1,0 +1,61 @@
+{
+  "environment": {
+    "node": "v24.14.0",
+    "cpu": "AMD Ryzen AI 9 365 w/ Radeon 880M              ",
+    "platform": "win32"
+  },
+  "results": [
+    {
+      "example": "A",
+      "buildings": 81,
+      "platforms": 129,
+      "saveBytes": 60669,
+      "results": [
+        {
+          "name": "uncached structure",
+          "samples": 20,
+          "medianMs": 16.733900000000176,
+          "p95Ms": 22.53630000000021
+        },
+        {
+          "name": "quarter-second active disaster",
+          "samples": 20,
+          "medianMs": 38.192999999999756,
+          "p95Ms": 50.30970000000025
+        },
+        {
+          "name": "validated save",
+          "samples": 20,
+          "medianMs": 11.160600000000159,
+          "p95Ms": 15.621399999999994
+        }
+      ]
+    },
+    {
+      "example": "F",
+      "buildings": 129,
+      "platforms": 187,
+      "saveBytes": 89484,
+      "results": [
+        {
+          "name": "uncached structure",
+          "samples": 20,
+          "medianMs": 24.32420000000093,
+          "p95Ms": 28.122799999999188
+        },
+        {
+          "name": "quarter-second active disaster",
+          "samples": 20,
+          "medianMs": 69.38990000000013,
+          "p95Ms": 92.77590000000055
+        },
+        {
+          "name": "validated save",
+          "samples": 20,
+          "medianMs": 16.514600000000428,
+          "p95Ms": 20.946600000001126
+        }
+      ]
+    }
+  ]
+}

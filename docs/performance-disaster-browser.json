@@ -1,0 +1,36 @@
+{
+  "browser": "158.0.8127.37",
+  "renderer": "SwiftShader; 1440x900; DPR1; shadows on; development build; active disaster simulation; 200 rain particles maximum",
+  "snapshots": [
+    {
+      "example": "A",
+      "buildings": 81,
+      "platforms": 129,
+      "particles": 200,
+      "elapsed": 6.5,
+      "drawCalls": 384,
+      "triangles": 33456,
+      "geometries": 395,
+      "textures": 2,
+      "samples": 9,
+      "medianMs": 232.69999999552965,
+      "p95Ms": 1605.2999999970198,
+      "averageFps": 2.0367520593840114
+    },
+    {
+      "example": "F",
+      "buildings": 129,
+      "platforms": 187,
+      "particles": 200,
+      "elapsed": 9.75,
+      "drawCalls": 589,
+      "triangles": 50486,
+      "geometries": 600,
+      "textures": 2,
+      "samples": 19,
+      "medianMs": 347,
+      "p95Ms": 1571.6000000014901,
+      "averageFps": 2.3990807732607107
+    }
+  ]
+}

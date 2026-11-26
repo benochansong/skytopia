@@ -1,3 +1,7 @@
+import { saveSurvivalBest } from '../game/disasters/survival';
+import { disasterCity, disasterExample } from '../game/disasters/scenarios';
+import { loadDisaster } from '../game/storage';
+import type { DisasterState } from '../types/disaster';
 import { verticalExample } from '../game/vertical/scenarios';
 import { floorRange } from '../game/vertical/placement';
 import { freshVertical, type View3D } from '../types/vertical';
@@ -46,6 +50,13 @@ export type AnalysisMode =
   | 'logistics'
   | 'economy';
 type Store = {
+  startDisaster: (
+    mode: 'lab' | 'survival',
+    example?: DisasterState['example'],
+    resume?: boolean,
+  ) => void;
+  hasDisasterSave: boolean;
+  hasSurvivalSave: boolean;
   startVertical: (example?: 'A' | 'B' | 'C' | 'D' | 'E', resume?: boolean) => void;
   setFloor: (floor: number) => void;
   setView: (view: View3D) => void;
@@ -148,6 +159,32 @@ export const useGame = create<Store>((set, get) => {
       if (finished && !saveCampaign(campaignSave))
         set({ campaignIssue: 'unavailable', notice: 'saveFailed' });
     }
+    if (
+      next.disaster?.mode === 'survival' &&
+      (next.disaster.stats.completedWaves !== (current.game.disaster?.stats.completedWaves ?? 0) ||
+        !!next.structure.loss)
+    ) {
+      if (!saveSurvivalBest(next)) set({ notice: 'saveFailed' });
+      if (
+        next.disaster.stats.completedWaves >= 10 &&
+        !current.campaignSave.profile.achievements.allStorms &&
+        current.campaignIssue !== 'campaignCorrupt'
+      ) {
+        const campaignSave = {
+          ...get().campaignSave,
+          profile: {
+            ...get().campaignSave.profile,
+            xp: get().campaignSave.profile.xp + 40,
+            achievements: {
+              ...get().campaignSave.profile.achievements,
+              allStorms: new Date().toISOString(),
+            },
+          },
+        };
+        set({ campaignSave });
+        if (!saveCampaign(campaignSave)) set({ notice: 'saveFailed' });
+      }
+    }
     set({
       game: next,
       ...(next.structure.loss || next.campaign?.failed
@@ -159,6 +196,31 @@ export const useGame = create<Store>((set, get) => {
   };
   const active = () => get().screen === 'playing' && !get().game.campaign?.dialogue;
   return {
+    hasDisasterSave: loadDisaster('lab').ok,
+    hasSurvivalSave: loadDisaster('survival').ok,
+    startDisaster: (mode, example = 'A', resume = false) => {
+      const saved = resume ? loadDisaster(mode) : null;
+      if (resume && !saved?.ok) {
+        set({ notice: 'saveFailed' });
+        return;
+      }
+      const game = saved?.ok
+        ? saved.game
+        : mode === 'lab'
+          ? disasterExample(get().settings, example)
+          : disasterCity(get().settings, 'survival');
+      set({
+        game,
+        screen: 'playing',
+        freeMode: false,
+        selected: null,
+        toolMode: 'build',
+        analysisMode: 'off',
+        cameraFocus: null,
+        cameraMode: 'free',
+        cameraReset: get().cameraReset + 1,
+      });
+    },
     hasVerticalSave: loadVertical().ok,
     startVertical: (example, resume = false) => {
       const saved = resume ? loadVertical() : null;
@@ -539,13 +601,17 @@ export const useGame = create<Store>((set, get) => {
       }
       const ok = saveGame({ ...get().game, settings: get().settings });
       set({
-        ...(get().game.vertical && get().game.mode === 'citylab'
-          ? { hasVerticalSave: ok || get().hasVerticalSave }
-          : get().game.mode === 'citylab'
-            ? { hasCitySave: ok || get().hasCitySave }
-            : get().game.mode === 'lab'
-              ? { hasLabSave: ok || get().hasLabSave }
-              : { hasSave: ok || get().hasSave }),
+        ...(get().game.disaster?.mode === 'lab'
+          ? { hasDisasterSave: ok || get().hasDisasterSave }
+          : get().game.disaster?.mode === 'survival'
+            ? { hasSurvivalSave: ok || get().hasSurvivalSave }
+            : get().game.vertical && get().game.mode === 'citylab'
+              ? { hasVerticalSave: ok || get().hasVerticalSave }
+              : get().game.mode === 'citylab'
+                ? { hasCitySave: ok || get().hasCitySave }
+                : get().game.mode === 'lab'
+                  ? { hasLabSave: ok || get().hasLabSave }
+                  : { hasSave: ok || get().hasSave }),
         saveIssue: ok ? '' : 'unavailable',
         ...(!silent || !ok ? { notice: ok ? 'saved' : 'saveFailed' } : {}),
       });
@@ -635,7 +701,9 @@ export const useGame = create<Store>((set, get) => {
     },
     resetLab: () => {
       const g = get().game;
-      if (['lab', 'citylab'].includes(g.mode)) get().start(g.mode, 1, g.labExample);
+      if (g.disaster && ['lab', 'survival'].includes(g.disaster.mode))
+        get().startDisaster(g.disaster.mode as 'lab' | 'survival', g.disaster.example);
+      else if (['lab', 'citylab'].includes(g.mode)) get().start(g.mode, 1, g.labExample);
     },
     toggleLift: (id) => {
       if (active()) apply(maintenance.toggleLift(get().game, id));

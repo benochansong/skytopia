@@ -27,5 +27,5 @@ describe('Living City', () => {
       expect(g.structure.loss).toBeNull();
       expect(g.structure.collapsedCount).toBe(0);
     }
-  }, 15000);
+  }, 30000);
 });

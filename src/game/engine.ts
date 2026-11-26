@@ -1,3 +1,4 @@
+import { disasterBefore, disasterAfter } from './disasters/manager';
 import { stage } from './campaign/definitions';
 import { campaignDraw, campaignStep } from './campaign/runtime';
 import { freshCity, cityEvent } from './city/state';
@@ -44,7 +45,7 @@ export function newGame(
     supply = s;
   }
   const g: Game = {
-    version: 4,
+    version: 5,
     city: freshCity(
       mode === 'citylab' || (mode === 'mission' && missionId >= 5),
       mode === 'mission' ? MISSIONS[missionId].resources : 100,
@@ -134,11 +135,13 @@ function advance(g: Game): Game {
       { ...g, active: g.city.orders[0].piece, city: { ...g.city, orders: g.city.orders.slice(1) } },
       'delivery',
     );
-  if (g.mode === 'lab' || g.mode === 'citylab')
+  if (g.mode === 'lab' || (g.mode === 'citylab' && g.disaster?.mode !== 'survival'))
     return { ...g, remaining: RULES.fallSeconds, holdUsed: false };
   const s = analyze(g);
   const [randomPiece, randomSupply] = draw(g.supply, g.mode === 'training', {
     vertical: !!g.vertical,
+    disaster: !!g.disaster && !['off', 'weather'].includes(g.disaster.setting),
+    hazard: g.disaster?.phase === 'forecast' ? g.disaster.threat?.kind : undefined,
     script: g.mode === 'mission' ? MISSIONS[g.missionId].script : [],
     needsLift: s.lift - s.mass < 80,
     needsSpace: g.platforms.length - g.buildings.length < 10,
@@ -337,12 +340,14 @@ function tickStep(g: Game, dt: number): Game {
     result.population = Math.min(stats.capacity, Math.max(g.population, result.population));
   if (result.remaining === 0)
     result = validatePlacement(result).valid ? place(result) : recycle(result);
+  result = disasterBefore(result, dt);
   if (!g.campaign || stage(g.campaign.stage).structure) result = simulateStructure(result, dt);
   if (result.city.enabled) {
     if (result.buildings !== g.buildings) result = reconcileStores(reconcileResidents(result));
     result = tickCity(result, dt);
   } else
     result = { ...result, city: { ...result.city, dayTime: (result.city.dayTime + dt) % 360 } };
+  result = disasterAfter(result);
   if (result.campaign) return campaignStep(result, dt);
   const complete = objectives(result).every(Boolean) && !result.structure.loss;
   const missionHold = complete ? result.missionHold + dt : 0;

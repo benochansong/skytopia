@@ -1,3 +1,4 @@
+import { aetherFactor } from '../disasters/effects';
 import { facility } from '../../data/cityRules';
 import { PHYSICAL, STRUCTURE, isLift, VERTICAL } from '../../data/rules';
 import type { City, LiftOutput, Network } from './types';
@@ -21,7 +22,7 @@ export function calculateLift(city: City, network: Network) {
     const desired = b.enabled ? (network.powerRatios.get(b.id) ?? 0) : 0;
     const factor = b.enabled ? (state?.factor ?? desired) : 0,
       max = facility(b).lift * health;
-    const output = max * factor,
+    const output = max * factor * aetherFactor(city, b),
       cell = footprintCenter(b);
     total += output;
     maximum += max;

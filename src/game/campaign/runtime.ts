@@ -2,7 +2,7 @@ import type { Game, Kind } from '../../types/game';
 import { BLOCKS } from '../../data/rules';
 import { stage } from './definitions';
 import { campaignGoals, evaluateResult, metrics, goalMet } from './objectives';
-import { random } from '../supply';
+import { forecastSupply, random } from '../supply';
 import { adjustStock, inventory, pay, canPay } from '../city/inventory';
 import { reconcileResidents } from '../city/population';
 export function canUse(g: Game, kind: Kind) {
@@ -17,7 +17,13 @@ export function campaignDraw(g: Game): Game {
   const d = stage(g.campaign!.stage);
   const n = g.supply.draws;
   const [r, seed] = random(g.supply.seed);
-  const kind = d.script[n] ?? d.allowed[Math.floor(r * d.allowed.length)];
+  const pool = [
+    ...d.allowed,
+    ...(g.disaster?.phase === 'forecast'
+      ? forecastSupply(g.disaster.threat!.kind).filter((k) => d.allowed.includes(k))
+      : []),
+  ];
+  const kind = d.script[n] ?? pool[Math.floor(r * pool.length)];
   const [shapeRoll, nextSeed] = random(seed);
   const shapes = BLOCKS[kind].shapes;
   const piece = {

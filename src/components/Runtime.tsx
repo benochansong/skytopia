@@ -6,11 +6,34 @@ export default function Runtime() {
   const audio = useRef<Soundscape | null>(null);
   useEffect(() => {
     let last = performance.now(),
-      lastSave = last;
+      lastSave = last,
+      lastThreat = 0,
+      lastDisasterEffect = '',
+      lastDisasterPhase = '';
     const timer = window.setInterval(() => {
       const now = performance.now();
       if (!document.hidden) useGame.getState().tick(Math.min((now - last) / 1000, 1));
       last = now;
+      const current = useGame.getState(),
+        hazard = current.game.disaster;
+      if (current.screen === 'playing' && hazard) {
+        if (hazard.phase === 'active') audio.current?.cue('storm');
+        if (hazard.phase !== lastDisasterPhase) {
+          if (hazard.phase === 'forecast') audio.current?.cue('forecast');
+          if (hazard.phase === 'recovery') audio.current?.cue('stormEnd');
+          lastDisasterPhase = hazard.phase;
+        }
+        const effect = hazard.effects.at(-1);
+        if (effect && effect.id !== lastDisasterEffect) {
+          audio.current?.cue(effect.kind === 'lightning' ? 'thunder' : effect.kind);
+          lastDisasterEffect = effect.id;
+        }
+        if (hazard.threat && hazard.threat.id !== lastThreat) {
+          lastThreat = hazard.threat.id;
+          if (current.settings.disasterCamera && !current.settings.reducedMotion)
+            current.focus(hazard.threat.target);
+        }
+      }
       if (useGame.getState().game.campaign && useGame.getState().screen === 'playing')
         audio.current?.chapter(stage(useGame.getState().game.campaign!.stage).chapter);
       if (

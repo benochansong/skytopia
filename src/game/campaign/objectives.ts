@@ -1,3 +1,6 @@
+import { PHYSICAL, DISASTER } from '../../data/rules';
+import { defenseReady, evacuatedTotal } from '../disasters/effects';
+import { resilience } from '../disasters/report';
 import { VERTICAL_DEFS } from '../../data/rules';
 import { endpoints, hasPlatform } from '../vertical/geometry';
 import type { Game } from '../../types/game';
@@ -23,6 +26,31 @@ export function metrics(g: Game): Record<Metric, number> {
     (b) => b.enabled && b.durability > 0 && endpoints(b, b.origin).every((c) => hasPlatform(g, c)),
   );
   return {
+    observations: g.buildings.filter(
+      (b) => ['weatherStation', 'weatherTower'].includes(b.kind) && defenseReady(g, b),
+    ).length,
+    windDefenses: g.buildings.filter(
+      (b) => ['windbreak', 'reinforcedWindbreak'].includes(b.kind) && defenseReady(g, b),
+    ).length,
+    shieldUnits: g.buildings.filter(
+      (b) =>
+        ['shieldSmall', 'shieldLarge'].includes(b.kind) &&
+        defenseReady(g, b) &&
+        (g.disaster?.shields[b.id] ?? 0) > 10,
+    ).length,
+    stabilizers: g.buildings.filter((b) => b.kind === 'stabilizer' && defenseReady(g, b)).length,
+    shelterCapacity:
+      g.buildings.filter((b) => b.kind === 'shelter' && defenseReady(g, b)).length *
+      DISASTER.shelterCapacity,
+    disasters: g.disaster?.stats.completed ?? 0,
+    shieldAbsorbed: g.disaster?.stats.absorbed ?? 0,
+    storedEnergy: r?.battery ?? 0,
+    damagedFacilities: g.buildings.filter((b) => b.durability < PHYSICAL[b.kind].hp * 0.9).length,
+    evacuated: evacuatedTotal(g),
+    recoveryCenters: g.buildings.filter((b) => b.kind === 'repairCenter' && defenseReady(g, b))
+      .length,
+    preparedReinforcement: g.structure.reinforcementsDone,
+    resilience: g.disaster ? resilience(g).score : 0,
     upperDecks: g.platforms.filter((p) => p.y > 0).length,
     columns: links.filter((b) => VERTICAL_DEFS[b.kind]?.role === 'column').length,
     upperHomes: homes.filter(

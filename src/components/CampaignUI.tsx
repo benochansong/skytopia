@@ -251,7 +251,7 @@ export function CampaignOverlay() {
           </span>
           <h1>{d.title[lang]}</h1>
           <p>
-            {d.id === 20
+            {d.id === 25
               ? text(
                   '오리온: 저 구름 너머에 무엇이 있는지, 이제 우리가 알아낼 차례입니다.',
                   'Orion: Now it is our turn to discover what lies beyond those clouds.',
@@ -407,7 +407,7 @@ export default function CampaignScreens() {
           ))}
         </div>
         <h2>
-          {text('도전 과제', 'Achievements')} · {Object.keys(p.achievements).length}/24
+          {text('도전 과제', 'Achievements')} · {Object.keys(p.achievements).length}/34
         </h2>
         <div className="achievement-grid">
           {ACHIEVEMENTS.map(([id, label]) => (
@@ -486,7 +486,7 @@ export default function CampaignScreens() {
           <h1>{text('하늘의 개척자', 'Pioneers of the sky')}</h1>
         </div>
         <div>
-          <span>★ {total}/60</span>
+          <span>★ {total}/75</span>
           <button onClick={() => useGame.getState().setScreen('menu')}>
             {text('메인 메뉴', 'Main menu')}
           </button>

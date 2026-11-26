@@ -1,3 +1,4 @@
+import { evacuatedTotal } from '../disasters/effects';
 import type { Game } from '../../types/game';
 import { facility, CITY_RULES } from '../../data/cityRules';
 import { cityReport } from './report';
@@ -5,9 +6,16 @@ import { operatingNetwork } from './operations';
 import { analyze } from '../analysis';
 // Residents remain people after housing collapses. Shelter and departure have their own clocks.
 export function reconcileResidents(g: Game): Game {
+  if (g.disaster) {
+    const evacuated = g.disaster.evacuated.filter((e) =>
+      g.buildings.some((b) => b.id === e.shelter && b.kind === 'shelter' && b.durability > 0),
+    );
+    if (evacuated.length !== g.disaster.evacuated.length)
+      g = { ...g, disaster: { ...g.disaster, evacuated } };
+  }
   const homes = g.buildings.filter((b) => facility(b).capacity > 0),
     residents: Record<string, number> = {};
-  let assigned = 0;
+  let assigned = evacuatedTotal(g);
   for (const b of homes) {
     residents[b.id] = Math.min(facility(b).capacity, g.city.residents[b.id] ?? 0);
     assigned += residents[b.id];
@@ -58,6 +66,7 @@ export function populationStep(g: Game): Game {
   )
     delta = Math.min(2 - next.population, r.housing - next.population);
   else if (
+    evacuatedTotal(next) === 0 &&
     happiness >= 55 &&
     next.city.hungerTime === 0 &&
     r.deficit < 0.1 &&
@@ -95,6 +104,16 @@ export function populationStep(g: Game): Game {
       if (add > 0) residents[b.id] = (residents[b.id] ?? 0) + add;
       left -= add;
     }
+  if (delta < 0 && left > 0 && next.disaster) {
+    const evacuated = next.disaster.evacuated
+      .map((e) => {
+        const remove = Math.min(left, e.count);
+        left -= remove;
+        return { ...e, count: e.count - remove };
+      })
+      .filter((e) => e.count > 0.00001);
+    next = { ...next, disaster: { ...next.disaster, evacuated } };
+  }
   const actual = delta < 0 ? delta : delta - left;
   next = {
     ...next,

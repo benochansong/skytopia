@@ -19,15 +19,25 @@ export function DayLight() {
       ),
       day,
     );
+  const clouds = g.disaster?.weather.clouds ?? 0,
+    ether = g.disaster?.weather.instability ?? 0;
+  color.lerp(new Color(ether > 0.2 ? '#655f8c' : '#6e8396'), clouds * 0.6);
   return (
     <>
       <color attach="background" args={[color]} />
-      <fog attach="fog" args={[color, 24, 65]} />
+      <fog
+        attach="fog"
+        args={[
+          color,
+          g.disaster?.weather.kind === 'fog' ? 10 : 24,
+          g.disaster?.weather.kind === 'fog' ? 35 : 65,
+        ]}
+      />
       <hemisphereLight args={['#c4e8ff', '#7f927d', 0.75 + day * 0.95]} />
       <ambientLight intensity={0.35} />
       <directionalLight
         position={[-8, 16, 8]}
-        intensity={0.45 + day * 2.05}
+        intensity={(0.45 + day * 2.05) * (1 - clouds * 0.55)}
         color={day > 0.3 ? '#fff0d2' : '#afc9f5'}
         castShadow={settings.shadows}
         shadow-mapSize={[2048, 2048]}

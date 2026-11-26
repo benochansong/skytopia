@@ -1,3 +1,4 @@
+import { DisasterEntry, DisasterControls } from './DisasterUI';
 import { VerticalEntry, VerticalControls } from './VerticalUI';
 import { stage } from '../game/campaign/definitions';
 import { CampaignEntry, CampaignObjectives } from './CampaignControls';
@@ -276,7 +277,7 @@ export function Menu() {
     <div className="menu-screen">
       <header className="menu-top">
         <span className="edition">
-          VERTICAL CIVILIZATION <i>05</i>
+          STORMS OF AETHER <i>06</i>
         </span>
         <button
           className="language-button"
@@ -310,6 +311,7 @@ export function Menu() {
         <div className="menu-actions">
           <CampaignEntry />
           <VerticalEntry />
+          <DisasterEntry />
           <button className="primary" onClick={() => start('mission')}>
             <Icon name="play" size={17} />
             {t.newGame}
@@ -447,6 +449,7 @@ export function HUD() {
         </button>
       </header>
       <VerticalControls />
+      <DisasterControls />
       <aside className="left-rail">
         {g.campaign ? (
           <CampaignObjectives />
@@ -458,14 +461,20 @@ export function HUD() {
                 ? 'FREE BUILD'
                 : g.mode === 'citylab'
                   ? g.vertical
-                    ? 'VERTICAL LAB'
+                    ? g.disaster?.mode === 'survival'
+                      ? 'SURVIVAL'
+                      : g.disaster
+                        ? 'DISASTER LAB'
+                        : 'VERTICAL LAB'
                     : 'CITY LAB'
                   : g.mode === 'lab'
                     ? P2[lang].lab
                     : t.mission}
               <span>
                 {g.mode === 'citylab'
-                  ? (g.vertical?.example ?? g.city.example)
+                  ? g.disaster?.mode === 'survival'
+                    ? g.disaster.wave
+                    : (g.disaster?.example ?? g.vertical?.example ?? g.city.example)
                   : g.mode === 'lab'
                     ? g.labExample
                     : `0${g.missionId}`}{' '}
@@ -474,7 +483,9 @@ export function HUD() {
             <span className="eyebrow">
               {g.mode === 'citylab'
                 ? g.vertical
-                  ? 'VERTICAL CIVILIZATION'
+                  ? g.disaster
+                    ? 'STORMS OF AETHER'
+                    : 'VERTICAL CIVILIZATION'
                   : 'LIVING CITY'
                 : g.mode === 'lab'
                   ? 'STRUCTURAL LAB'
@@ -488,10 +499,18 @@ export function HUD() {
                 : g.mode === 'citylab'
                   ? lang === 'ko'
                     ? g.vertical
-                      ? '수직 건설 실험실'
+                      ? g.disaster?.mode === 'survival'
+                        ? '재난 생존 모드'
+                        : g.disaster
+                          ? '재난 실험실'
+                          : '수직 건설 실험실'
                       : '도시 운영 실험실'
                     : g.vertical
-                      ? 'Vertical Lab'
+                      ? g.disaster?.mode === 'survival'
+                        ? 'Survival mode'
+                        : g.disaster
+                          ? 'Disaster Lab'
+                          : 'Vertical Lab'
                       : 'City Lab'
                   : g.mode === 'lab'
                     ? LAB_EXAMPLES[g.labExample][lang]
@@ -505,10 +524,14 @@ export function HUD() {
                 : g.mode === 'citylab'
                   ? lang === 'ko'
                     ? g.vertical
-                      ? '입체 공방에서 예제를 고르고 층별로 구조·이동·전력을 연결하세요.'
+                      ? g.disaster
+                        ? '예보를 확인하고 방어시설·비상 자원·대피 경로를 준비하세요.'
+                        : '입체 공방에서 예제를 고르고 층별로 구조·이동·전력을 연결하세요.'
                       : '도시 운영 패널에서 예제·시설·시간을 조절하세요.'
                     : g.vertical
-                      ? 'Choose a workshop example and connect support, transport and power across floors.'
+                      ? g.disaster
+                        ? 'Read forecasts and prepare defenses, reserves and evacuation routes.'
+                        : 'Choose a workshop example and connect support, transport and power across floors.'
                       : 'Use City management to control facilities, scenarios and time.'
                   : g.mode === 'lab'
                     ? P2[lang].unlimited

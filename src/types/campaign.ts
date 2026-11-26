@@ -1,6 +1,19 @@
 import type { Game, Kind } from './game';
 export type LocalText = { ko: string; en: string };
 export type Metric =
+  | 'observations'
+  | 'windDefenses'
+  | 'shieldUnits'
+  | 'stabilizers'
+  | 'shelterCapacity'
+  | 'disasters'
+  | 'shieldAbsorbed'
+  | 'storedEnergy'
+  | 'damagedFacilities'
+  | 'evacuated'
+  | 'recoveryCenters'
+  | 'preparedReinforcement'
+  | 'resilience'
   | 'upperDecks'
   | 'columns'
   | 'upperHomes'
@@ -144,7 +157,7 @@ export type Profile = {
   legacyImported: boolean;
 };
 export type CampaignSave = {
-  version: 2;
+  version: 3;
   profile: Profile;
   current: Game | null;
   checkpoint: Game | null;

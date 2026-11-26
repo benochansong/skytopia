@@ -1,3 +1,4 @@
+import { DisasterEffects } from './DisasterEffects';
 import { CHAPTERS, stage } from '../game/campaign/definitions';
 import { DayLight, LivingCity } from './LivingCity';
 import { memo, useEffect, useMemo, useRef } from 'react';
@@ -316,12 +317,13 @@ function City() {
     analysisMode = useGame((s) => s.analysisMode);
   const city = useGame((s) => s.game.city),
     population = useGame((s) => s.game.population);
+  const disaster = useGame((s) => s.game.disaster);
   const root = useRef<Group>(null);
   const lastAim = useRef<{ x: number; y: number } | null>(null);
   const fallAge = useRef(0);
   const stats = useMemo(
-    () => analyze({ platforms, buildings, structure, difficulty, city, population }),
-    [platforms, buildings, structure, difficulty, city, population],
+    () => analyze({ platforms, buildings, structure, difficulty, city, population, disaster }),
+    [platforms, buildings, structure, difficulty, city, population, disaster],
   );
   const balanceDirection = useMemo(
     () =>
@@ -356,7 +358,11 @@ function City() {
       root.current.position.y = -Math.min(40, fallAge.current * fallAge.current * 0.7);
     } else {
       fallAge.current = 0;
-      root.current.position.y = 0;
+      const current = useGame.getState();
+      root.current.position.y =
+        !current.settings.reducedMotion && current.game.disaster?.phase === 'active'
+          ? Math.sin(current.game.elapsed * 6) * current.settings.cameraShake * 0.06
+          : 0;
     }
   });
   function aim(e: ThreeEvent<PointerEvent | MouseEvent>, place = false) {
@@ -384,6 +390,7 @@ function City() {
       <BuildingField />
       <LivingCity />
       <VerticalStructures />
+      <DisasterEffects />
       {buildings
         .filter(
           (b) =>

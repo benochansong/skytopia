@@ -1,5 +1,45 @@
 import type { Kind } from '../types/game';
 export const MISSIONS = {
+  5: {
+    ko: '첫 번째 수확',
+    en: 'The First Harvest',
+    subtitle: 'THE FIRST HARVEST',
+    hold: 15,
+    resources: 300,
+    script: ['farm', 'apartment', 'power', 'apartment', 'farm', 'road', 'liftSmall'] as Kind[],
+  },
+  6: {
+    ko: '문명의 에너지',
+    en: 'Power of Civilization',
+    subtitle: 'POWER OF CIVILIZATION',
+    hold: 15,
+    resources: 350,
+    script: ['advancedPower', 'battery', 'relay', 'road', 'liftSmall'] as Kind[],
+  },
+  7: {
+    ko: '산업의 시대',
+    en: 'The Industrial Age',
+    subtitle: 'THE INDUSTRIAL AGE',
+    hold: 20,
+    resources: 400,
+    script: ['factory', 'warehouse', 'refinery', 'apartment', 'shop'] as Kind[],
+  },
+  8: {
+    ko: '우리의 하늘 도시',
+    en: 'A City to Call Home',
+    subtitle: 'A CITY TO CALL HOME',
+    hold: 20,
+    resources: 450,
+    script: ['park', 'clinic', 'plaza', 'housingEstate', 'greenhouse'] as Kind[],
+  },
+  9: {
+    ko: '침묵의 도시',
+    en: 'The Silent City',
+    subtitle: 'THE SILENT CITY',
+    hold: 20,
+    resources: 350,
+    script: ['farm', 'advancedPower', 'brace', 'park', 'warehouse'] as Kind[],
+  },
   1: {
     ko: '최초의 빛',
     en: 'First Light',
@@ -35,6 +75,17 @@ export const MISSIONS = {
 };
 export const MISSION_GOALS = {
   ko: {
+    5: ['인구 50명', '농장 2개 가동', '식량 생산 ≥ 소비', '식량 60 이상', '안정도 75%'],
+    6: [
+      '발전 280·전력 수급 회복',
+      '주거 전력 100%',
+      '부양장치 가동',
+      '산업 효율 70%',
+      '안정도 75%',
+    ],
+    7: ['인구 100명', '산업시설 2개 가동', '자재 생산 0.5/초', '흑자 운영', '과부하 없음'],
+    8: ['인구 150명', '행복도 80', '식량·전력 자급', '공원·병원 가동', '안정도 80%'],
+    9: ['식량 60 이상', '전력 수급 회복', '구조 수리·안정도 80%', '행복도 70', '흑자 운영'],
     2: ['인구 50명', '소형 부양장치 설치', '총중량 300t', '안정도 75% 이상', '과부하 연결부 없음'],
     3: [
       '두 중심의 거리 25% 감소',
@@ -52,6 +103,41 @@ export const MISSION_GOALS = {
     ],
   },
   en: {
+    5: [
+      '50 inhabitants',
+      '2 operating farms',
+      'Food production ≥ demand',
+      '60 stored food',
+      '75% stability',
+    ],
+    6: [
+      'Generate 280; restore power balance',
+      'Power all housing',
+      'Working levitators',
+      '70% industry efficiency',
+      '75% stability',
+    ],
+    7: [
+      '100 inhabitants',
+      '2 operating industries',
+      '0.5 materials / sec',
+      'Positive cash flow',
+      'No overloads',
+    ],
+    8: [
+      '150 inhabitants',
+      '80 happiness',
+      'Food and power self-sufficient',
+      'Working park and clinic',
+      '80% stability',
+    ],
+    9: [
+      '60 stored food',
+      'Restore power balance',
+      'Repair structure; 80% stability',
+      '70 happiness',
+      'Positive cash flow',
+    ],
     2: [
       'Reach 50 inhabitants',
       'Install a small levitator',

@@ -1,3 +1,4 @@
+import { BLOCKS, PHYSICAL } from '../data/rules';
 import { memo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
@@ -55,7 +56,8 @@ export function Reactor({ core = false, output = 1 }: { core?: boolean; output?:
       !s.settings.reducedMotion &&
       (s.screen === 'playing' || s.screen === 'menu')
     )
-      ring.current.rotation.y += dt * 0.5 * output;
+      ring.current.rotation.y +=
+        dt * 0.5 * output * (s.screen === 'menu' ? 1 : s.game.labPaused ? 0 : s.game.city.speed);
   });
   return (
     <group scale={core ? 1.35 : 0.85}>
@@ -95,6 +97,99 @@ export function Reactor({ core = false, output = 1 }: { core?: boolean; output?:
   );
 }
 export function Facility({ kind, output = 1 }: { kind: Kind; output?: number }) {
+  if (
+    [
+      'apartment',
+      'housingEstate',
+      'advancedPower',
+      'aetherPower',
+      'relay',
+      'powerLink',
+      'battery',
+      'greenhouse',
+      'hydroponics',
+      'workshop',
+      'manufacturer',
+      'refinery',
+      'warehouse',
+      'logisticsDepot',
+      'granary',
+      'aetherStore',
+      'plaza',
+      'clinic',
+      'shop',
+    ].includes(kind)
+  ) {
+    const housing = BLOCKS[kind].capacity > 0,
+      food = ['greenhouse', 'hydroponics'].includes(kind),
+      industry = ['manufacturer', 'refinery', 'workshop'].includes(kind),
+      storage = ['warehouse', 'logisticsDepot', 'granary', 'aetherStore', 'battery'].includes(kind),
+      power = ['advancedPower', 'aetherPower', 'relay', 'powerLink'].includes(kind),
+      h = PHYSICAL[kind].height * 0.68;
+    if (kind === 'plaza')
+      return (
+        <group>
+          <Box size={[0.9, 0.08, 0.9]} color="#ddcba6" />
+          <mesh position={[0, 0.23, 0]}>
+            <cylinderGeometry args={[0.25, 0.32, 0.3, 12]} />
+            <meshStandardMaterial color="#78c9cd" />
+          </mesh>
+        </group>
+      );
+    return (
+      <group>
+        <Box
+          position={[0, h / 2, 0]}
+          size={[0.78, h, 0.72]}
+          color={
+            housing
+              ? '#e3d3b0'
+              : food
+                ? '#8bb6a0'
+                : industry
+                  ? '#789797'
+                  : storage
+                    ? '#c5b18b'
+                    : power
+                      ? '#557f8b'
+                      : kind === 'clinic'
+                        ? '#e4e9db'
+                        : '#d0a682'
+          }
+        />
+        <Box
+          position={[0, h + 0.04, 0]}
+          size={[0.86, 0.09, 0.8]}
+          color={food ? '#b0e5d3' : power ? '#79d5d0' : kind === 'shop' ? '#cc8a64' : '#617e7a'}
+        />
+        {housing ? (
+          <>
+            <Box position={[0, h * 0.38, 0.37]} size={[0.58, 0.1, 0.025]} color="#93bfca" />
+            <Box position={[0, h * 0.72, 0.37]} size={[0.58, 0.1, 0.025]} color="#93bfca" />
+          </>
+        ) : food ? (
+          <>
+            <Box position={[-0.2, h + 0.12, 0]} size={[0.04, 0.16, 0.75]} color="#e4e6d2" />
+            <Box position={[0.2, h + 0.12, 0]} size={[0.04, 0.16, 0.75]} color="#e4e6d2" />
+          </>
+        ) : industry ? (
+          <Box position={[0.22, h + 0.2, -0.18]} size={[0.16, 0.4, 0.16]} color="#6b777a" />
+        ) : storage ? (
+          <Box position={[0, h * 0.4, 0.37]} size={[0.45, h * 0.65, 0.02]} color="#787d74" />
+        ) : power ? (
+          <mesh position={[0, h + 0.22, 0]}>
+            <octahedronGeometry args={[0.2, 0]} />
+            <meshStandardMaterial color="#8bf0e6" />
+          </mesh>
+        ) : kind === 'clinic' ? (
+          <>
+            <Box position={[0, h * 0.6, 0.37]} size={[0.4, 0.1, 0.03]} color="#cf6a64" />
+            <Box position={[0, h * 0.6, 0.38]} size={[0.1, 0.4, 0.03]} color="#cf6a64" />
+          </>
+        ) : null}
+      </group>
+    );
+  }
   if (kind === 'largeHome')
     return (
       <group>
@@ -244,7 +339,8 @@ export const BuildingModel = memo(function BuildingModel({
   roads: Set<string>;
   output?: number;
 }) {
-  const language = useGame((s) => s.settings.language);
+  const language = useGame((s) => s.settings.language),
+    cityEnabled = useGame((s) => s.game.city.enabled);
   const cells = cellsOf(b, b.origin);
   return (
     <group>
@@ -266,13 +362,16 @@ export const BuildingModel = memo(function BuildingModel({
               )}
             </group>
           ) : (
-            <group rotation={[0, (-b.rotation * Math.PI) / 2, 0]}>
+            <group
+              rotation={[0, (-b.rotation * Math.PI) / 2, 0]}
+              scale={[1, 1 + 0.15 * (b.level ?? 0), 1]}
+            >
               <Facility kind={b.kind} output={output} />
             </group>
           )}
         </group>
       ))}
-      {(!connected || !powered) && b.kind !== 'road' ? (
+      {!cityEnabled && (!connected || !powered) && b.kind !== 'road' ? (
         <Html
           zIndexRange={[3, 0]}
           position={[b.origin.x, 1.2, b.origin.z]}

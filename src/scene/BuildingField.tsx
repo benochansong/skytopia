@@ -1,3 +1,4 @@
+import { KINDS } from '../data/rules';
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Html } from '@react-three/drei';
 import { BufferGeometry, Group, InstancedMesh, Material, Matrix4, Mesh, Object3D } from 'three';
@@ -7,6 +8,24 @@ import { cellsOf, key, neighbors } from '../game/grid';
 import { analyze } from '../game/analysis';
 import type { Building, Kind } from '../types/game';
 export const INSTANCED_KINDS: Kind[] = [
+  ...KINDS.filter(
+    (k) =>
+      ![
+        'platform',
+        'metalPlatform',
+        'brace',
+        'power',
+        'liftSmall',
+        'liftLarge',
+        'home',
+        'largeHome',
+        'factory',
+        'farm',
+        'park',
+        'ballast',
+        'road',
+      ].includes(k),
+  ),
   'home',
   'largeHome',
   'factory',
@@ -26,6 +45,7 @@ function Instances({ part, buildings }: { part: Part; buildings: Building[] }) {
       for (const c of cellsOf(b, b.origin)) {
         o.position.set(c.x, 0.08, c.z);
         o.rotation.set(0, (-b.rotation * Math.PI) / 2, 0);
+        o.scale.set(1, 1 + 0.15 * (b.level ?? 0), 1);
         o.updateMatrix();
         matrix.multiplyMatrices(o.matrix, part.matrix);
         ref.current!.setMatrixAt(i++, matrix);
@@ -140,6 +160,7 @@ export function BuildingField() {
       {buildings
         .filter(
           (b) =>
+            !game.city.enabled &&
             INSTANCED_KINDS.includes(b.kind) &&
             b.kind !== 'road' &&
             (!stats.connectedIds.has(b.id) || (stats.powerRatios.get(b.id) ?? 0) < 1),

@@ -1,3 +1,4 @@
+import { OPERATION } from '../data/cityRules';
 import { BLOCKS } from '../data/rules';
 import type { Kind, Piece, Supply } from '../types/game';
 const BAG: Kind[] = [
@@ -18,7 +19,13 @@ export function random(seed: number): [number, number] {
 export function draw(
   source: Supply,
   training = false,
-  context: { script?: Kind[]; needsLift?: boolean; needsSpace?: boolean; needsRoad?: boolean } = {},
+  context: {
+    script?: Kind[];
+    needsLift?: boolean;
+    needsSpace?: boolean;
+    needsRoad?: boolean;
+    city?: { tier: number; needFood: boolean; needPower: boolean };
+  } = {},
 ): [Piece, Supply] {
   let { seed } = source;
   let bag = [...source.bag];
@@ -37,6 +44,31 @@ export function draw(
       if (context.needsLift) bag.push('liftSmall');
       else if (context.needsSpace) bag.push('platform');
       else if (context.needsRoad) bag.push('road');
+    }
+    if (context.city) {
+      const extra: Kind[] = [
+        'apartment',
+        'workshop',
+        'warehouse',
+        'greenhouse',
+        'advancedPower',
+        'battery',
+        'clinic',
+        'shop',
+        'housingEstate',
+        'refinery',
+        'logisticsDepot',
+        'aetherStore',
+        'hydroponics',
+        'manufacturer',
+        'aetherPower',
+        'plaza',
+        'relay',
+        'powerLink',
+      ];
+      bag.push(...extra.filter((k) => OPERATION[k].unlock <= context.city!.tier));
+      if (context.city.needFood) bag.push('farm');
+      else if (context.city.needPower) bag.push('power');
     }
     for (let i = bag.length - 1; i > 0; i--) {
       const [r, s] = random(seed);

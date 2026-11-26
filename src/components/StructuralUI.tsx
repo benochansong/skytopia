@@ -40,7 +40,7 @@ export function Phase2Menu() {
     <>
       <button onClick={() => setOpen('campaign')}>
         {t.campaign}
-        <span className="tag">01 — 04</span>
+        <span className="tag">01 — 09</span>
       </button>
       <button onClick={() => setOpen('lab')}>
         {t.lab}
@@ -50,7 +50,7 @@ export function Phase2Menu() {
         <Dialog title={open === 'campaign' ? t.campaign : t.lab} onClose={() => setOpen(null)} wide>
           <div className="scenario-grid">
             {open === 'campaign'
-              ? ([1, 2, 3, 4] as const).map((id) => (
+              ? ([1, 2, 3, 4, 5, 6, 7, 8, 9] as const).map((id) => (
                   <button key={id} onClick={() => begin('mission', id)}>
                     <small>MISSION 0{id}</small>
                     <strong>{MISSIONS[id][lang]}</strong>
@@ -110,9 +110,33 @@ export function AnalysisToolbar() {
         value={analysis}
         onChange={(e) => useGame.setState({ analysisMode: e.target.value as AnalysisMode })}
       >
-        {(['off', 'load', 'lift', 'center', 'durability', 'connections'] as const).map((m) => (
+        {(
+          [
+            'off',
+            'load',
+            'lift',
+            'center',
+            'durability',
+            'connections',
+            'power',
+            'food',
+            'happiness',
+            'logistics',
+            'economy',
+          ] as const
+        ).map((m) => (
           <option key={m} value={m}>
-            {t[m]}
+            {m in t
+              ? t[m as keyof typeof t]
+              : (
+                  {
+                    power: lang === 'ko' ? '전력망' : 'Power',
+                    food: lang === 'ko' ? '식량' : 'Food',
+                    happiness: lang === 'ko' ? '주거 환경' : 'Happiness',
+                    logistics: lang === 'ko' ? '물류' : 'Logistics',
+                    economy: lang === 'ko' ? '운영 효율' : 'Efficiency',
+                  } as Record<string, string>
+                )[m]}
           </option>
         ))}
       </select>
@@ -125,21 +149,33 @@ export function AnalysisToolbar() {
       </button>
       {analysis !== 'off' ? (
         <small className="analysis-legend">
-          {analysis === 'center'
+          {['power', 'food', 'happiness', 'logistics', 'economy'].includes(analysis)
             ? lang === 'ko'
-              ? '금색 · 무게중심 / 청록 · 부양 중심'
-              : 'Gold · mass center / Cyan · lift center'
-            : analysis === 'lift'
+              ? analysis === 'power'
+                ? '금색 · 전력선 / 초록 · 정상 공급'
+                : analysis === 'logistics'
+                  ? '청록 · 도로 물류 / 빨강 · 단절'
+                  : '초록 · 양호 / 노랑 · 부분 / 빨강 · 부족'
+              : analysis === 'power'
+                ? 'Gold: grid / green: supplied'
+                : analysis === 'logistics'
+                  ? 'Cyan: logistics / red: disconnected'
+                  : 'Green: healthy / yellow: partial / red: shortage'
+            : analysis === 'center'
               ? lang === 'ko'
-                ? '화살표 · 실제 출력 / 원 · 국소 지원 범위'
-                : 'Arrow · effective output / Ring · local support'
-              : analysis === 'durability'
+                ? '금색 · 무게중심 / 청록 · 부양 중심'
+                : 'Gold · mass center / Cyan · lift center'
+              : analysis === 'lift'
                 ? lang === 'ko'
-                  ? '파랑 · 정상 / 빨강 · 심한 손상'
-                  : 'Blue · healthy / Red · damaged'
-                : lang === 'ko'
-                  ? '파랑 → 초록 → 노랑 → 주황 → 빨강 · 하중 증가'
-                  : 'Blue → green → yellow → orange → red · increasing load'}
+                  ? '화살표 · 실제 출력 / 원 · 국소 지원 범위'
+                  : 'Arrow · effective output / Ring · local support'
+                : analysis === 'durability'
+                  ? lang === 'ko'
+                    ? '파랑 · 정상 / 빨강 · 심한 손상'
+                    : 'Blue · healthy / Red · damaged'
+                  : lang === 'ko'
+                    ? '파랑 → 초록 → 노랑 → 주황 → 빨강 · 하중 증가'
+                    : 'Blue → green → yellow → orange → red · increasing load'}
         </small>
       ) : null}
     </div>

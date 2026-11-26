@@ -1551,3 +1551,249 @@ kbd {
   font-size: 10px;
   pointer-events: none;
 }
+
+/* Living City */
+.city-ribbon {
+  position: absolute;
+  left: 24px;
+  right: 24px;
+  top: 99px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 9px 14px;
+  font-size: 12px;
+  pointer-events: auto;
+  z-index: 8;
+  flex-wrap: wrap;
+}
+.city-ribbon button {
+  padding: 6px 9px;
+}
+.speed-controls {
+  display: flex;
+  gap: 3px;
+  margin-left: auto;
+}
+.city-ribbon button[aria-pressed='true'],
+.city-tabs button[aria-pressed='true'] {
+  background: #386c6a;
+  color: #fff;
+}
+.city-advisor {
+  position: absolute;
+  left: 24px;
+  top: 156px;
+  z-index: 9;
+  pointer-events: auto;
+  display: grid;
+  gap: 4px;
+}
+.city-advisor > div {
+  display: flex;
+  gap: 2px;
+}
+.city-advisor button {
+  font-size: 11px;
+  padding: 6px 9px;
+  background: #223e42e8;
+  color: #fff;
+}
+.city-selection {
+  position: absolute;
+  bottom: 186px;
+  right: 24px;
+  z-index: 9;
+  pointer-events: auto;
+  display: grid;
+  gap: 6px;
+  width: 260px;
+  padding: 13px;
+  font-size: 12px;
+}
+.city-tabs,
+.city-lab-controls,
+.city-aid,
+.city-factors {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 12px 0;
+}
+.city-lab-controls {
+  padding: 10px;
+  background: #e1ece7;
+  border-radius: 8px;
+}
+.city-lab-controls label,
+.city-detail label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.city-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.city-metrics > div {
+  display: grid;
+  gap: 5px;
+  padding: 14px;
+  background: #eaf0e9;
+  border: 1px solid #c5d2c7;
+  border-radius: 8px;
+}
+.city-metrics strong {
+  font-size: 21px;
+  color: #305956;
+}
+.city-metrics span,
+.city-factors,
+.city-event-list {
+  font-size: 12px;
+}
+.city-factors span {
+  border: 1px solid #c6d7cd;
+  padding: 6px;
+  border-radius: 6px;
+}
+.city-facilities {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  max-height: 235px;
+  overflow: auto;
+}
+.city-facilities button {
+  display: grid;
+  text-align: left;
+  font-size: 12px;
+  gap: 4px;
+}
+.city-facilities button[aria-pressed='true'] {
+  background: #d1e7dc;
+}
+.city-detail {
+  margin: 12px 0;
+  padding: 12px;
+  border: 1px solid #ccd9cb;
+  border-radius: 8px;
+}
+.city-detail p {
+  font-size: 12px;
+}
+.city-detail small {
+  display: block;
+  margin-top: 8px;
+}
+.city-tier {
+  font-weight: 600;
+}
+.city-event-list {
+  max-height: 320px;
+  overflow: auto;
+}
+.city-ribbon ~ .city-advisor + aside {
+  max-height: 180px;
+  overflow: auto;
+}
+@media (max-width: 1100px) {
+  .city-ribbon {
+    left: 12px;
+    right: 12px;
+    gap: 8px;
+    top: 92px;
+  }
+  .city-ribbon span {
+    font-size: 10px;
+  }
+  .city-advisor {
+    left: 12px;
+    top: 165px;
+  }
+  .city-selection {
+    right: 12px;
+    bottom: 175px;
+    width: 220px;
+  }
+  .city-metrics {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.city-mode .left-rail {
+  top: 252px;
+}
+.city-mode .right-rail {
+  top: 215px;
+}
+.city-mode .analysis-toolbar {
+  top: 161px;
+}
+.city-mode .city-selection {
+  bottom: 190px;
+}
+.city-metrics > div,
+.city-lab-controls {
+  color: #294a46;
+}
+.city-facilities button[aria-pressed='true'] {
+  color: #294a46;
+}
+.city-detail select {
+  margin-left: 8px;
+}
+
+.dialog.wide:has(.city-tabs) {
+  width: 900px;
+  text-align: left;
+}
+.dialog:has(.city-tabs) .city-tabs {
+  position: sticky;
+  top: -38px;
+  z-index: 2;
+  background: #1c3b43;
+  padding: 10px 0;
+}
+.city-detail label {
+  margin: 10px 0;
+}
+.city-detail > button {
+  margin-right: 10px;
+}
+
+.city-advisor {
+  max-width: 300px;
+}
+.city-advisor small {
+  display: block;
+  max-width: 265px;
+  font-size: 10px;
+  opacity: 0.8;
+  text-align: left;
+  margin-top: 3px;
+}
+.city-mode .left-rail {
+  top: 300px;
+}
+.city-advisor button {
+  white-space: normal;
+}
+.city-mode .mission-card {
+  padding: 12px 15px;
+}
+
+.city-mode .city-selection {
+  top: 156px;
+  bottom: auto;
+  max-height: 140px;
+}
+.city-mode:has(.city-selection) .right-rail {
+  top: 308px;
+  max-height: calc(100vh - 390px);
+  overflow-y: auto;
+}
+.city-mode .analysis-toolbar .analysis-legend {
+  max-width: 220px;
+}

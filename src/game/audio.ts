@@ -47,19 +47,45 @@ export class Soundscape {
       g.disconnect();
     };
   }
-  cue(kind: EventKind | 'place' | 'loss' | 'ambient' | 'engine') {
+  cue(
+    kind:
+      | EventKind
+      | 'place'
+      | 'loss'
+      | 'ambient'
+      | 'engine'
+      | 'city'
+      | 'night'
+      | 'shortage'
+      | 'upgrade'
+      | 'tier',
+  ) {
     const now = this.context.currentTime,
       warning = ['critical', 'liftFading', 'powerLost', 'crack'].includes(kind),
-      gap =
-        kind === 'ambient' || kind === 'engine'
-          ? 6
-          : warning
-            ? 2
-            : kind === 'collapse'
-              ? 0.65
-              : 0.12;
+      gap = ['ambient', 'engine', 'city', 'night'].includes(kind)
+        ? 6
+        : warning
+          ? 2
+          : kind === 'collapse'
+            ? 0.65
+            : 0.12;
     if (now - (this.last.get(kind) ?? -Infinity) < gap) return;
     this.last.set(kind, now);
+    if (kind === 'city' || kind === 'night') {
+      this.tone(
+        'music',
+        kind === 'night' ? 146.83 : 174.61,
+        kind === 'night' ? 146.83 : 220,
+        5.5,
+        'sine',
+        0.008,
+      );
+      return;
+    }
+    if (kind === 'shortage') {
+      this.tone('warning', 380, 250, 0.4, 'triangle', 0.02);
+      return;
+    }
     if (kind === 'engine') {
       this.tone('effects', 90, 110, 1.1, 'sine', 0.012);
       return;

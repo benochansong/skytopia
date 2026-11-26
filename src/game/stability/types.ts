@@ -1,6 +1,6 @@
 import type { Building, Cell, Game, Platform } from '../../types/game';
 export type City = Pick<Game, 'platforms' | 'buildings'> &
-  Partial<Pick<Game, 'structure' | 'difficulty'>>;
+  Partial<Pick<Game, 'structure' | 'difficulty' | 'city' | 'population'>>;
 export type Point3 = Cell & { y: number };
 export type StructuralNode = {
   key: string;

@@ -1,0 +1,66 @@
+{
+  "environment": {
+    "node": "v24.14.0",
+    "cpu": "AMD Ryzen AI 9 365 w/ Radeon 880M              ",
+    "platform": "win32"
+  },
+  "fixture": {
+    "population": 600,
+    "platforms": 256,
+    "buildings": 135,
+    "housing": 648,
+    "generation": 650,
+    "demand": 419.5999999999999,
+    "foodProduction": 22.8125,
+    "foodConsumption": 15,
+    "stability": 91.62911558039727,
+    "critical": null,
+    "mass": 3460.199999999999,
+    "lift": 4240,
+    "bytes": 54844
+  },
+  "results": [
+    {
+      "name": "economy one second",
+      "samples": 100,
+      "medianMs": 8.861899999999878,
+      "p95Ms": 14.30639999999994,
+      "maxMs": 17.76780000000008
+    },
+    {
+      "name": "population five second update",
+      "samples": 100,
+      "medianMs": 8.510999999999967,
+      "p95Ms": 13.951799999999821,
+      "maxMs": 16.658899999999903
+    },
+    {
+      "name": "structural quarter second",
+      "samples": 100,
+      "medianMs": 8.494300000000294,
+      "p95Ms": 15.958999999999833,
+      "maxMs": 28.819099999999708
+    },
+    {
+      "name": "combined quarter second",
+      "samples": 100,
+      "medianMs": 17.296699999999873,
+      "p95Ms": 27.787899999999354,
+      "maxMs": 32.483799999999974
+    },
+    {
+      "name": "cached city report",
+      "samples": 5000,
+      "medianMs": 0.0009000000000014552,
+      "p95Ms": 0.00120000000060827,
+      "maxMs": 1.9077000000006592
+    },
+    {
+      "name": "validated save decode",
+      "samples": 100,
+      "medianMs": 4.525000000000546,
+      "p95Ms": 7.788100000000668,
+      "maxMs": 14.139799999999923
+    }
+  ]
+}

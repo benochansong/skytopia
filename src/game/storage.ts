@@ -1,3 +1,9 @@
+import { facility, OPERATION, CITY_RULES } from '../data/cityRules';
+import { inventory } from './city/inventory';
+import { freshCity } from './city/state';
+import { citySchema } from './city/schema';
+import { reconcileResidents } from './city/population';
+import { KINDS } from '../data/rules';
 import { z } from 'zod';
 import { BLOCKS, DEFAULT_SETTINGS, PHYSICAL, RULES, STRUCTURE, isPlatform } from '../data/rules';
 import type { Game, Settings } from '../types/game';
@@ -7,26 +13,16 @@ import { edgeKey, freshStructure, platformMaxHP } from './stability/state';
 const finite = z.number().finite(),
   coord = finite.int().min(RULES.min).max(RULES.max),
   cell = z.object({ x: coord, z: coord });
-const kind = z.enum([
-  'platform',
-  'home',
-  'power',
-  'road',
-  'farm',
-  'park',
-  'metalPlatform',
-  'largeHome',
-  'factory',
-  'liftSmall',
-  'liftLarge',
-  'brace',
-  'ballast',
-]);
-const shape = z.enum(['single', 'I', 'L', 'T', 'O', 'S']);
+const kind = z.enum(KINDS as [(typeof KINDS)[number], ...(typeof KINDS)[number][]]);
+const shape = z.enum(['single', 'D', 'I', 'L', 'T', 'O', 'S']);
 const piece = z
   .object({ kind, shape, rotation: finite.int().min(0).max(3) })
   .refine((p) => BLOCKS[p.kind].shapes.includes(p.shape));
 export const settingsSchema = z.object({
+  dayNight: z.boolean().default(true),
+  citizens: finite.int().min(0).max(48).default(32),
+  vehicles: finite.int().min(0).max(16).default(12),
+  environment: z.boolean().default(true),
   language: z.enum(['ko', 'en']),
   sound: z.boolean(),
   shadows: z.boolean(),
@@ -47,6 +43,8 @@ const platform = cell.extend({
   anchor: z.boolean(),
 });
 const building = z.object({
+  level: finite.int().min(0).max(2).optional(),
+  priority: finite.int().min(0).max(5).optional(),
   id: finite.int().positive(),
   kind,
   shape,
@@ -118,9 +116,20 @@ const structure = z.object({
     .nullable(),
 });
 const schema = z.object({
-  version: z.literal(2),
-  mode: z.enum(['mission', 'training', 'lab']),
-  missionId: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)]),
+  version: z.literal(3),
+  city: citySchema,
+  mode: z.enum(['mission', 'training', 'lab', 'citylab']),
+  missionId: z.union([
+    z.literal(1),
+    z.literal(2),
+    z.literal(3),
+    z.literal(4),
+    z.literal(5),
+    z.literal(6),
+    z.literal(7),
+    z.literal(8),
+    z.literal(9),
+  ]),
   missionHold: finite.nonnegative(),
   baselineSeparation: finite.nonnegative(),
   labExample: z.enum(['A', 'B', 'C', 'D']),
@@ -137,7 +146,7 @@ const schema = z.object({
   cursor: cell,
   supply: z.object({
     seed: finite.int().min(0).max(4294967295),
-    bag: z.array(kind).max(32),
+    bag: z.array(kind).max(64),
     draws: finite.int().min(4),
     policy: z.enum(['classic', 'adaptive']).optional(),
   }),
@@ -200,7 +209,17 @@ export function decodeSave(raw: string | null): SaveResult {
   try {
     const parsed = object(JSON.parse(raw)),
       legacy = parsed.version === 1;
-    const g = schema.parse(legacy ? migrateV1(parsed) : parsed) as Game;
+    const v2 = object(legacy ? migrateV1(parsed) : parsed);
+    let g = schema.parse(
+      v2.version === 2
+        ? {
+            ...v2,
+            version: 3,
+            city: freshCity(false, Number(v2.resources), v2.difficulty as Game['difficulty']),
+          }
+        : v2,
+    ) as Game;
+    if (v2.version === 2) g = reconcileResidents(g);
     const platforms = new Set(g.platforms.map(key)),
       ids = new Set(g.platforms.map((p) => p.id));
     if (platforms.size !== g.platforms.length || ids.size !== g.platforms.length)
@@ -259,7 +278,39 @@ export function decodeSave(raw: string | null): SaveResult {
         throw Error('Invalid event');
       eventIds.add(e.id);
     }
-    if (g.population > analyze(g).capacity) throw Error('Invalid population');
+    if (!g.city.enabled && g.population > analyze(g).capacity) throw Error('Invalid population');
+    if (g.city.enabled) {
+      const inv = inventory(g),
+        total = Object.values(g.city.residents).reduce((a, b) => a + b, 0) + g.city.displaced;
+      if (Math.abs(total - g.population) > 1e-5) throw Error('Population accounting');
+      for (const [id, count] of Object.entries(g.city.residents)) {
+        const b = g.buildings.find((b) => String(b.id) === id);
+        if (!b || count > facility(b).capacity + 1e-6 || !facility(b).capacity)
+          throw Error('Invalid residents');
+      }
+      for (const [id, stock] of Object.entries(g.city.stocks)) {
+        const cap = inv.capacities.get(id);
+        if (
+          !cap ||
+          stock.food > cap.food + 1e-6 ||
+          stock.materials > cap.materials + 1e-6 ||
+          stock.aether > cap.aether + 1e-6
+        )
+          throw Error('Invalid stocks');
+      }
+      for (const [id, amount] of Object.entries(g.city.batteries)) {
+        const b = g.buildings.find((b) => String(b.id) === id && b.kind === 'battery');
+        if (!b || amount > CITY_RULES.batteryCapacity * (1 + 0.5 * (b.level ?? 0)))
+          throw Error('Invalid battery');
+      }
+      for (const b of g.buildings)
+        if ((b.level ?? 0) > OPERATION[b.kind].maxLevel) throw Error('Invalid level');
+      if (
+        g.city.events.some((e) => e.id >= g.city.nextEventId || e.time > g.elapsed) ||
+        new Set(g.city.events.map((e) => e.id)).size !== g.city.events.length
+      )
+        throw Error('Invalid city event');
+    }
     if (legacy) {
       for (let x = -3; x <= 2; x++)
         for (let z = -3; z <= 2; z++)
@@ -282,13 +333,27 @@ export function decodeSave(raw: string | null): SaveResult {
     return { ok: false, reason: 'corrupt' };
   }
 }
-export function loadGame(slot: 'campaign' | 'lab' = 'campaign'): SaveResult {
+export function loadGame(slot: 'campaign' | 'lab' | 'city' = 'campaign'): SaveResult {
   try {
-    const raw = localStorage.getItem(slot === 'lab' ? RULES.labSaveKey : RULES.saveKey);
-    const result = decodeSave(
-      raw ?? (slot === 'campaign' ? localStorage.getItem(RULES.legacySaveKey) : null),
+    const raw = localStorage.getItem(
+      slot === 'city' ? RULES.citySaveKey : slot === 'lab' ? RULES.labSaveKey : RULES.saveKey,
     );
-    if (result.ok && (slot === 'lab') !== (result.game.mode === 'lab'))
+    const result = decodeSave(
+      raw ??
+        (slot === 'campaign'
+          ? (localStorage.getItem(RULES.phase2SaveKey) ?? localStorage.getItem(RULES.legacySaveKey))
+          : slot === 'lab'
+            ? localStorage.getItem(RULES.phase2LabSaveKey)
+            : null),
+    );
+    if (
+      result.ok &&
+      (slot === 'lab'
+        ? result.game.mode !== 'lab'
+        : slot === 'city'
+          ? result.game.mode !== 'citylab'
+          : ['lab', 'citylab'].includes(result.game.mode))
+    )
       return { ok: false, reason: 'corrupt' };
     return result;
   } catch {
@@ -297,7 +362,14 @@ export function loadGame(slot: 'campaign' | 'lab' = 'campaign'): SaveResult {
 }
 export function saveGame(g: Game): boolean {
   try {
-    localStorage.setItem(g.mode === 'lab' ? RULES.labSaveKey : RULES.saveKey, JSON.stringify(g));
+    localStorage.setItem(
+      g.mode === 'citylab'
+        ? RULES.citySaveKey
+        : g.mode === 'lab'
+          ? RULES.labSaveKey
+          : RULES.saveKey,
+      JSON.stringify(g),
+    );
     return true;
   } catch {
     return false;

@@ -13,6 +13,11 @@ const candidate = (g: Game, kind: Kind, x: number, z: number, shape: Shape = 'si
   cursor: { x, z },
 });
 describe('grid geometry and camera', () => {
+  it('snaps fractional cursor input and canonicalizes negative zero', () => {
+    const g = newGame();
+    expect(move(g, { x: -0.1, z: -0 }).cursor).toEqual({ x: 0, z: 0 });
+    expect(move(g, { x: Number.NaN, z: 1 })).toBe(g);
+  });
   for (const shape of Object.keys(SHAPES) as Shape[])
     it(`${shape}: four rotations preserve every occupied cell`, () => {
       const original = cellsOf({ kind: 'platform', shape, rotation: 0 });

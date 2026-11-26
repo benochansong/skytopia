@@ -145,8 +145,9 @@ function Camera() {
       dampingFactor={0.1}
       minDistance={9}
       maxDistance={31}
-      maxPolarAngle={Math.PI * 0.45}
+      maxPolarAngle={Math.PI * 0.38}
       minPolarAngle={0.03}
+      screenSpacePanning={false}
       mouseButtons={{ LEFT: undefined, RIGHT: MOUSE.ROTATE, MIDDLE: MOUSE.PAN }}
       enableRotate={mode === 'free'}
       autoRotate={screen === 'menu' && !reduced}
@@ -156,7 +157,7 @@ function Camera() {
         const c = controls.current;
         c.target.x = Math.max(-5, Math.min(5, c.target.x));
         c.target.z = Math.max(-5, Math.min(5, c.target.z));
-        c.target.y = Math.max(-2, Math.min(2, c.target.y));
+        c.target.y = Math.max(-0.3, Math.min(0.3, c.target.y));
         useGame.setState({ azimuth: c.getAzimuthalAngle() });
       }}
     />

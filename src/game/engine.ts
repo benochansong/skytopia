@@ -148,9 +148,10 @@ export function hold(g: Game): Game {
   return { ...advance(g), hold: g.active, holdUsed: true, remaining: g.remaining };
 }
 export function move(g: Game, cursor: Cell): Game {
+  if (!Number.isFinite(cursor.x) || !Number.isFinite(cursor.z)) return g;
   const c = {
-    x: Math.max(RULES.min, Math.min(RULES.max, cursor.x)),
-    z: Math.max(RULES.min, Math.min(RULES.max, cursor.z)),
+    x: Math.max(RULES.min, Math.min(RULES.max, Math.round(cursor.x))) || 0,
+    z: Math.max(RULES.min, Math.min(RULES.max, Math.round(cursor.z))) || 0,
   };
   return {
     ...g,

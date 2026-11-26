@@ -1,3 +1,4 @@
+import { isBattery } from '../../data/rules';
 import type { Game } from '../../types/game';
 import { OPERATION, CITY_RULES, cityDifficulty } from '../../data/cityRules';
 import { cityReport } from './report';
@@ -24,7 +25,7 @@ export function reconcileStores(g: Game): Game {
   for (const id of inv.capacities.keys()) stocks[id] ??= emptyStock();
   const batteries = Object.fromEntries(
     Object.entries(g.city.batteries).filter(([id]) =>
-      g.buildings.some((b) => String(b.id) === id && b.kind === 'battery'),
+      g.buildings.some((b) => String(b.id) === id && isBattery(b.kind)),
     ),
   );
   let next = { ...g, city: { ...g.city, stocks, batteries } };
@@ -55,6 +56,15 @@ export function economyStep(g: Game): Game {
         (needs.get(group) ?? 0) + n * CITY_RULES.foodPerPerson * difficulty.consumption,
       );
     else hungry += n;
+  }
+  for (const e of next.disaster?.evacuated ?? []) {
+    const group = r.roads.attachments.get(e.shelter);
+    if (group)
+      needs.set(
+        group,
+        (needs.get(group) ?? 0) + e.count * CITY_RULES.foodPerPerson * difficulty.consumption,
+      );
+    else hungry += e.count;
   }
   if (next.city.displaced)
     needs.set(
@@ -93,7 +103,7 @@ export function economyStep(g: Game): Game {
       boost = group === r.powerGrid.root && next.city.powerBoost > 0 ? CITY_RULES.powerBoost : 0;
     let balance = (net.generationByGrid.get(group) ?? 0) + boost - demand;
     for (const b of next.buildings.filter(
-      (b) => b.kind === 'battery' && b.enabled && r.powerGrid.attachments.get(b.id) === group,
+      (b) => isBattery(b.kind) && b.enabled && r.powerGrid.attachments.get(b.id) === group,
     )) {
       const stored = batteries[b.id] ?? 0,
         capacity = CITY_RULES.batteryCapacity * (1 + 0.5 * (b.level ?? 0));

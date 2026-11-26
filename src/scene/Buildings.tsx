@@ -1,3 +1,5 @@
+import { DefenseFacility } from './DefenseFacility';
+import { DISASTER_KINDS } from '../data/rules';
 import { VERTICAL } from '../data/rules';
 import { BLOCKS, PHYSICAL } from '../data/rules';
 import { memo, useRef } from 'react';
@@ -98,6 +100,7 @@ export function Reactor({ core = false, output = 1 }: { core?: boolean; output?:
   );
 }
 export function Facility({ kind, output = 1 }: { kind: Kind; output?: number }) {
+  if (DISASTER_KINDS.includes(kind)) return <DefenseFacility kind={kind} />;
   if (
     [
       'apartment',

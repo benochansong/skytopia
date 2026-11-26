@@ -383,7 +383,7 @@ describe('collapse and saves', () => {
     const result = decodeSave(JSON.stringify(legacy));
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.game.version).toBe(4);
+      expect(result.game.version).toBe(5);
       expect(result.game.supply).toEqual(g.supply);
       expect(result.game.buildings[0].durability).toBe(PHYSICAL.home.hp);
       expect(result.game.structure.coreDurability).toBe(500);

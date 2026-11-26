@@ -1,6 +1,6 @@
 import type { Goal, LocalText, Metric, Stage } from '../../types/campaign';
 import type { Kind } from '../../types/game';
-import { KINDS, VERTICAL_KINDS } from '../../data/rules';
+import { KINDS, VERTICAL_KINDS, DISASTER_KINDS } from '../../data/rules';
 export const t = (ko: string, en: string): LocalText => ({ ko, en });
 const goal = (
   id: Metric,
@@ -21,20 +21,34 @@ const industry = (n: number) =>
   goal('industry', '산업시설 ' + n + '개 가동', n + ' working industries', n);
 const base: Kind[] = ['platform', 'home', 'road', 'power'];
 export const available = (id: number): Kind[] =>
-  id >= 16
+  id >= 21
     ? [
         ...KINDS,
-        ...VERTICAL_KINDS.filter((k) => id >= 19 || !['hanger', 'suspendedDeck'].includes(k)),
+        ...VERTICAL_KINDS,
+        ...DISASTER_KINDS.filter(
+          (k) =>
+            id >= 24 ||
+            (id >= 23 &&
+              ['stabilizer', 'emergencyBattery', 'surgeRelay', 'climateControl'].includes(k)) ||
+            (id >= 22 &&
+              ['weatherTower', 'shieldSmall', 'shieldLarge', 'lightningTower'].includes(k)) ||
+            ['weatherStation', 'windbreak', 'reinforcedWindbreak', 'lightningRod'].includes(k),
+        ),
       ]
-    : id >= 11
-      ? [...KINDS]
-      : [
-          ...base,
-          ...(id >= 4 ? (['farm', 'warehouse', 'park', 'largeHome'] as Kind[]) : []),
-          ...(id >= 6 ? (['metalPlatform', 'brace', 'liftSmall', 'ballast'] as Kind[]) : []),
-          ...(id >= 7 ? (['liftLarge'] as Kind[]) : []),
-          ...(id >= 10 ? (['factory', 'workshop'] as Kind[]) : []),
-        ];
+    : id >= 16
+      ? [
+          ...KINDS,
+          ...VERTICAL_KINDS.filter((k) => id >= 19 || !['hanger', 'suspendedDeck'].includes(k)),
+        ]
+      : id >= 11
+        ? [...KINDS]
+        : [
+            ...base,
+            ...(id >= 4 ? (['farm', 'warehouse', 'park', 'largeHome'] as Kind[]) : []),
+            ...(id >= 6 ? (['metalPlatform', 'brace', 'liftSmall', 'ballast'] as Kind[]) : []),
+            ...(id >= 7 ? (['liftLarge'] as Kind[]) : []),
+            ...(id >= 10 ? (['factory', 'workshop'] as Kind[]) : []),
+          ];
 export const CHAPTERS = [
   {
     id: 1,
@@ -81,7 +95,10 @@ export const CHAPTERS = [
     title: t('부서진 하늘', 'The Broken Sky'),
     region: 'Broken Sky',
     color: '#899aae',
-    planned: true,
+    sky: '#8a9aae',
+    rock: '#627a82',
+    music: [130.81, 155.56, 196],
+    planned: false,
   },
   {
     id: 6,
@@ -148,7 +165,7 @@ const seedStage = (
   hold: id === 1 ? 0 : 10,
   optional: [stable(90), goal('collapse', '추가 붕괴 없음', 'No additional collapse', 0, true)],
   speaker: id <= 3 ? 'elena' : id <= 5 ? 'maya' : id <= 10 ? 'elena' : 'maya',
-  next: id < 20 ? id + 1 : undefined,
+  next: id < 25 ? id + 1 : undefined,
   xp: 100 + id * 10,
   ...patch,
 });
@@ -592,6 +609,152 @@ export const STAGES: Stage[] = [
       hold: 60,
       population: 250,
       resources: 600,
+      speaker: 'orion',
+    },
+  ),
+
+  seedStage(
+    21,
+    t('다가오는 폭풍', 'Gathering Storm'),
+    'SURVIVE',
+    8,
+    'storm-city',
+    [
+      goal('observations', '기상 관측소 가동', 'Operate weather station', 1),
+      goal('windDefenses', '방풍시설 2개', 'Two windbreaks', 2),
+      goal('preparedReinforcement', '구조 보강 1회', 'Reinforce a structure', 1),
+      goal('disasters', '폭풍 생존', 'Survive the storm', 1),
+      stable(75),
+      goal('critical', '치명적 위험 없음', 'No critical risk', 0, true),
+    ],
+    t(
+      '북서쪽에서 폭풍이 접근합니다. 예보를 확인하고 높은 시설과 연결부를 보호하세요.',
+      'A storm approaches from the northwest. Read the forecast and protect tall structures.',
+    ),
+    {
+      fall: false,
+      hold: 10,
+      population: 130,
+      script: ['weatherStation', 'windbreak', 'reinforcedWindbreak', 'brace'],
+      speaker: 'elena',
+    },
+  ),
+  seedStage(
+    22,
+    t('떨어지는 별', 'Falling Stars'),
+    'SURVIVE',
+    8,
+    'meteor-city',
+    [
+      goal('shieldAbsorbed', '운석 피해 30 이상 방어', 'Absorb 30 impact damage', 30),
+      goal('disasters', '운석우 생존', 'Survive the meteor shower', 1),
+      power,
+      stable(75),
+    ],
+    t(
+      '예상 충돌 지점의 발전시설을 지키세요. 방어막은 전력과 에테르가 있어야 충전됩니다.',
+      'Protect the power plant at the predicted impact site. Shields need power and aether to charge.',
+    ),
+    {
+      fall: false,
+      hold: 10,
+      population: 130,
+      script: ['shieldSmall', 'weatherTower', 'shieldLarge', 'power'],
+      protect: ['advancedPower'],
+      speaker: 'kael',
+    },
+  ),
+  seedStage(
+    23,
+    t('에테르 위기', 'Aether Crisis'),
+    'SURVIVE',
+    8,
+    'aether-city',
+    [
+      goal('stabilizers', '안정화탑 가동', 'Operate stabilizer', 1),
+      goal('storedEnergy', '비상 전력 40 비축', 'Store 40 emergency energy', 40),
+      goal('disasters', '에테르 폭풍 생존', 'Survive aether storm', 1),
+      goal('liftMargin', '부양력 확보', 'Restore lift margin', 0),
+      stable(80),
+    ],
+    t(
+      '부양 출력이 흔들리고 있습니다. 안정화탑과 비상 전력으로 도시를 지켜주세요.',
+      'Lift output is fluctuating. Stabilizers and emergency energy can protect the city.',
+    ),
+    {
+      fall: false,
+      hold: 10,
+      population: 130,
+      script: ['stabilizer', 'emergencyBattery', 'surgeRelay', 'liftLarge'],
+      speaker: 'kael',
+    },
+  ),
+  seedStage(
+    24,
+    t('재난 이후', 'After the Disaster'),
+    'BUILD',
+    8,
+    'recovery-city',
+    [
+      goal('bridges', '끊어진 교량 재건', 'Rebuild the broken bridge', 1),
+      goal('recoveryCenters', '복구센터 가동', 'Operate recovery center', 1),
+      goal('repairs', '구조 수리 완료', 'Complete structural repair', 1),
+      goal('damagedFacilities', '시설 내구성 90% 회복', 'Restore facilities to 90%', 0, true),
+      goal('evacuated', '주민 복귀', 'Return sheltered residents', 0, true),
+      power,
+      food,
+      goal('net', '경제 흑자', 'Positive cash flow', 0),
+      stable(80),
+    ],
+    t(
+      '발전시설이 손상되고 주민이 대피했습니다. 유료 수리와 복구 우선순위로 도시를 정상화하세요.',
+      'A power plant is damaged and residents are sheltered. Restore the city through paid repairs and priorities.',
+    ),
+    {
+      fall: false,
+      hold: 10,
+      population: 130,
+      script: ['repairCenter', 'road', 'bridge', 'farm'],
+      speaker: 'maya',
+    },
+  ),
+  seedStage(
+    25,
+    t('마지막 피난처', 'The Last Refuge'),
+    'SURVIVE',
+    8,
+    'last-refuge',
+    [
+      pop(300),
+      goal('shelterCapacity', '대피소 160명 수용', 'Shelter capacity for 160', 160),
+      goal('foodStock', '비상 식량 180', 'Reserve 180 food', 180),
+      goal('storedEnergy', '비상 전력 60', 'Reserve 60 energy', 60),
+      goal('shieldAbsorbed', '복합 피해 30 방어', 'Absorb 30 disaster damage', 30),
+      goal('preparedReinforcement', '핵심 구조 보강', 'Reinforce critical structure', 1),
+      goal('disasters', '복합 재난 생존', 'Survive compound disaster', 1),
+      power,
+      food,
+      goal('net', '경제 흑자', 'Positive cash flow', 0),
+      stable(85),
+      goal('critical', '치명적 위험 없음', 'No critical risk', 0, true),
+    ],
+    t(
+      '300명의 마지막 피난처입니다. 식량, 전력, 대피소와 방어막을 준비하고 폭풍 이후의 삶을 되찾으세요.',
+      'This is the last refuge for 300 people. Prepare food, energy, shelters and shields, then recover after the storm.',
+    ),
+    {
+      fall: false,
+      hold: 20,
+      population: 300,
+      script: [
+        'shelter',
+        'shelter',
+        'shieldLarge',
+        'emergencyBattery',
+        'repairCenter',
+        'stabilizer',
+      ],
+      protect: ['liftLarge'],
       speaker: 'orion',
     },
   ),

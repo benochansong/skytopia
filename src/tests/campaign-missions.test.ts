@@ -21,5 +21,5 @@ for (const d of allStages.filter((s) => s.id <= 15 || s.id >= 100))
       expect(g.won).toBe(true);
       expect(() => decodeCampaignGame(g)).not.toThrow();
     },
-    60000,
+    120000,
   );

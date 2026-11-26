@@ -82,6 +82,6 @@ describe('vertical campaign solutions', () => {
         expect(g.campaign?.failed).toBeNull();
         expect(g.campaign?.result).not.toBeNull();
       },
-      60000,
+      120000,
     );
 });

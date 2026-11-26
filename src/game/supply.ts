@@ -1,5 +1,6 @@
+import type { Hazard } from '../types/disaster';
 import { OPERATION } from '../data/cityRules';
-import { BLOCKS, VERTICAL_KINDS } from '../data/rules';
+import { BLOCKS, VERTICAL_KINDS, DISASTER_KINDS } from '../data/rules';
 import type { Kind, Piece, Supply } from '../types/game';
 const BAG: Kind[] = [
   'platform',
@@ -22,6 +23,8 @@ export function draw(
   context: {
     script?: Kind[];
     vertical?: boolean;
+    disaster?: boolean;
+    hazard?: Hazard;
     needsLift?: boolean;
     needsSpace?: boolean;
     needsRoad?: boolean;
@@ -32,6 +35,8 @@ export function draw(
   let bag = [...source.bag];
   if (!bag.length) {
     bag = [...BAG, ...(context.vertical ? VERTICAL_KINDS : [])];
+    if (context.disaster) bag.push(...DISASTER_KINDS);
+    if (context.hazard) bag.push(...forecastSupply(context.hazard));
     if (source.policy === 'adaptive' && !training) {
       bag.push(
         'metalPlatform',
@@ -96,4 +101,16 @@ export function draw(
       ...(source.policy ? { policy: source.policy } : {}),
     },
   ];
+}
+
+export function forecastSupply(hazard: Hazard): Kind[] {
+  return hazard === 'meteor'
+    ? ['shieldSmall', 'emergencyBattery']
+    : hazard === 'thunder'
+      ? ['lightningRod', 'surgeRelay']
+      : ['aether', 'gravity', 'compound'].includes(hazard)
+        ? ['stabilizer', 'emergencyBattery']
+        : ['cold', 'heat'].includes(hazard)
+          ? ['climateControl', 'emergencyGranary']
+          : ['windbreak', 'reinforcedWindbreak'];
 }

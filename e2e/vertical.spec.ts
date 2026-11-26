@@ -49,11 +49,11 @@ test('vertical workshop builds connected upper housing, switches floors, inspect
   await page.getByLabel('층별 보기').selectOption('all');
   await page.screenshot({ path: 'test-results/phase5-upper-home.png' });
   await page.getByRole('button', { name: '저장', exact: true }).click();
-  expect(await page.evaluate(() => localStorage.getItem('skytopia.city.v4'))).toBeNull();
+  expect(await page.evaluate(() => localStorage.getItem('skytopia.city.v5'))).toBeNull();
   const saved = await page.evaluate(() =>
-    JSON.parse(localStorage.getItem('skytopia.vertical.v1')!),
+    JSON.parse(localStorage.getItem('skytopia.vertical.v2')!),
   );
-  expect(saved.version).toBe(4);
+  expect(saved.version).toBe(5);
   await page.reload();
   await page.getByRole('button', { name: '수직 실험 이어하기', exact: true }).click();
   expect(await page.evaluate(() => window.__SKYTOPIA_TEST__!.getState().game.buildings)).toEqual(
@@ -81,7 +81,7 @@ test('all five vertical examples, six views and camera presets render without mu
     await page.getByRole('button', { name: '저장', exact: true }).click();
     expect(
       await page.evaluate(
-        () => JSON.parse(localStorage.getItem('skytopia.vertical.v1')!).vertical.example,
+        () => JSON.parse(localStorage.getItem('skytopia.vertical.v2')!).vertical.example,
       ),
     ).toBe(example);
   }

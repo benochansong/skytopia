@@ -1,3 +1,5 @@
+import { operationalFactor, temperatureDemand, harvestFactor } from '../disasters/effects';
+import { isBattery } from '../../data/rules';
 import { BLOCKS, PHYSICAL, isLift } from '../../data/rules';
 import { facility, OPERATION, CITY_RULES, cityDifficulty } from '../../data/cityRules';
 import type { Operation } from '../../types/city';
@@ -16,6 +18,10 @@ function calculateOperations(city: City, elevators?: Set<number>) {
     if (group) people.set(group, (people.get(group) ?? 0) + (city.city?.residents[b.id] ?? 0));
   }
   const workers = new Map([...people].map(([g, n]) => [g, Math.floor(n * settings.workers)]));
+  for (const e of city.disaster?.evacuated ?? []) {
+    const group = road.attachments.get(e.shelter);
+    if (group) people.set(group, (people.get(group) ?? 0) + e.count);
+  }
   let workforce = [...workers.values()].reduce((a, b) => a + b, 0),
     employed = 0;
   const fuelNeed = new Map<string, number>();
@@ -49,7 +55,8 @@ function calculateOperations(city: City, elevators?: Set<number>) {
           : d.inputAether
             ? 0
             : 1;
-    const efficiency = b.enabled && group ? labor * condition * input : 0;
+    const efficiency =
+      b.enabled && group ? labor * condition * input * operationalFactor(city, b) : 0;
     const output = f.power * efficiency * (city.city?.activity[b.id] ?? 1);
     if (powerGrid) generation.set(powerGrid, (generation.get(powerGrid) ?? 0) + output);
     operations.set(b.id, {
@@ -60,7 +67,7 @@ function calculateOperations(city: City, elevators?: Set<number>) {
       workers: assigned,
       jobs,
       power: output,
-      demand: b.enabled ? f.demand : 0,
+      demand: b.enabled ? f.demand * temperatureDemand(city, b) * operationalFactor(city, b) : 0,
       efficiency,
       status: !b.enabled
         ? 'paused'
@@ -86,7 +93,7 @@ function calculateOperations(city: City, elevators?: Set<number>) {
     batteryStored = new Map<string, number>();
   let battery = 0;
   for (const b of city.buildings.filter(
-    (b) => b.kind === 'battery' && b.enabled && b.durability > 0,
+    (b) => isBattery(b.kind) && b.enabled && b.durability > 0,
   )) {
     const group = grid.attachments.get(b.id),
       stored = city.city?.batteries[b.id] ?? 0;
@@ -102,17 +109,20 @@ function calculateOperations(city: City, elevators?: Set<number>) {
   if (grid.root && (city.city?.powerBoost ?? 0) > 0)
     remaining.set(grid.root, (remaining.get(grid.root) ?? 0) + CITY_RULES.powerBoost);
   const priority = (kind: (typeof sorted)[number]['kind']) =>
-    isLift(kind)
-      ? 0
-      : kind === 'clinic'
-        ? 1
-        : BLOCKS[kind].capacity
-          ? 2
-          : OPERATION[kind].food
-            ? 3
-            : kind === 'shop'
-              ? 5
-              : 4;
+    (city.disaster?.policy === 'defense' && ['shieldSmall', 'shieldLarge'].includes(kind)) ||
+    (city.disaster?.policy === 'recovery' && kind === 'repairCenter')
+      ? -1
+      : isLift(kind)
+        ? 0
+        : kind === 'clinic'
+          ? 1
+          : BLOCKS[kind].capacity
+            ? 2
+            : OPERATION[kind].food
+              ? 3
+              : kind === 'shop'
+                ? 5
+                : 4;
   const powerRatios = new Map<number, number>(),
     connectedIds = new Set<number>(),
     operational = new Set<number>();
@@ -146,6 +156,7 @@ function calculateOperations(city: City, elevators?: Set<number>) {
     else o.efficiency *= activity;
     o.food =
       f.food *
+      harvestFactor(city, b) *
       o.efficiency *
       (b.y !== 0 && freight.attachments.get(b.id) !== freight.root ? 0.35 : 1);
     const freightFactor = b.y !== 0 && freight.attachments.get(b.id) !== freight.root ? 0.35 : 1;
@@ -234,6 +245,7 @@ const operationCache: { city: City; result: ReturnType<typeof calculateOperation
 export function operatingNetwork(city: City) {
   const hit = operationCache.find(
     (c) =>
+      c.city.disaster === city.disaster &&
       c.city.city === city.city &&
       c.city.population === city.population &&
       c.city.difficulty === city.difficulty &&

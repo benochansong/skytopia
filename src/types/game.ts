@@ -57,7 +57,22 @@ export type Kind =
   | 'powerDistributor'
   | 'skyGarden'
   | 'towerHome'
-  | 'observatory';
+  | 'observatory'
+  | 'weatherStation'
+  | 'weatherTower'
+  | 'windbreak'
+  | 'reinforcedWindbreak'
+  | 'lightningRod'
+  | 'lightningTower'
+  | 'surgeRelay'
+  | 'shieldSmall'
+  | 'shieldLarge'
+  | 'stabilizer'
+  | 'emergencyBattery'
+  | 'emergencyGranary'
+  | 'shelter'
+  | 'repairCenter'
+  | 'climateControl';
 export type Shape =
   | 'single'
   | 'D'
@@ -145,6 +160,11 @@ export type StructureState = {
   loss: null | { reason: 'lift' | 'balance' | 'core'; time: number; firstFailure: string };
 };
 export type Settings = {
+  stormParticles: number;
+  reducedFlashes: boolean;
+  cameraShake: number;
+  disasterCamera: boolean;
+  warningScale: number;
   language: 'ko' | 'en';
   sound: boolean;
   shadows: boolean;
@@ -160,7 +180,8 @@ export type Settings = {
 };
 export type Game = {
   campaign?: import('./campaign').CampaignRun;
-  version: 4;
+  version: 5;
+  disaster?: import('./disaster').DisasterState;
   vertical?: import('./vertical').VerticalState;
   city: import('./city').CityState;
   mode: 'mission' | 'training' | 'lab' | 'citylab';

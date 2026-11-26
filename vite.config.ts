@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   plugins: [react()],
   base: './',
-  test: { include: ['src/tests/**/*.test.ts'], setupFiles: ['src/tests/setup.ts'] },
+  test: { maxWorkers: 2, include: ['src/tests/**/*.test.ts'], setupFiles: ['src/tests/setup.ts'] },
   build: {
     rollupOptions: {
       output: {

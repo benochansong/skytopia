@@ -40,8 +40,8 @@ test('City Lab operations, overlays, upgrade, time, night and separate save', as
   await page.waitForTimeout(600);
   expect(await page.evaluate(() => window.__SKYTOPIA_TEST__!.getState().game.elapsed)).toBe(time);
   await page.getByRole('button', { name: '저장', exact: true }).click();
-  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('skytopia.city.v4')!));
-  expect(saved.version).toBe(4);
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('skytopia.city.v5')!));
+  expect(saved.version).toBe(5);
   expect(saved.city.speed).toBe(0);
   await page.screenshot({ path: 'test-results/phase3-night.png' });
   await page.reload();

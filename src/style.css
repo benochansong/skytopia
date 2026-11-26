@@ -2360,3 +2360,102 @@ kbd {
 .vertical-mode .left-rail {
   max-height: calc(100vh - 600px);
 }
+
+.disaster-menu {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.disaster-controls {
+  position: absolute;
+  top: 215px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 355px;
+  padding: 12px;
+  z-index: 6;
+  font-size: 11px;
+}
+.disaster-controls > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+}
+.disaster-controls p {
+  margin: 8px 0;
+}
+.disaster-controls button {
+  padding: 7px;
+  font-size: 10px;
+}
+.hazard-active {
+  border-color: #d7a27f;
+}
+.weather-enable {
+  position: absolute;
+  top: 220px;
+  left: 45%;
+  padding: 12px;
+  z-index: 6;
+}
+.disaster-summary,
+.policy-grid,
+.defense-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 14px 0;
+}
+.disaster-summary span,
+.defense-grid > div,
+.disaster-report,
+.disaster-forecast {
+  padding: 12px;
+  border: 1px solid #65847d55;
+  border-radius: 8px;
+}
+.disaster-summary b,
+.defense-grid small {
+  display: block;
+  margin: 6px 0;
+}
+.defense-grid button {
+  padding: 7px;
+  margin-right: 5px;
+}
+.disaster-actions,
+.lab-examples,
+.wave-reward,
+.recovery-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+}
+.disaster-lab {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  border: 1px solid #65847d55;
+  margin: 18px 0;
+}
+.disaster-lab label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.disaster-lab input[type='number'] {
+  width: 100px;
+}
+.recovery-list {
+  max-height: 160px;
+  overflow: auto;
+}
+.wave-reward {
+  padding: 16px;
+  background: #567d7644;
+}
+.wave-reward h3 {
+  width: 100%;
+}

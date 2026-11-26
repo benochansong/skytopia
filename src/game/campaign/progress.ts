@@ -27,6 +27,16 @@ export const ACHIEVEMENTS = [
   ['cargo', t('수직 물류', 'Vertical Freight')],
   ['gardens', t('공중 정원', 'Hanging Gardens')],
   ['chapter4', t('수직 문명', 'Vertical Civilization')],
+  ['stormSurvivor', t('폭풍 생존자', 'Storm Survivor')],
+  ['lightningGuardian', t('낙뢰의 수호자', 'Lightning Guardian')],
+  ['meteorDefender', t('떨어지는 별의 수호자', 'Falling Star Defender')],
+  ['civilizationShield', t('문명의 방패', 'Shield of Civilization')],
+  ['aetherGuardian', t('에테르 수호자', 'Aether Guardian')],
+  ['noOneLeft', t('모두의 피난처', 'No One Left Behind')],
+  ['rebuildSky', t('하늘을 재건하다', 'Rebuild the Sky')],
+  ['resilient', t('회복력의 거장', 'Master of Resilience')],
+  ['allStorms', t('모든 폭풍을 넘어', 'Against All Storms')],
+  ['chapter5', t('마지막 피난처', 'The Last Refuge')],
 ] as const;
 export const freshProfile = (name = 'Architect'): Profile => ({
   version: 1,
@@ -91,7 +101,7 @@ export function updateProfile(
       maxStars = starsFor(p, c.stage),
       r = c.result,
       d = stage(c.stage);
-    const unlocked = [...new Set([...p.unlocked, ...(campaign ? available(d.next ?? 20) : [])])];
+    const unlocked = [...new Set([...p.unlocked, ...(campaign ? available(d.next ?? 25) : [])])];
     const freshUnlocks = unlocked.length - p.unlocked.length;
     const deltaStars = Math.max(0, r.stars - (c.daily ? (old?.stars ?? 0) : maxStars));
     const xp = c.daily ? 0 : (maxStars === 0 ? d.xp : 0) + deltaStars * 25 + freshUnlocks * 10;
@@ -136,7 +146,20 @@ export function updateProfile(
       cargo: v.cargoLifts > 0,
       gardens: v.skyGardens >= 2,
       chapter4: chapterDone(4),
-      perfect: [1, 2, 3, 4].some((n) => chapterDone(n, 3)),
+      chapter5: chapterDone(5),
+      stormSurvivor: (g.disaster?.stats.storms ?? 0) > 0,
+      lightningGuardian: (g.disaster?.stats.lightningProtected ?? 0) > 0,
+      meteorDefender: (g.disaster?.stats.intercepted ?? 0) > 0,
+      civilizationShield: (g.disaster?.stats.absorbed ?? 0) >= 200,
+      aetherGuardian: (g.disaster?.stats.aether ?? 0) > 0,
+      noOneLeft:
+        (g.disaster?.reports.some((r) => r.evacuated > 0 && r.evacuated >= r.before.population) ??
+          false) &&
+        v.evacuated === 0,
+      rebuildSky: g.campaign?.stage === 24 && !!g.campaign.result,
+      resilient: v.resilience >= 70,
+      allStorms: false,
+      perfect: [1, 2, 3, 4, 5].some((n) => chapterDone(n, 3)),
     };
     const earned = Object.keys(conditions).filter((k) => conditions[k] && !next.achievements[k]);
     if (earned.length)

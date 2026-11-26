@@ -1,3 +1,5 @@
+import { snapshot } from '../disasters/scheduler';
+import { disasterStage } from '../disasters/scenarios';
 import { verticalExample, verticalMetropolis } from '../vertical/scenarios';
 import { configureLivingScenario } from '../city/scenarios';
 import type { Game, Settings, Kind } from '../../types/game';
@@ -12,12 +14,17 @@ import { freshCity } from '../city/state';
 export function loadStage(id: number, settings: Settings, seed = stage(id).seed): Game {
   const d = stage(id);
   let g =
-    id === 20
-      ? verticalMetropolis(settings)
-      : id >= 16 && id <= 19
-        ? verticalExample(settings, id === 17 ? 'B' : id === 18 ? 'C' : id === 19 ? 'D' : undefined)
-        : newGame('mission', seed, settings, d.source);
-  if (id >= 16 && id <= 20) {
+    id >= 21 && id <= 25
+      ? disasterStage(settings, id)
+      : id === 20
+        ? verticalMetropolis(settings)
+        : id >= 16 && id <= 19
+          ? verticalExample(
+              settings,
+              id === 17 ? 'B' : id === 18 ? 'C' : id === 19 ? 'D' : undefined,
+            )
+          : newGame('mission', seed, settings, d.source);
+  if (id >= 16 && id <= 25) {
     g.mode = 'mission';
     g.missionId = d.source;
     g.labPaused = false;
@@ -224,5 +231,10 @@ export function loadStage(id: number, settings: Settings, seed = stage(id).seed)
       intro: true,
     },
   };
+  if (g.disaster?.baseline)
+    g = {
+      ...g,
+      disaster: { ...g.disaster, baseline: { ...g.disaster.baseline, snapshot: snapshot(g) } },
+    };
   return g;
 }

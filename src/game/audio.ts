@@ -58,6 +58,12 @@ export class Soundscape {
   cue(
     kind:
       | EventKind
+      | 'storm'
+      | 'thunder'
+      | 'meteor'
+      | 'shield'
+      | 'forecast'
+      | 'stormEnd'
       | 'place'
       | 'loss'
       | 'ambient'
@@ -69,8 +75,8 @@ export class Soundscape {
       | 'tier',
   ) {
     const now = this.context.currentTime,
-      warning = ['critical', 'liftFading', 'powerLost', 'crack'].includes(kind),
-      gap = ['ambient', 'engine', 'city', 'night'].includes(kind)
+      warning = ['critical', 'liftFading', 'powerLost', 'crack', 'forecast'].includes(kind),
+      gap = ['ambient', 'engine', 'city', 'night', 'storm'].includes(kind)
         ? 6
         : warning
           ? 2
@@ -79,6 +85,18 @@ export class Soundscape {
             : 0.12;
     if (now - (this.last.get(kind) ?? -Infinity) < gap) return;
     this.last.set(kind, now);
+    if (kind === 'storm') {
+      this.tone('effects', 65, 105, 3, 'triangle', 0.012);
+      return;
+    }
+    if (kind === 'thunder' || kind === 'meteor') {
+      this.tone('effects', 100, 35, 0.8, 'triangle', 0.025);
+      return;
+    }
+    if (kind === 'shield' || kind === 'stormEnd') {
+      this.tone('effects', 380, 760, 0.6, 'sine', 0.025);
+      return;
+    }
     if (kind === 'city' || kind === 'night') {
       this.tone(
         'music',

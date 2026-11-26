@@ -9,6 +9,7 @@ const cache: { city: City; stats: Stats }[] = [];
 export function analyze(city: City): Stats {
   const hit = cache.find(
     (c) =>
+      c.city.disaster === city.disaster &&
       c.city.platforms === city.platforms &&
       c.city.buildings === city.buildings &&
       c.city.structure?.edges === city.structure?.edges &&
@@ -35,6 +36,7 @@ export function analyze(city: City): Stats {
   };
   cache.unshift({
     city: {
+      disaster: city.disaster,
       platforms: city.platforms,
       buildings: city.buildings,
       structure: city.structure,

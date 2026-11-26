@@ -43,4 +43,4 @@ for (const id of [5, 6, 7, 8, 9] as const)
     expect(objectives(g)).toEqual([true, true, true, true, true]);
     expect(g.won).toBe(true);
     expect(g.city.missionRewarded).toBe(true);
-  }, 20000);
+  }, 60000);

@@ -28,7 +28,13 @@ export function updateDefenses(g: Game, dt: number): Game {
         stock = pool ? (inventory(next).poolStocks.get(pool)?.aether ?? 0) : 0;
       const gain = Math.max(
         0,
-        Math.min(capacity - energy, DISASTER.shieldRecharge * dt, stock / DISASTER.shieldAether),
+        Math.min(
+          capacity - energy,
+          DISASTER.shieldRecharge *
+            (g.worldContext?.techs.includes('shieldNetwork') ? 1.15 : 1) *
+            dt,
+          stock / DISASTER.shieldAether,
+        ),
       );
       if (pool && gain) {
         next = adjustStock(next, pool, 'aether', -gain * DISASTER.shieldAether);

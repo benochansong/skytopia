@@ -147,6 +147,6 @@ export function networks(city: City, elevators?: Set<number>) {
     vehicle: build('vehicle'),
   };
   cache.unshift(value);
-  if (cache.length > 6) cache.pop();
+  if (cache.length > 12) cache.pop();
   return value;
 }

@@ -1,10 +1,10 @@
 # SKYTOPIA: AETHER RISING
 
-**PHASE 6 — STORMS OF AETHER · 에테르의 폭풍**
+**PHASE 7 — BEYOND THE CLOUDS · 구름 너머**
 
-무작위로 내려오는 블록으로 공중 도시를 짓고, 인구·식량·전력·경제·구조 안전을 함께 관리하는 싱글 플레이 3D 건설 퍼즐입니다. Phase 1–5를 유지하며 실제 구조·전력·식량에 영향을 주는 기상·재난·대피·복구를 추가합니다. 캠페인은 5챕터 25미션입니다. 고정 도전 3개, 일일 설계도, 건축가 성장과 별 평가를 제공합니다.
+무작위로 내려오는 블록으로 공중 도시를 짓고, 인구·식량·전력·경제·구조 안전을 함께 관리하는 싱글 플레이 3D 건설 퍼즐입니다. Phase 1–6을 유지하며 탐사·개척·독립 도시·실물 운송·연구·문명 운영을 추가합니다. 캠페인은 6챕터 30미션입니다. 고정 도전 3개, 일일 설계도, 건축가 성장과 별 평가를 제공합니다.
 
-![수직 주거 건설](docs/images/phase5-upper-home.png)
+![탐사와 개척 후 세 도시를 연결한 세계 지도](docs/images/phase7-world-map.png)
 
 ## 실행과 검증
 
@@ -79,7 +79,7 @@ Chrome이 없다면 `npx playwright install chrome`으로 설치합니다. 테�
 
 | 4 수직 문명 | 16 구름보다 높이 · 17 하늘의 기둥 · 18 희망의 다리 · 19 도시 아래의 도시 · 20 수직 대도시 | 다층 구조·교량·승강기·300명 문명 |
 
-챕터 4(16–20)는 수직 건설로 이어집니다. 챕터 5(21–25)는 폭풍·운석·에테르·복구·복합 재난입니다. 챕터 6(26–30)은 다음 개발 범위입니다. 도전 모드는 6블록 연결 퍼즐, 300초 구조 복구, 200자재 효율 도시를 제공합니다. 일일 설계도는 로컬 날짜를 시드로 사용하며 온라인 순위는 없습니다.
+챕터 4(16–20)는 수직 건설로 이어집니다. 챕터 5(21–25)는 폭풍·운석·에테르·복구·복합 재난입니다. 챕터 6(26–30)은 탐사·유적·개척·구호·넥서스와 최종 엔딩입니다. 도전 모드는 6블록 연결 퍼즐, 300초 구조 복구, 200자재 효율 도시를 제공합니다. 일일 설계도는 로컬 날짜를 시드로 사용하며 온라인 순위는 없습니다.
 
 목표는 실제 도시·구조 상태에서 계산합니다. 일부 목표는 한 번 달성하면 유지되고, 안전/자급 등 연속 유지 조건은 깨지면 유지 시간이 초기화됩니다. 필수 완료로 별 1개, 첫 선택 목표로 2개, 두 선택 목표 모두 달성하면 3개입니다. 보상은 최초 완료·별 개선·신규 해금만 지급됩니다. 어려움에서 체크포인트를 복원하면 점수 10% 감점이 표시됩니다.
 
@@ -109,6 +109,16 @@ Chrome이 없다면 `npx playwright install chrome`으로 설치합니다. 테�
 
 시민 최대 48명, 운송 차량 최대 16대가 캐시된 실제 도로 경로를 이동합니다. 집계 인구를 대표하는 연출이며 개별 시민 AI는 아닙니다. 하루는 게임 시간 360초입니다. 야간 조명은 전력 상태에 따르며 설정에서 낮/밤·시민·차량·환경·그림자·움직임을 조절합니다. 비행선은 장식입니다. 사운드는 Web Audio 합성음과 상태별 화음이며 외부 음원을 사용하지 않습니다.
 
+## 문명 · 구름 너머
+
+**문명 모드**에서 시드·난이도·도시 수·재난·연구 속도·블록 시한을 정해 시작합니다. 지도에서 섬을 선택하고 탐사선을 보내 자원을 확인한 후 개척선으로 정착합니다. 수도의 주민·물자·운영비가 실제로 새 도시로 이전됩니다. 최대 6도시를 운영하며 지도에서는 3D 렌더링을 중지합니다.
+
+비공정 탭에서 7종 선박을 건조하고, 항로 탭에서 출발/도착 도시·적재·비축·목표량·주기·우선순위를 정합니다. 화물은 출발 재고에서 차감되어 선박에 보관되며 실제 도착 용량만큼 하역합니다. 도시별 전력·식량·생산·재난은 다른 도시를 보는 동안에도 진행됩니다. 연구 탭의 18개 기술과 16종 시설을 발전시키고 최종 미션에서 넥서스를 가동하세요.
+
+**WORLD LAB A–E**는 교역·항로 단절·에테르 수송·구호·도시 특화를 실험하는 별도 슬롯입니다. 최종 미션의 5장면 엔딩 후 완성한 월드를 자유 문명으로 계속 건설할 수 있습니다. 세계 관측소는 예보 단계의 항로 위험을 감지합니다. 위험 회피는 안전해질 때까지 대기하는 방식입니다.
+
+문명 저장은 `skytopia.world.v1`, 실험실은 `skytopia.worldlab.v1`로 기존 도시 저장과 분리됩니다. [36개 항목 개발 보고](docs/PHASE7-REPORT.md)에 구현과 근사 범위를 정리했습니다.
+
 ## 기상·재난과 생존
 
 **재난 실험실 A–F**는 정지 상태에서 시작합니다. 중앙 **재난 대응** 창에서 폭풍·낙뢰·운석·에테르·온도·중력·복합 위기의 예보를 실행하고 8종 분석을 볼 수 있습니다. 방어시설 15종을 준비하고, 전력·에테르를 사용하는 방어막과 실제 도로로 연결된 대피소를 운영합니다. 복구센터는 자재와 크레딧을 내고 실제 수리를 예약합니다.
@@ -119,7 +129,7 @@ Chrome이 없다면 `npx playwright install chrome`으로 설치합니다. 테�
 
 ## 저장
 
-새 캠페인은 **skytopia.campaign.v3**에 프로필·현재 미션·단일 체크포인트·별도 자유 도시를 원자적으로 저장합니다. 내부 도시 데이터는 층·회전·체적을 검증하는 v5 형식입니다. v1–v2 캠페인과 v1–v4 도시 원문은 이전 키에 남기며 새 키에 마이그레이션합니다. 유효한 프로필과 손상된 도시가 함께 있으면 진행 기록은 보존하고 잘못된 도시만 제외합니다. 손상된 프로필은 명시적인 새 캠페인 시작 전까지 덮어쓰지 않습니다.
+새 캠페인은 **skytopia.campaign.v4**에 프로필·현재 미션·단일 체크포인트·별도 자유 도시를 원자적으로 저장합니다. 내부 도시 데이터는 층·회전·체적을 검증하는 v5 형식입니다. v1–v3 캠페인과 v1–v4 도시 원문은 이전 키에 남기며 새 키에 마이그레이션합니다. 유효한 프로필과 손상된 도시가 함께 있으면 진행 기록은 보존하고 잘못된 도시만 제외합니다. 손상된 프로필은 명시적인 새 캠페인 시작 전까지 덮어쓰지 않습니다.
 
 새 캠페인 저장이 없을 때 기존 승리 저장의 확인 가능한 미션만 별 1개 기록으로 가져옵니다. 기존 미완료 도시와 세 저장 슬롯은 그대로 이어할 수 있습니다. 이전 미션 완료를 추측하거나 XP를 소급 지급하지 않습니다.
 
@@ -138,19 +148,20 @@ Chrome이 없다면 `npx playwright install chrome`으로 설치합니다. 테�
 
 ## 문서와 성능 재현
 
-[Phase 6 개발 보고 · 30개 항목](docs/PHASE6-REPORT.md), [Phase 6 요구사항](docs/PHASE6-SPEC.md), [Phase 5 검증](docs/VERIFICATION-PHASE5.md), [Phase 5 개발 보고 · 28개 항목](docs/PHASE5-REPORT.md), [Phase 5 원본 요구사항](docs/PHASE5-SPEC.md), [Phase 4 검증](docs/VERIFICATION-PHASE4.md), [Phase 4 개발 보고 · 23개 항목](docs/PHASE4-REPORT.md), [Phase 4 원본 요구사항](docs/PHASE4-SPEC.md), [Phase 3 검증](docs/VERIFICATION-PHASE3.md), [Phase 3 개발 보고](docs/PHASE3-REPORT.md), [검증과 실측](docs/VERIFICATION.md), [Phase 2 보고](docs/PHASE2-REPORT.md), [이전 검증](docs/VERIFICATION-PHASE2.md), [Phase 1 검증](docs/VERIFICATION-PHASE1.md), [Phase 3 원본 요구사항](docs/PHASE3-SPEC.md)을 참고하세요.
+[Phase 7 개발 보고 · 36개 항목](docs/PHASE7-REPORT.md), [Phase 7 요구사항](docs/PHASE7-SPEC.md), [Phase 6 검증](docs/VERIFICATION-PHASE6.md), [Phase 6 개발 보고 · 30개 항목](docs/PHASE6-REPORT.md), [Phase 6 요구사항](docs/PHASE6-SPEC.md), [Phase 5 검증](docs/VERIFICATION-PHASE5.md), [Phase 5 개발 보고 · 28개 항목](docs/PHASE5-REPORT.md), [Phase 5 원본 요구사항](docs/PHASE5-SPEC.md), [Phase 4 검증](docs/VERIFICATION-PHASE4.md), [Phase 4 개발 보고 · 23개 항목](docs/PHASE4-REPORT.md), [Phase 4 원본 요구사항](docs/PHASE4-SPEC.md), [Phase 3 검증](docs/VERIFICATION-PHASE3.md), [Phase 3 개발 보고](docs/PHASE3-REPORT.md), [검증과 실측](docs/VERIFICATION.md), [Phase 2 보고](docs/PHASE2-REPORT.md), [이전 검증](docs/VERIFICATION-PHASE2.md), [Phase 1 검증](docs/VERIFICATION-PHASE1.md), [Phase 3 원본 요구사항](docs/PHASE3-SPEC.md)을 참고하세요.
 
 ```powershell
+node node_modules/vite-node/vite-node.mjs scripts/measure-world.ts
 node node_modules/vite-node/vite-node.mjs scripts/measure-disaster.ts
-$env:SKYTOPIA_VERTICAL_MEASURE='1'
-npx playwright test e2e/vertical-performance.spec.ts --project=chrome
-Remove-Item Env:SKYTOPIA_VERTICAL_MEASURE
+$env:SKYTOPIA_WORLD_MEASURE='1'
+npx playwright test e2e/world-performance.spec.ts --project=chrome
+Remove-Item Env:SKYTOPIA_WORLD_MEASURE
 ```
 
-일반 CI는 수동 성능 측정 5개를 브라우저마다 생략합니다. 측정은 임계 FPS 보증이 아닌 실제 CPU/WebGL 수치를 기록합니다. 최대 격자 600명 배치는 단위 테스트에서 자급·구조 안전·6등급을 검증합니다.
+일반 CI는 수동 성능 측정 6개를 브라우저마다 생략합니다. 측정은 임계 FPS 보증이 아닌 실제 CPU/WebGL 수치를 기록합니다. 최대 격자 600명 배치는 단위 테스트에서 자급·구조 안전·6등급을 검증합니다.
 
 ## 배포와 경계
 
 `dist/`는 상대 경로의 정적 호스팅 빌드입니다. 현재 도메인·환경변수·백엔드는 필요하지 않습니다. 향후 절대 URL/API/인증 도입 시 중앙 설정의 `APP_DOMAIN`/`APP_ORIGIN`과 `.env.example`을 사용해야 합니다. 개발 도메인을 소스에 넣거나 DNS·인증서·공개 배포를 변경하지 않았습니다.
 
-구조는 7개 높이의 격자와 하중 그래프를 사용하는 게임용 근사입니다. 전투·교역·멀티플레이는 후속 범위입니다. Firefox/Safari·모바일·장시간 메모리 안정성·실제 저사양 GPU의 목표 FPS는 검증 범위 밖입니다. Three.js 청크의 500kB 권고 경고가 남습니다. 브리핑은 짧은 2줄 대화, 오프닝은 자막과 기존 3D 도시 카메라 연출이며 전용 5장면 영화·성우 음성·장식 보상 카탈로그는 후속 작업입니다. 25미션의 자동 엔진 해법과 첫 미션의 브라우저 조작은 검증했지만 사람의 전체 캠페인 완주와 장시간 난이도 조정은 별도 검증이 필요합니다.
+구조는 7개 높이의 격자와 하중 그래프를 사용하는 게임용 근사입니다. 전투·멀티플레이는 후속 범위입니다. Firefox/Safari·모바일·장시간 메모리 안정성·실제 저사양 GPU의 목표 FPS는 검증 범위 밖입니다. Three.js 청크의 500kB 권고 경고가 남습니다. 브리핑은 짧은 2줄 대화, 오프닝은 자막과 기존 3D 도시 카메라 연출이며 전용 5장면 영화·성우 음성·장식 보상 카탈로그는 후속 작업입니다. 30미션의 자동 엔진 해법과 첫 미션의 브라우저 조작은 검증했지만 사람의 전체 캠페인 완주와 장시간 난이도 조정은 별도 검증이 필요합니다.

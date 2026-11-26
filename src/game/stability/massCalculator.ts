@@ -6,7 +6,8 @@ import type { City, Point3 } from './types';
 import { cellsOf, key } from '../grid';
 import { fromKey } from './state';
 export function calculateMass(city: City) {
-  let mass = STRUCTURE.islandBaseMass,
+  const baseMass = STRUCTURE.islandBaseMass + (city.worldContext?.massOffset ?? 0);
+  let mass = baseMass,
     mx = mass * STRUCTURE.islandCenter.x,
     my = mass * STRUCTURE.islandCenter.y,
     mz = mass * STRUCTURE.islandCenter.z;
@@ -28,7 +29,11 @@ export function calculateMass(city: City) {
     seen.add(b.id);
     const cells = isLink(b) ? footprint(b) : cellsOf(b, b.origin),
       share =
-        (facility(b).mass +
+        (facility(b).mass * (city.worldContext?.techs.includes('lightFrame') ? 0.95 : 1) +
+          (b.kind === 'skybridgeAnchor'
+            ? (city.worldContext?.bridgeMass ?? 0) /
+              Math.max(1, city.buildings.filter((x) => x.kind === 'skybridgeAnchor').length)
+            : 0) +
           ((b.temporary ?? 0) > 0 ? 4 : 0) +
           (b.reinforcement ?? 0) * STRUCTURE.braceMass) /
         cells.length;
@@ -56,9 +61,6 @@ export function calculateMass(city: City) {
     }
   const anchors = city.platforms.filter((p) => p.anchor);
   for (const p of anchors)
-    local.set(
-      key(p),
-      (local.get(key(p)) ?? 0) + STRUCTURE.islandBaseMass / Math.max(1, anchors.length),
-    );
+    local.set(key(p), (local.get(key(p)) ?? 0) + baseMass / Math.max(1, anchors.length));
   return { mass, center: { x: mx / mass, y: my / mass, z: mz / mass }, local };
 }

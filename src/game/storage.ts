@@ -1,3 +1,4 @@
+import { WORLD_KINDS } from '../data/rules';
 import { disasterSchema, validateDisaster } from './disasters/schema';
 import { evacuatedTotal } from './disasters/effects';
 import { DISASTER_KINDS, isBattery } from '../data/rules';
@@ -20,7 +21,7 @@ const finite = z.number().finite(),
   coord = finite.int().min(RULES.min).max(RULES.max),
   height = finite.int().min(VERTICAL.min).max(VERTICAL.max),
   cell = z.object({ x: coord, z: coord, y: height.optional() });
-const kind = z.enum([...KINDS, ...VERTICAL_KINDS, ...DISASTER_KINDS] as [
+const kind = z.enum([...KINDS, ...VERTICAL_KINDS, ...DISASTER_KINDS, ...WORLD_KINDS] as [
   (typeof KINDS)[number],
   ...(typeof KINDS)[number][],
 ]);
@@ -459,6 +460,7 @@ export function loadGame(slot: 'campaign' | 'lab' | 'city' = 'campaign'): SaveRe
   }
 }
 export function saveGame(g: Game): boolean {
+  if (g.world) return false;
   try {
     if (!decodeSave(JSON.stringify(g)).ok) return false;
     localStorage.setItem(

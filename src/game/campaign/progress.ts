@@ -37,6 +37,18 @@ export const ACHIEVEMENTS = [
   ['resilient', t('회복력의 거장', 'Master of Resilience')],
   ['allStorms', t('모든 폭풍을 넘어', 'Against All Storms')],
   ['chapter5', t('마지막 피난처', 'The Last Refuge')],
+  ['beyondClouds', t('구름 너머', 'Beyond the Clouds')],
+  ['explorer10', t('열 개의 하늘', 'Ten Islands')],
+  ['secondHome', t('두 번째 고향', 'Second Home')],
+  ['firstTrade', t('첫 교역', 'First Trade')],
+  ['fiveRoutes', t('하늘의 항로망', 'Sky Trade Network')],
+  ['threeCities', t('세 도시의 번영', 'Three Flourishing Cities')],
+  ['ancientTech', t('고대의 지혜', 'Ancient Wisdom')],
+  ['advancedAether', t('에테르의 비밀', 'Aether Secrets')],
+  ['rescueNetwork', t('연합 구조대', 'United Rescue')],
+  ['federation', t('도시 연합', 'City Federation')],
+  ['nexus', t('하늘의 심장', 'Heart of the Sky')],
+  ['chapter6', t('새로운 문명', 'SKYTOPIA')],
 ] as const;
 export const freshProfile = (name = 'Architect'): Profile => ({
   version: 1,
@@ -101,7 +113,7 @@ export function updateProfile(
       maxStars = starsFor(p, c.stage),
       r = c.result,
       d = stage(c.stage);
-    const unlocked = [...new Set([...p.unlocked, ...(campaign ? available(d.next ?? 25) : [])])];
+    const unlocked = [...new Set([...p.unlocked, ...(campaign ? available(d.next ?? 30) : [])])];
     const freshUnlocks = unlocked.length - p.unlocked.length;
     const deltaStars = Math.max(0, r.stars - (c.daily ? (old?.stars ?? 0) : maxStars));
     const xp = c.daily ? 0 : (maxStars === 0 ? d.xp : 0) + deltaStars * 25 + freshUnlocks * 10;
@@ -159,7 +171,19 @@ export function updateProfile(
       rebuildSky: g.campaign?.stage === 24 && !!g.campaign.result,
       resilient: v.resilience >= 70,
       allStorms: false,
-      perfect: [1, 2, 3, 4, 5].some((n) => chapterDone(n, 3)),
+      beyondClouds: v.worldExplored > 0,
+      explorer10: v.worldExplored >= 10,
+      secondHome: v.worldCities >= 2,
+      firstTrade: (g.world?.stats.deliveries ?? 0) > 0,
+      fiveRoutes: v.worldRoutes >= 5,
+      threeCities: v.worldStable >= 3,
+      ancientTech: v.worldArtifacts > 0,
+      advancedAether: v.worldAdvanced > 0,
+      rescueNetwork: v.worldRescue >= 80,
+      federation: v.worldStable >= 3 && v.worldSpecialties >= 3,
+      nexus: v.worldNexus > 0,
+      chapter6: c.stage === 30 && !!c.result,
+      perfect: [1, 2, 3, 4, 5, 6].some((n) => chapterDone(n, 3)),
     };
     const earned = Object.keys(conditions).filter((k) => conditions[k] && !next.achievements[k]);
     if (earned.length)

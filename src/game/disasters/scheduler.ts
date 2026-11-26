@@ -61,7 +61,9 @@ export function forecast(
   );
   const warning =
     options.warning ??
-    DISASTER.warning * (g.difficulty === 'easy' ? 1.4 : g.difficulty === 'hard' ? 0.75 : 1);
+    DISASTER.warning *
+      (g.worldContext?.techs.includes('earlyWarning') ? 1.2 : 1) *
+      (g.difficulty === 'easy' ? 1.4 : g.difficulty === 'hard' ? 0.75 : 1);
   const candidates = g.buildings.filter(
     (b) => b.durability > 0 && Math.abs(b.origin.x) + Math.abs(b.origin.z) > 1,
   );
@@ -75,7 +77,10 @@ export function forecast(
     wind: options.wind ?? 12 + level * 8,
     duration: options.duration ?? DISASTER.duration,
     warning,
-    recovery: DISASTER.recovery * (g.difficulty === 'easy' ? 1.25 : 1),
+    recovery:
+      (DISASTER.recovery /
+        (g.worldContext ? Math.max(0.5, g.worldContext.disasterFrequency || 1) : 1)) *
+      (g.difficulty === 'easy' ? 1.25 : 1),
     target,
     impacts: [],
   };

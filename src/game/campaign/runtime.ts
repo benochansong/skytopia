@@ -1,3 +1,5 @@
+import { facilityTech } from '../world/definitions';
+import { WORLD_KINDS } from '../../data/rules';
 import type { Game, Kind } from '../../types/game';
 import { BLOCKS } from '../../data/rules';
 import { stage } from './definitions';
@@ -6,6 +8,11 @@ import { forecastSupply, random } from '../supply';
 import { adjustStock, inventory, pay, canPay } from '../city/inventory';
 import { reconcileResidents } from '../city/population';
 export function canUse(g: Game, kind: Kind) {
+  if (WORLD_KINDS.includes(kind)) {
+    if (!g.worldContext) return false;
+    const tech = facilityTech[kind];
+    if (tech && !g.worldContext.techs.includes(tech)) return false;
+  }
   return (
     !g.campaign ||
     g.campaign.continued ||
@@ -80,8 +87,12 @@ export function campaignStep(g: Game, dt: number): Game {
   const d = stage(c.stage),
     v = metrics(g);
   const failure =
-    g.structure.loss?.reason ??
-    (c.protectedIds.some((id) => !g.buildings.some((b) => b.id === id))
+    (g.world
+      ? g.world.cities.every((c) => c.game.structure.loss)
+        ? 'core'
+        : null
+      : g.structure.loss?.reason) ??
+    (!g.world && c.protectedIds.some((id) => !g.buildings.some((b) => b.id === id))
       ? 'protected'
       : d.timeLimit && g.elapsed >= d.timeLimit
         ? 'timeout'

@@ -9,6 +9,7 @@ const cache: { city: City; stats: Stats }[] = [];
 export function analyze(city: City): Stats {
   const hit = cache.find(
     (c) =>
+      c.city.worldContext === city.worldContext &&
       c.city.disaster === city.disaster &&
       c.city.platforms === city.platforms &&
       c.city.buildings === city.buildings &&
@@ -36,6 +37,7 @@ export function analyze(city: City): Stats {
   };
   cache.unshift({
     city: {
+      worldContext: city.worldContext,
       disaster: city.disaster,
       platforms: city.platforms,
       buildings: city.buildings,
@@ -46,7 +48,7 @@ export function analyze(city: City): Stats {
     },
     stats,
   });
-  if (cache.length > 8) cache.pop();
+  if (cache.length > 16) cache.pop();
   return stats;
 }
 export function objectives(g: Game, s = analyze(g)) {

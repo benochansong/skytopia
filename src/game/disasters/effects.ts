@@ -88,7 +88,7 @@ export function weatherLoads(city: City) {
     gravity = 1;
   if (!d || !severity(city)) return { local, forces, torqueX, torqueZ, gravity };
   if (d.threat?.kind === 'gravity') gravity = 1 + 0.35 * severity(city);
-  const speed = d.weather.wind,
+  const speed = d.weather.wind * (city.worldContext?.region === 'iron' ? 1.4 : 1),
     rad = (d.weather.direction * Math.PI) / 180,
     dx = Math.sin(rad),
     dz = Math.cos(rad);

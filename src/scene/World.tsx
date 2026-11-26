@@ -1,3 +1,4 @@
+import { WorldShips } from './WorldFacilities';
 import { DisasterEffects } from './DisasterEffects';
 import { CHAPTERS, stage } from '../game/campaign/definitions';
 import { DayLight, LivingCity } from './LivingCity';
@@ -135,6 +136,7 @@ const Scenery = memo(function Scenery() {
   );
 });
 function Camera() {
+  const activeCity = useGame((s) => s.game.world?.active);
   const cinematic = useGame(
     (s) =>
       s.screen === 'opening' ||
@@ -165,8 +167,14 @@ function Camera() {
       camera.position.add(new Vector3(focus.x, floorOf(focus) * VERTICAL.height, focus.z));
       controls.current?.target.set(focus.x, floorOf(focus) * VERTICAL.height, focus.z);
     }
+    const g = useGame.getState().game;
+    const saved = g.world?.cities.find((c) => c.id === activeCity)?.camera;
+    if (saved && mode === 'free' && !focus) {
+      camera.position.set(...saved.position);
+      controls.current?.target.set(...saved.target);
+    }
     controls.current?.update();
-  }, [camera, mode, reset, focus]);
+  }, [camera, mode, reset, focus, activeCity]);
   return (
     <OrbitControls
       ref={controls}
@@ -182,6 +190,24 @@ function Camera() {
       enableRotate={mode === 'free' || mode === 'floor'}
       autoRotate={(screen === 'menu' || cinematic) && !reduced}
       autoRotateSpeed={0.2}
+      onEnd={() => {
+        const state = useGame.getState(),
+          w = state.game.world;
+        if (!w || !controls.current) return;
+        const snapshot = {
+          position: camera.position.toArray() as [number, number, number],
+          target: controls.current.target.toArray() as [number, number, number],
+        };
+        useGame.setState({
+          game: {
+            ...state.game,
+            world: {
+              ...w,
+              cities: w.cities.map((c) => (c.id === w.active ? { ...c, camera: snapshot } : c)),
+            },
+          },
+        });
+      }}
       onChange={() => {
         if (!controls.current) return;
         const c = controls.current;
@@ -318,12 +344,23 @@ function City() {
   const city = useGame((s) => s.game.city),
     population = useGame((s) => s.game.population);
   const disaster = useGame((s) => s.game.disaster);
+  const worldContext = useGame((s) => s.game.worldContext);
   const root = useRef<Group>(null);
   const lastAim = useRef<{ x: number; y: number } | null>(null);
   const fallAge = useRef(0);
   const stats = useMemo(
-    () => analyze({ platforms, buildings, structure, difficulty, city, population, disaster }),
-    [platforms, buildings, structure, difficulty, city, population, disaster],
+    () =>
+      analyze({
+        platforms,
+        buildings,
+        structure,
+        difficulty,
+        city,
+        population,
+        disaster,
+        worldContext,
+      }),
+    [platforms, buildings, structure, difficulty, city, population, disaster, worldContext],
   );
   const balanceDirection = useMemo(
     () =>
@@ -503,6 +540,7 @@ export default function World() {
         {import.meta.env.DEV && import.meta.env.MODE === 'test' ? <PerformanceProbe /> : null}
         {environment && <Scenery />}
         <City />
+        <WorldShips />
         <Camera />
       </Canvas>
       <div className="sky-vignette" />

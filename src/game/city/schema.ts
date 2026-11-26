@@ -1,5 +1,12 @@
 import { z } from 'zod';
-import { BLOCKS, KINDS, VERTICAL_KINDS, DISASTER_KINDS, SHAPES } from '../../data/rules';
+import {
+  BLOCKS,
+  KINDS,
+  VERTICAL_KINDS,
+  DISASTER_KINDS,
+  WORLD_KINDS,
+  SHAPES,
+} from '../../data/rules';
 const n = z.number().finite().nonnegative(),
   record = z.record(n).refine((r) => Object.keys(r).length <= 1200),
   stock = z.object({ food: n, materials: n, aether: n });
@@ -34,7 +41,7 @@ export const citySchema = z.object({
       z.object({
         piece: z
           .object({
-            kind: z.enum([...KINDS, ...VERTICAL_KINDS, ...DISASTER_KINDS] as [
+            kind: z.enum([...KINDS, ...VERTICAL_KINDS, ...DISASTER_KINDS, ...WORLD_KINDS] as [
               (typeof KINDS)[number],
               ...(typeof KINDS)[number][],
             ]),

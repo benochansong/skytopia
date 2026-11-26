@@ -1,3 +1,8 @@
+import { worldAchievements } from '../game/world/progress';
+import { newWorld, worldExample } from '../game/world/scenarios';
+import { createWorld, switchCity } from '../game/world/state';
+import { loadWorld, saveWorld } from '../game/world/storage';
+import type { WorldState } from '../types/world';
 import { saveSurvivalBest } from '../game/disasters/survival';
 import { disasterCity, disasterExample } from '../game/disasters/scenarios';
 import { loadDisaster } from '../game/storage';
@@ -50,6 +55,14 @@ export type AnalysisMode =
   | 'logistics'
   | 'economy';
 type Store = {
+  startWorld: (options?: {
+    resume?: boolean;
+    importCity?: boolean;
+    example?: WorldState['example'];
+    seed?: number;
+    config?: Partial<WorldState['config']>;
+  }) => void;
+  switchWorldCity: (id: string) => void;
   startDisaster: (
     mode: 'lab' | 'survival',
     example?: DisasterState['example'],
@@ -185,9 +198,22 @@ export const useGame = create<Store>((set, get) => {
         if (!saveCampaign(campaignSave)) set({ notice: 'saveFailed' });
       }
     }
+    if (
+      next.world &&
+      !next.campaign &&
+      next.world.mode !== 'lab' &&
+      current.campaignIssue !== 'campaignCorrupt'
+    ) {
+      const profile = worldAchievements(get().campaignSave.profile, next);
+      if (profile !== get().campaignSave.profile) {
+        const campaignSave = { ...get().campaignSave, profile };
+        set({ campaignSave });
+        if (!saveCampaign(campaignSave)) set({ campaignIssue: 'unavailable' });
+      }
+    }
     set({
       game: next,
-      ...(next.structure.loss || next.campaign?.failed
+      ...((!next.world && next.structure.loss) || next.campaign?.failed
         ? { screen: 'gameover' as const }
         : next.won && !current.game.won
           ? { screen: 'victory' as const }
@@ -196,6 +222,33 @@ export const useGame = create<Store>((set, get) => {
   };
   const active = () => get().screen === 'playing' && !get().game.campaign?.dialogue;
   return {
+    startWorld: (options = {}) => {
+      const loaded = options.resume ? loadWorld(!!options.example) : null;
+      if (options.resume && !loaded?.ok) {
+        set({ notice: 'saveFailed' });
+        return;
+      }
+      const game = loaded?.ok
+        ? loaded.game
+        : options.importCity
+          ? createWorld(get().game, options.seed, options.config)
+          : options.example
+            ? worldExample(options.example, get().settings)
+            : newWorld(get().settings, options.seed, options.config);
+      set({
+        game,
+        screen: 'playing',
+        freeMode: false,
+        selected: null,
+        cameraReset: get().cameraReset + 1,
+        notice: '',
+        toolMode: 'build',
+      });
+    },
+    switchWorldCity: (id) => {
+      const game = switchCity(get().game, id);
+      set({ game, selected: null, cameraFocus: null, cameraReset: get().cameraReset + 1 });
+    },
     hasDisasterSave: loadDisaster('lab').ok,
     hasSurvivalSave: loadDisaster('survival').ok,
     startDisaster: (mode, example = 'A', resume = false) => {
@@ -315,7 +368,7 @@ export const useGame = create<Store>((set, get) => {
         set({
           game: { ...game, settings: get().settings },
           screen:
-            game.campaign?.failed || game.structure.loss
+            game.campaign?.failed || (!game.world && game.structure.loss)
               ? 'gameover'
               : game.campaign?.result && !game.campaign.continued
                 ? 'victory'
@@ -377,6 +430,22 @@ export const useGame = create<Store>((set, get) => {
     continueCity: () => {
       const g = get().game;
       if (!g.campaign?.result) return;
+      if (g.world && g.campaign.stage === 30) {
+        const game = {
+          ...g,
+          campaign: undefined,
+          won: false,
+          world: {
+            ...g.world,
+            mode: 'civilization' as const,
+            ending: { ...g.world.ending, seen: true, continued: true },
+            view: 'map' as const,
+          },
+        };
+        set({ game, screen: 'playing', freeMode: false });
+        get().save(true);
+        return;
+      }
       const game = { ...g, campaign: { ...g.campaign, continued: true, dialogue: null } };
       set({ game, screen: 'playing' });
       get().save(true);
@@ -428,7 +497,7 @@ export const useGame = create<Store>((set, get) => {
       if (active()) apply(action(get().game));
     },
     cityExample: (example) => {
-      if (active() && get().game.mode === 'citylab') {
+      if (active() && get().game.mode === 'citylab' && !get().game.world) {
         const g = engine.newGame('citylab', Date.now() >>> 0, get().settings);
         apply(cityExample(g, example));
       }
@@ -581,6 +650,14 @@ export const useGame = create<Store>((set, get) => {
         });
     },
     save: (silent = false) => {
+      if (get().game.world && !get().game.campaign) {
+        const ok = saveWorld(get().game);
+        set({
+          saveIssue: ok ? '' : 'unavailable',
+          ...(!silent || !ok ? { notice: ok ? 'saved' : 'saveFailed' } : {}),
+        });
+        return;
+      }
       if (get().game.campaign || get().freeMode) {
         if (get().campaignIssue === 'campaignCorrupt') {
           set({ notice: 'saveFailed' });

@@ -1,0 +1,60 @@
+{
+  "environment": {
+    "node": "v24.14.0",
+    "cpu": "AMD Ryzen AI 9 365 w/ Radeon 880M              ",
+    "platform": "win32"
+  },
+  "scope": "Three or six independent copies of the authored capital; no disasters or active freight. CPU only, not rendering FPS.",
+  "results": [
+    {
+      "cities": 3,
+      "buildingsPerCity": 84,
+      "saveBytes": 102580,
+      "results": [
+        {
+          "name": "map, one simulated second",
+          "samples": 20,
+          "medianMs": 113.59999999999945,
+          "p95Ms": 138.6882000000005
+        },
+        {
+          "name": "active city, one simulated second",
+          "samples": 20,
+          "medianMs": 153.0570000000007,
+          "p95Ms": 184.5526000000009
+        },
+        {
+          "name": "validated world restore",
+          "samples": 20,
+          "medianMs": 26.55359999999928,
+          "p95Ms": 33.34029999999984
+        }
+      ]
+    },
+    {
+      "cities": 6,
+      "buildingsPerCity": 84,
+      "saveBytes": 199507,
+      "results": [
+        {
+          "name": "map, one simulated second",
+          "samples": 20,
+          "medianMs": 207.95529999999962,
+          "p95Ms": 244.14259999999922
+        },
+        {
+          "name": "active city, one simulated second",
+          "samples": 20,
+          "medianMs": 257.8171999999977,
+          "p95Ms": 298.52390000000014
+        },
+        {
+          "name": "validated world restore",
+          "samples": 20,
+          "medianMs": 47.753600000000006,
+          "p95Ms": 57.234700000000885
+        }
+      ]
+    }
+  ]
+}

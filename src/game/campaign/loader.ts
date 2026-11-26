@@ -1,3 +1,4 @@
+import { worldStage } from '../world/campaign';
 import { snapshot } from '../disasters/scheduler';
 import { disasterStage } from '../disasters/scenarios';
 import { verticalExample, verticalMetropolis } from '../vertical/scenarios';
@@ -14,16 +15,18 @@ import { freshCity } from '../city/state';
 export function loadStage(id: number, settings: Settings, seed = stage(id).seed): Game {
   const d = stage(id);
   let g =
-    id >= 21 && id <= 25
-      ? disasterStage(settings, id)
-      : id === 20
-        ? verticalMetropolis(settings)
-        : id >= 16 && id <= 19
-          ? verticalExample(
-              settings,
-              id === 17 ? 'B' : id === 18 ? 'C' : id === 19 ? 'D' : undefined,
-            )
-          : newGame('mission', seed, settings, d.source);
+    id >= 26 && id <= 30
+      ? worldStage(settings, id, seed)
+      : id >= 21 && id <= 25
+        ? disasterStage(settings, id)
+        : id === 20
+          ? verticalMetropolis(settings)
+          : id >= 16 && id <= 19
+            ? verticalExample(
+                settings,
+                id === 17 ? 'B' : id === 18 ? 'C' : id === 19 ? 'D' : undefined,
+              )
+            : newGame('mission', seed, settings, d.source);
   if (id >= 16 && id <= 25) {
     g.mode = 'mission';
     g.missionId = d.source;
@@ -236,5 +239,10 @@ export function loadStage(id: number, settings: Settings, seed = stage(id).seed)
       ...g,
       disaster: { ...g.disaster, baseline: { ...g.disaster.baseline, snapshot: snapshot(g) } },
     };
+  if (g.world) {
+    // World scenarios retain independent authored city budgets and residents.
+    const original = worldStage(settings, id, seed);
+    g = { ...original, campaign: g.campaign, active: g.active, next: g.next, supply: g.supply };
+  }
   return g;
 }

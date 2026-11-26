@@ -276,7 +276,7 @@ export function CityHUD() {
               </button>
             ))}
           </div>
-          {g.mode === 'citylab' && !g.vertical && (
+          {g.mode === 'citylab' && !g.world && !g.vertical && (
             <div className="city-lab-controls">
               <label>
                 {ko ? '실험 예제' : 'Experiment'}
@@ -501,7 +501,7 @@ export function CityHUD() {
                   )}
                 </div>
               )}
-              {g.mode === 'citylab' && (
+              {g.mode === 'citylab' && (!g.world || g.world.mode === 'lab') && (
                 <label>
                   {ko ? '자유 건설' : 'Free selection'}
                   <select

@@ -78,6 +78,7 @@ export function evaluateStructure(
         platformDefinition(p).maxLoad *
         (1 + p.reinforcement * STRUCTURE.braceCapacity) *
         difficulty.strength *
+        (city.worldContext?.techs.includes('strongFrame') ? 1.1 : 1) *
         (0.35 + 0.65 * Math.min(1, hp / maxHP));
       const current =
         (residual.get(k) ?? 0) +
@@ -114,6 +115,7 @@ export function evaluateStructure(
           : Math.min(platformDefinition(p).linkStrength, platformDefinition(other).linkStrength) *
             (1 + reinforcement * STRUCTURE.braceCapacity) *
             difficulty.strength *
+            (city.worldContext?.techs.includes('strongFrame') ? 1.1 : 1) *
             (0.35 + 0.65 * Math.min(1, health / edgeHP));
         const edgeLoad =
           Math.abs(potential.get(k)! - potential.get(n)!) *

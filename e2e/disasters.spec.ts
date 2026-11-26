@@ -113,7 +113,7 @@ test('survival saves independently and free-build weather remains opt-in', async
   await page.keyboard.press('Escape');
   await page.getByRole('button', { name: '저장', exact: true }).click();
   const free = await page.evaluate(
-    () => JSON.parse(localStorage.getItem('skytopia.campaign.v3')!).free,
+    () => JSON.parse(localStorage.getItem('skytopia.campaign.v4')!).free,
   );
   expect(free.disaster.setting).toBe('weather');
   expect(free.disaster.threat).toBeNull();

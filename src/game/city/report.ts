@@ -8,6 +8,7 @@ const cache: { g: Game; r: CityReport }[] = [];
 export function cityReport(g: Game): CityReport {
   const old = cache.find(
     (c) =>
+      c.g.worldContext === g.worldContext &&
       c.g.disaster === g.disaster &&
       c.g.city === g.city &&
       c.g.buildings === g.buildings &&
@@ -82,7 +83,12 @@ export function cityReport(g: Game): CityReport {
     },
     { code: 'housing', value: g.city.displaced > 0 ? -20 : 3 },
   ];
-  const happinessTarget = clamp(48 + factors.reduce((n, f) => n + f.value, 0));
+  const happinessTarget = clamp(
+    48 +
+      (g.worldContext?.techs.includes('healthyCity') ? 5 : 0) +
+      (g.worldContext?.specialty === 'residential' ? 5 : 0) +
+      factors.reduce((n, f) => n + f.value, 0),
+  );
   const income =
       g.population * 0.018 * (0.5 + g.city.happiness / 100) * (0.15 + 0.85 * powerCoverage) +
       operations.reduce((n, b) => n + b.income, 0),
@@ -179,6 +185,7 @@ export function cityReport(g: Game): CityReport {
       .slice(0, 3),
   };
   cache.unshift({ g, r });
-  if (cache.length > 4) cache.pop();
+  // Two generations for each of the world's six independent cities.
+  if (cache.length > 12) cache.pop();
   return r;
 }

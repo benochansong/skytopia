@@ -283,7 +283,10 @@ export function selectBlueprint(g: Game, kind: Kind): Game {
       shape: BLOCKS[kind].shapes[0],
       rotation: 0,
     },
-    reservedActive: ['lab', 'citylab'].includes(g.mode) ? null : (g.reservedActive ?? g.active),
+    reservedActive:
+      ['lab', 'citylab'].includes(g.mode) && !g.worldContext
+        ? null
+        : (g.reservedActive ?? g.active),
   };
 }
 export function toggleLift(g: Game, id: number): Game {

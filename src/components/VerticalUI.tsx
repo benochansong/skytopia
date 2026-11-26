@@ -254,7 +254,7 @@ export function VerticalControls() {
                 : text('지지 여유 있음', 'Support available')}
             </p>
           )}
-          {g.mode === 'citylab' && !g.campaign && !g.disaster && (
+          {g.mode === 'citylab' && !g.world && !g.campaign && !g.disaster && (
             <>
               <h3>VERTICAL LAB</h3>
               <div className="vertical-row">

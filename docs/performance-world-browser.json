@@ -1,0 +1,30 @@
+{
+  "browser": "158.0.8127.37",
+  "renderer": "SwiftShader; 1440x900; DPR1; development build; active simulation; authored capital copies; no active disaster or freight",
+  "snapshots": [
+    {
+      "cities": 3,
+      "worldClock": 11.25,
+      "drawCalls": 397,
+      "triangles": 31460,
+      "geometries": 409,
+      "textures": 2,
+      "samples": 22,
+      "medianMs": 259.5,
+      "p95Ms": 575,
+      "averageFps": 3.48393431200462
+    },
+    {
+      "cities": 6,
+      "worldClock": 9.5,
+      "drawCalls": 397,
+      "triangles": 31460,
+      "geometries": 409,
+      "textures": 2,
+      "samples": 22,
+      "medianMs": 274.1000000014901,
+      "p95Ms": 663.5,
+      "averageFps": 3.0564045568213394
+    }
+  ]
+}

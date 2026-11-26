@@ -87,6 +87,6 @@ export function cityRoutes(g: Game) {
     }
   const result = { road, buildings: g.buildings, routes, freight };
   cache.unshift(result);
-  if (cache.length > 4) cache.pop();
+  if (cache.length > 12) cache.pop();
   return result;
 }

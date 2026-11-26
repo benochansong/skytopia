@@ -1,3 +1,4 @@
+import { worldReport } from '../world/management';
 import { PHYSICAL, DISASTER } from '../../data/rules';
 import { defenseReady, evacuatedTotal } from '../disasters/effects';
 import { resilience } from '../disasters/report';
@@ -25,7 +26,36 @@ export function metrics(g: Game): Record<Metric, number> {
   const links = g.buildings.filter(
     (b) => b.enabled && b.durability > 0 && endpoints(b, b.origin).every((c) => hasPlatform(g, c)),
   );
+  const w = g.world,
+    wr = w ? worldReport(g) : null;
   return {
+    worldInspected: w?.inspected.length ?? 0,
+    worldTarget: w?.colonyTarget ? 1 : 0,
+    worldAgriIndustry:
+      w?.cities.some((c) => c.specialty === 'agriculture') &&
+      w?.cities.some((c) => c.specialty === 'industry')
+        ? 1
+        : 0,
+    worldExplored: w?.stats.explored ?? 0,
+    worldCities: w?.cities.length ?? 0,
+    worldRoutes: wr?.routes ?? 0,
+    worldFood: w?.stats.food ?? 0,
+    worldMaterials: w?.stats.materials ?? 0,
+    worldResearch: w?.research.completed.length ?? 0,
+    worldArtifacts: w?.stats.recovered ?? 0,
+    worldAdvanced: w?.research.completed.includes('advancedAether') ? 1 : 0,
+    worldStable: wr?.stable ?? 0,
+    worldResilience: wr?.score ?? 0,
+    worldPopulation: wr?.population ?? 0,
+    worldSpecialties: wr?.specialties ?? 0,
+    worldNexus: wr?.nexus ? 1 : 0,
+    worldRescue: w?.stats.rescued ?? 0,
+    worldPower: wr?.cities.every((c) => c.economy.deficit < 0.1) ? 1 : 0,
+    worldFoodBalance: wr
+      ? wr.cities.reduce((n, c) => n + c.economy.foodProduction - c.economy.foodConsumption, 0)
+      : 0,
+    worldIndustry: wr ? wr.cities.reduce((n, c) => n + c.economy.materialsProduction, 0) : 0,
+    worldReturned: w?.ships.filter((s) => s.state === 'docked' && !s.trip).length ?? 0,
     observations: g.buildings.filter(
       (b) => ['weatherStation', 'weatherTower'].includes(b.kind) && defenseReady(g, b),
     ).length,
@@ -189,8 +219,8 @@ export function evaluateResult(g: Game): RunResult {
   return {
     stars: 1 + (optional[0] ? 1 : 0) + (optional.every(Boolean) ? 1 : 0),
     score,
-    time: g.elapsed,
-    population: g.population,
+    time: g.world?.clock ?? g.elapsed,
+    population: g.world ? v.worldPopulation : g.population,
     stability: v.stability,
     net: v.net,
     optional,

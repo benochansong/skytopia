@@ -102,7 +102,7 @@ export default function Runtime() {
         else s.pause();
         return;
       }
-      if (s.screen !== 'playing') return;
+      if (s.screen !== 'playing' || s.game.world?.view === 'map') return;
       if (el.closest('[role="dialog"]')) return;
       if (e.code === 'Tab' && !e.shiftKey && !el.closest('button')) {
         e.preventDefault();

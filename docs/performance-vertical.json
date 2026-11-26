@@ -1,0 +1,65 @@
+{
+  "environment": {
+    "node": "v24.14.0",
+    "cpu": "AMD Ryzen AI 9 365 w/ Radeon 880M              ",
+    "platform": "win32"
+  },
+  "fixtures": [
+    {
+      "name": "stage20 initial city",
+      "platforms": 187,
+      "buildings": 126,
+      "floors": 3,
+      "population": 250,
+      "saveBytes": 46046,
+      "results": [
+        {
+          "name": "uncached structure and operating networks",
+          "samples": 20,
+          "medianMs": 15.93309999999974,
+          "p95Ms": 19.167299999999614
+        },
+        {
+          "name": "quarter-second engine",
+          "samples": 20,
+          "medianMs": 42.308899999999994,
+          "p95Ms": 58.64519999999993
+        },
+        {
+          "name": "validated save decode",
+          "samples": 20,
+          "medianMs": 11.737999999999829,
+          "p95Ms": 21.540300000000116
+        }
+      ]
+    },
+    {
+      "name": "four-floor synthetic stress",
+      "platforms": 256,
+      "buildings": 252,
+      "floors": 4,
+      "population": 80,
+      "saveBytes": 75974,
+      "results": [
+        {
+          "name": "uncached structure and operating networks",
+          "samples": 20,
+          "medianMs": 34.42309999999998,
+          "p95Ms": 46.43979999999965
+        },
+        {
+          "name": "quarter-second engine",
+          "samples": 20,
+          "medianMs": 25.588300000000345,
+          "p95Ms": 46.6222000000007
+        },
+        {
+          "name": "validated save decode",
+          "samples": 20,
+          "medianMs": 16.284599999999955,
+          "p95Ms": 20.82090000000062
+        }
+      ]
+    }
+  ]
+}

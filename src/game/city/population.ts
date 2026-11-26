@@ -1,7 +1,7 @@
 import type { Game } from '../../types/game';
 import { facility, CITY_RULES } from '../../data/cityRules';
 import { cityReport } from './report';
-import { networks } from './networks';
+import { operatingNetwork } from './operations';
 import { analyze } from '../analysis';
 // Residents remain people after housing collapses. Shelter and departure have their own clocks.
 export function reconcileResidents(g: Game): Game {
@@ -13,7 +13,7 @@ export function reconcileResidents(g: Game): Game {
     assigned += residents[b.id];
   }
   let displaced = Math.max(0, g.population - assigned);
-  const road = networks(g).road;
+  const road = operatingNetwork(g).road;
   for (const b of homes) {
     if (!road.attachments.has(b.id)) continue;
     const add = Math.min(displaced, facility(b).capacity - residents[b.id]);

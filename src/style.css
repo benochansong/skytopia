@@ -2256,3 +2256,107 @@ kbd {
   stroke-dasharray: none;
   filter: drop-shadow(0 0 5px #79e8c8);
 }
+
+.vertical-menu,
+.vertical-row,
+.floor-buttons {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.vertical-menu button {
+  flex: 1;
+}
+.vertical-controls {
+  position: absolute;
+  left: 20px;
+  top: 165px;
+  width: 260px;
+  padding: 12px;
+  pointer-events: auto;
+}
+.vertical-controls .section-label {
+  justify-content: space-between;
+}
+.floor-buttons {
+  flex-wrap: nowrap;
+  margin: 9px 0;
+}
+.floor-buttons button {
+  padding: 7px 5px;
+  flex: 1;
+  font-size: 11px;
+}
+.floor-buttons [aria-pressed='true'] {
+  background: #d9c18d;
+  color: #183c43;
+}
+.vertical-controls select {
+  max-width: 150px;
+  padding: 7px;
+}
+.vertical-controls small {
+  font-size: 10px;
+}
+.vertical-mode .left-rail {
+  top: 320px;
+  max-height: calc(100vh - 530px);
+  overflow: auto;
+}
+.vertical-catalog {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  max-height: 250px;
+  overflow: auto;
+  margin: 16px 0;
+}
+.vertical-catalog button {
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  padding: 8px;
+  font-size: 12px;
+}
+.vertical-catalog small {
+  color: #a2bbb9;
+}
+.vertical-row button {
+  padding: 7px;
+  font-size: 11px;
+}
+.dialog table {
+  width: 100%;
+  font-size: 12px;
+  text-align: left;
+  border-collapse: collapse;
+}
+.dialog td,
+.dialog th {
+  padding: 4px;
+  border-bottom: 1px solid #ffffff18;
+}
+@media (max-width: 1100px) {
+  .vertical-controls {
+    width: 220px;
+    top: 140px;
+  }
+  .vertical-mode .left-rail {
+    top: 290px;
+  }
+  .vertical-catalog {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.vertical-mode .city-advisor {
+  top: auto;
+  bottom: 40px;
+  left: 20px;
+  width: 235px;
+  max-height: 230px;
+  overflow: auto;
+}
+.vertical-mode .left-rail {
+  max-height: calc(100vh - 600px);
+}

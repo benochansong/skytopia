@@ -1,16 +1,20 @@
+import { buildGraph } from '../stability/structuralGraph';
+import { isLink, volume, visibleBuilding } from '../vertical/geometry';
 import { canUse } from '../campaign/runtime';
-import { BLOCKS } from '../../data/rules';
+import { BLOCKS, VERTICAL_KINDS } from '../../data/rules';
 import { pay, canPay, adjustStock, inventory } from '../city/inventory';
 import { reconcileResidents } from '../city/population';
 import { reconcileStores } from '../city/simulation';
 import { DIFFICULTIES, PHYSICAL, STRUCTURE, isLift } from '../../data/rules';
 import type { Game, Target, Cell, Kind } from '../../types/game';
 import { analyze } from '../analysis';
-import { cellsOf, key } from '../grid';
+import { key, atFloor, floorOf } from '../grid';
 import { fromKey, platformMaxHP, platformDefinition } from '../stability/state';
 import { recordEvent } from '../stability/events';
 export function targetAt(g: Game, c: Cell): Target {
-  const b = g.buildings.find((b) => cellsOf(b, b.origin).some((p) => key(p) === key(c)));
+  const b = g.buildings.find(
+    (b) => visibleBuilding(b, g) && volume(b, b.origin).some((p) => key(p) === key(c)),
+  );
   return b ? { type: 'building', id: String(b.id) } : { type: 'platform', id: key(c) };
 }
 export function targetInfo(g: Game, target: Target) {
@@ -23,7 +27,7 @@ export function targetInfo(g: Game, target: Target) {
           maxHP: PHYSICAL[b.kind].hp,
           cell: b.origin,
           cost: PHYSICAL[b.kind].repairCost,
-          reinforcement: 0,
+          reinforcement: b.reinforcement ?? 0,
         }
       : null;
   }
@@ -46,7 +50,17 @@ export function targetInfo(g: Game, target: Target) {
 }
 export const costFor = (g: Game, base: number) =>
   g.mode === 'lab' || g.city.unlimited ? 0 : Math.ceil(base * DIFFICULTIES[g.difficulty].cost);
+function memberTarget(g: Game, target: Target): Target {
+  const members = target.type === 'edge' ? buildGraph(g).members.get(target.id) : null;
+  return members?.length
+    ? {
+        type: 'building',
+        id: String([...members].sort((a, b) => a.durability - b.durability)[0].id),
+      }
+    : target;
+}
 export function repair(g: Game, target: Target): Game {
+  target = memberTarget(g, target);
   if (g.campaign && !g.campaign.continued && g.campaign.stage < 6) return g;
   const info = targetInfo(g, target);
   if (
@@ -105,8 +119,14 @@ export function restoreTarget(g: Game, target: Target): Game {
   return recordEvent(next, 'repair', target.id, info.cell);
 }
 export function reinforce(g: Game, target: Target, free = false): Game {
+  target = memberTarget(g, target);
   if (g.campaign && !g.campaign.continued && g.campaign.stage < 6) return g;
-  if (target.type === 'building' || g.structure.loss) return g;
+  if (
+    g.structure.loss ||
+    (target.type === 'building' &&
+      !g.buildings.some((b) => String(b.id) === target.id && isLink(b)))
+  )
+    return g;
   const info = targetInfo(g, target);
   if (!info || info.reinforcement >= STRUCTURE.maxReinforcement || info.hp <= 0) return g;
   const cost = free ? 0 : costFor(g, PHYSICAL.brace.cost);
@@ -119,7 +139,14 @@ export function reinforce(g: Game, target: Target, free = false): Game {
   let next = g.city.enabled
     ? pay(g, { materials: cost, credits: cost / 2, aether: 0 })
     : { ...g, resources: g.resources - cost };
-  if (target.type === 'platform')
+  if (target.type === 'building')
+    next = {
+      ...next,
+      buildings: g.buildings.map((b) =>
+        String(b.id) === target.id ? { ...b, reinforcement: (b.reinforcement ?? 0) + 1 } : b,
+      ),
+    };
+  else if (target.type === 'platform')
     next = {
       ...next,
       platforms: g.platforms.map((p) =>
@@ -168,6 +195,7 @@ export function demolitionPreview(g: Game, target: Target): Game {
     : { ...next, population: Math.min(next.population, analyze(next).capacity) };
 }
 export function demolish(g: Game, target: Target): Game {
+  target = memberTarget(g, target);
   if (g.structure.loss) return g;
   let next = demolitionPreview(g, target);
   if (next === g) return g;
@@ -214,7 +242,7 @@ export function emergencyLift(g: Game, cell: Cell): Game {
       structure: {
         ...g.structure,
         emergency: {
-          cell: { x: cell.x, z: cell.z },
+          cell: atFloor(cell.x, cell.z, floorOf(cell)),
           remaining: STRUCTURE.emergencySeconds,
           cooldown: STRUCTURE.emergencyCooldown,
         },
@@ -237,7 +265,16 @@ export const EMERGENCY_KINDS: Kind[] = [
 ];
 export function selectBlueprint(g: Game, kind: Kind): Game {
   if (!canUse(g, kind) || g.campaign?.stage === 101) return g;
-  if (g.structure.loss || (!['lab', 'citylab'].includes(g.mode) && !EMERGENCY_KINDS.includes(kind)))
+  if (
+    g.structure.loss ||
+    (!['lab', 'citylab'].includes(g.mode) &&
+      !EMERGENCY_KINDS.includes(kind) &&
+      !(
+        g.vertical &&
+        VERTICAL_KINDS.includes(kind) &&
+        !['towerHome', 'skyGarden', 'observatory'].includes(kind)
+      ))
+  )
     return g;
   return {
     ...g,

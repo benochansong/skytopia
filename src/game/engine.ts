@@ -44,7 +44,7 @@ export function newGame(
     supply = s;
   }
   const g: Game = {
-    version: 3,
+    version: 4,
     city: freshCity(
       mode === 'citylab' || (mode === 'mission' && missionId >= 5),
       mode === 'mission' ? MISSIONS[missionId].resources : 100,
@@ -138,6 +138,7 @@ function advance(g: Game): Game {
     return { ...g, remaining: RULES.fallSeconds, holdUsed: false };
   const s = analyze(g);
   const [randomPiece, randomSupply] = draw(g.supply, g.mode === 'training', {
+    vertical: !!g.vertical,
     script: g.mode === 'mission' ? MISSIONS[g.missionId].script : [],
     needsLift: s.lift - s.mass < 80,
     needsSpace: g.platforms.length - g.buildings.length < 10,
@@ -217,6 +218,22 @@ export function place(g: Game): Game {
         spent: g.campaign.spent + Math.max(0, g.resources - changed.resources),
       },
     };
+  if (changed.vertical)
+    changed = {
+      ...changed,
+      vertical: {
+        ...changed.vertical,
+        builtColumns:
+          changed.vertical.builtColumns +
+          (['column', 'reinforcedColumn', 'industrialColumn', 'aetherColumn'].includes(
+            g.active.kind,
+          )
+            ? 1
+            : 0),
+        builtBridges:
+          changed.vertical.builtBridges + (g.active.kind.toLowerCase().includes('bridge') ? 1 : 0),
+      },
+    };
   changed = advance(changed);
   if (changed.campaign) return campaignStep(changed, 0);
   return {
@@ -262,6 +279,7 @@ export function hold(g: Game): Game {
 export function move(g: Game, cursor: Cell): Game {
   if (!Number.isFinite(cursor.x) || !Number.isFinite(cursor.z)) return g;
   const c = {
+    ...(g.vertical ? { y: g.vertical.floor } : {}),
     x: Math.max(RULES.min, Math.min(RULES.max, Math.round(cursor.x))) || 0,
     z: Math.max(RULES.min, Math.min(RULES.max, Math.round(cursor.z))) || 0,
   };

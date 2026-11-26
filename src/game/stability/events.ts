@@ -1,3 +1,4 @@
+import { atFloor, floorOf } from '../grid';
 import { STRUCTURE } from '../../data/rules';
 import type { Building, Cell, EventKind, Game, Platform } from '../../types/game';
 export function recordEvent(
@@ -13,7 +14,7 @@ export function recordEvent(
     time: g.elapsed,
     kind,
     target,
-    cell: { x: cell.x, z: cell.z },
+    cell: atFloor(cell.x, cell.z, floorOf(cell)),
     platforms,
     buildings,
   };

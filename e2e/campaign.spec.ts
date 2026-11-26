@@ -71,9 +71,9 @@ test('map locks, profile, challenges, locale and scene reentry remain usable', a
   await page.locator('.stage-strip button').nth(1).click();
   await expect(page.getByRole('button', { name: '이전 미션 완료 필요' })).toBeDisabled();
   await page.getByRole('button', { name: '메인 메뉴', exact: true }).click();
-  expect(await page.evaluate(() => localStorage.getItem('skytopia.save.v3'))).toBeNull();
+  expect(await page.evaluate(() => localStorage.getItem('skytopia.save.v4'))).toBeNull();
   await page.getByRole('button', { name: '건축가 프로필' }).click();
-  await expect(page.getByRole('heading', { name: '도전 과제 · 0/16' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '도전 과제 · 0/24' })).toBeVisible();
   await page.getByRole('button', { name: '메인 메뉴', exact: true }).click();
   await page.getByRole('button', { name: '도전 모드', exact: true }).click();
   await page.getByRole('button', { name: '도전 시작', exact: true }).first().click();
@@ -97,14 +97,14 @@ test('free build saves independently and resumes without changing campaign or le
   await page.getByRole('button', { name: '기록·지도' }).click();
   await page.getByRole('button', { name: '메인 메뉴', exact: true }).click();
   const campaign = await page.evaluate(
-    () => JSON.parse(localStorage.getItem('skytopia.campaign.v1')!).current,
+    () => JSON.parse(localStorage.getItem('skytopia.campaign.v2')!).current,
   );
   await page.getByRole('button', { name: '자유 건설', exact: true }).click();
   await expect(page.locator('.mission-card h1')).toHaveText('자유 건설');
   await page.keyboard.press('Escape');
   await page.getByRole('button', { name: '저장 후 메뉴', exact: true }).click();
   const free = await page.evaluate(
-    () => JSON.parse(localStorage.getItem('skytopia.campaign.v1')!).free,
+    () => JSON.parse(localStorage.getItem('skytopia.campaign.v2')!).free,
   );
   expect(free.city.unlimited).toBe(false);
   expect(free.campaign).toBeUndefined();
@@ -115,16 +115,16 @@ test('free build saves independently and resumes without changing campaign or le
     await page.evaluate(() => window.__SKYTOPIA_TEST__!.getState().game.platforms.length),
   ).toBe(free.platforms.length);
   expect(
-    await page.evaluate(() => JSON.parse(localStorage.getItem('skytopia.campaign.v1')!).current),
+    await page.evaluate(() => JSON.parse(localStorage.getItem('skytopia.campaign.v2')!).current),
   ).toEqual(campaign);
-  expect(await page.evaluate(() => localStorage.getItem('skytopia.save.v3'))).toBeNull();
+  expect(await page.evaluate(() => localStorage.getItem('skytopia.save.v4'))).toBeNull();
 });
 
 test('corrupt profile remains untouched by free saves and opening replay until explicit reset', async ({
   page,
 }) => {
   await page.goto('/');
-  await page.evaluate(() => localStorage.setItem('skytopia.campaign.v1', '{bad'));
+  await page.evaluate(() => localStorage.setItem('skytopia.campaign.v2', '{bad'));
   await page.reload();
   await expect(page.getByRole('alert')).toContainText('손상된 저장');
   await page.getByRole('button', { name: '자유 건설', exact: true }).click();
@@ -134,14 +134,14 @@ test('corrupt profile remains untouched by free saves and opening replay until e
     window.__SKYTOPIA_TEST__!.getState().replayOpening();
     window.__SKYTOPIA_TEST__!.getState().finishOpening();
   });
-  expect(await page.evaluate(() => localStorage.getItem('skytopia.campaign.v1'))).toBe('{bad');
+  expect(await page.evaluate(() => localStorage.getItem('skytopia.campaign.v2'))).toBe('{bad');
   await page.getByRole('button', { name: '새 캠페인', exact: true }).click();
   await page.getByRole('button', { name: '여정 시작' }).click();
   await page.getByRole('button', { name: '오프닝 건너뛰기' }).click();
   await expect(page.getByRole('dialog', { name: '엘레나 보스' })).toBeVisible();
   expect(
     await page.evaluate(
-      () => JSON.parse(localStorage.getItem('skytopia.campaign.v1')!).current.campaign.stage,
+      () => JSON.parse(localStorage.getItem('skytopia.campaign.v2')!).current.campaign.stage,
     ),
   ).toBe(1);
 });

@@ -3,9 +3,9 @@ import type { Game } from '../../types/game';
 import type { Stock, Resource, GridNetwork } from '../../types/city';
 import type { City } from '../stability/types';
 import { emptyStock } from './state';
-import { networks } from './networks';
+import { operatingNetwork } from './operations';
 export const RESOURCES: Resource[] = ['food', 'materials', 'aether'];
-export function inventory(city: City, road: GridNetwork = networks(city).road) {
+export function inventory(city: City, road: GridNetwork = operatingNetwork(city).road) {
   const stocks = city.city?.stocks ?? {},
     groups = new Map<string, string>(),
     capacities = new Map<string, Stock>(),

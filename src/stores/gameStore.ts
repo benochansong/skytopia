@@ -1,3 +1,7 @@
+import { verticalExample } from '../game/vertical/scenarios';
+import { floorRange } from '../game/vertical/placement';
+import { freshVertical, type View3D } from '../types/vertical';
+import { loadVertical } from '../game/storage';
 import type { CampaignSave } from '../types/campaign';
 import { loadCampaign, saveCampaign } from '../game/campaign/storage';
 import { loadStage } from '../game/campaign/loader';
@@ -42,6 +46,11 @@ export type AnalysisMode =
   | 'logistics'
   | 'economy';
 type Store = {
+  startVertical: (example?: 'A' | 'B' | 'C' | 'D' | 'E', resume?: boolean) => void;
+  setFloor: (floor: number) => void;
+  setView: (view: View3D) => void;
+  rotateAxis: (axis: 'pitch' | 'roll') => void;
+  hasVerticalSave: boolean;
   campaignSave: CampaignSave;
   campaignIssue: string;
   freeMode: boolean;
@@ -73,7 +82,7 @@ type Store = {
   saveIssue: string;
   notice: string;
   azimuth: number;
-  cameraMode: 'free' | 'top';
+  cameraMode: 'free' | 'top' | 'front' | 'side' | 'below' | 'floor';
   cameraReset: number;
   balanceVisible: boolean;
   placementSerial: number;
@@ -92,7 +101,7 @@ type Store = {
   tick: (dt: number) => void;
   save: (silent?: boolean) => void;
   configure: (patch: Partial<Settings>) => void;
-  camera: (mode?: 'free' | 'top') => void;
+  camera: (mode?: 'free' | 'top' | 'front' | 'side' | 'below' | 'floor') => void;
   tutorialEvent: (event: 'orbit' | 'zoom' | 'balance') => void;
   skipTutorial: () => void;
   select: (cell: Cell) => void;
@@ -150,6 +159,49 @@ export const useGame = create<Store>((set, get) => {
   };
   const active = () => get().screen === 'playing' && !get().game.campaign?.dialogue;
   return {
+    hasVerticalSave: loadVertical().ok,
+    startVertical: (example, resume = false) => {
+      const saved = resume ? loadVertical() : null;
+      if (resume && !saved?.ok) {
+        set({ notice: 'saveFailed' });
+        return;
+      }
+      const game = saved?.ok ? saved.game : verticalExample(get().settings, example);
+      set({
+        game,
+        screen: 'playing',
+        freeMode: false,
+        selected: null,
+        toolMode: 'build',
+        analysisMode: 'off',
+        cameraFocus: null,
+        cameraMode: 'free',
+        cameraReset: get().cameraReset + 1,
+      });
+    },
+    setFloor: (floor) => {
+      const g = get().game;
+      if (!g.vertical || !active() || !Number.isInteger(floor)) return;
+      const [min, max] = floorRange(g);
+      if (floor < min || floor > max) {
+        set({ notice: 'verticalLocked' });
+        return;
+      }
+      set({
+        game: { ...g, vertical: { ...g.vertical, floor }, cursor: { ...g.cursor, y: floor } },
+        selected: null,
+        cameraFocus: { x: g.cursor.x, z: g.cursor.z, y: floor },
+      });
+    },
+    setView: (view) => {
+      const g = get().game;
+      if (g.vertical) set({ game: { ...g, vertical: { ...g.vertical, view } }, selected: null });
+    },
+    rotateAxis: (axis) => {
+      const g = get().game;
+      if (!active() || !g.vertical || !['beam', 'truss'].includes(g.active.kind)) return;
+      apply({ ...g, active: { ...g.active, [axis]: ((g.active[axis] ?? 0) + 1) % 4 } });
+    },
     campaignSave: campaignLoaded.save,
     campaignIssue: campaignLoaded.issue,
     freeMode: false,
@@ -271,8 +323,14 @@ export const useGame = create<Store>((set, get) => {
       let game = resume ? get().campaignSave.free : null;
       if (!game) {
         game = cityExample(engine.newGame('citylab', Date.now() >>> 0, get().settings), 'C');
-        game = { ...game, labPaused: false, city: { ...game.city, unlimited: false } };
+        game = {
+          ...game,
+          vertical: freshVertical(),
+          labPaused: false,
+          city: { ...game.city, unlimited: false },
+        };
       }
+      game = { ...game, vertical: game.vertical ?? freshVertical() };
       set({
         game,
         freeMode: true,
@@ -380,12 +438,23 @@ export const useGame = create<Store>((set, get) => {
       if (!active()) return;
       const g = get().game,
         d = cameraMove(dx, dz, get().azimuth);
-      apply(engine.move(g, { x: g.cursor.x + d.x, z: g.cursor.z + d.z }));
+      apply(
+        engine.move(g, {
+          x: g.cursor.x + d.x,
+          z: g.cursor.z + d.z,
+          ...(g.vertical ? { y: g.vertical.floor } : {}),
+        }),
+      );
     },
     aim: (cursor) => {
       if (!active()) return;
       const g = get().game;
-      if (cursor.x !== g.cursor.x || cursor.z !== g.cursor.z) apply(engine.move(g, cursor));
+      if (
+        cursor.x !== g.cursor.x ||
+        cursor.z !== g.cursor.z ||
+        (cursor.y ?? 0) !== (g.cursor.y ?? 0)
+      )
+        apply(engine.move(g, cursor));
     },
     rotate: (delta) => {
       if (active()) apply(engine.turn(get().game, delta));
@@ -470,11 +539,13 @@ export const useGame = create<Store>((set, get) => {
       }
       const ok = saveGame({ ...get().game, settings: get().settings });
       set({
-        ...(get().game.mode === 'citylab'
-          ? { hasCitySave: ok || get().hasCitySave }
-          : get().game.mode === 'lab'
-            ? { hasLabSave: ok || get().hasLabSave }
-            : { hasSave: ok || get().hasSave }),
+        ...(get().game.vertical && get().game.mode === 'citylab'
+          ? { hasVerticalSave: ok || get().hasVerticalSave }
+          : get().game.mode === 'citylab'
+            ? { hasCitySave: ok || get().hasCitySave }
+            : get().game.mode === 'lab'
+              ? { hasLabSave: ok || get().hasLabSave }
+              : { hasSave: ok || get().hasSave }),
         saveIssue: ok ? '' : 'unavailable',
         ...(!silent || !ok ? { notice: ok ? 'saved' : 'saveFailed' } : {}),
       });

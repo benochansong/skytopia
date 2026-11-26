@@ -8,13 +8,16 @@ import { Group, MOUSE, Vector3 } from 'three';
 import type { OrbitControls as OrbitImpl } from 'three-stdlib';
 import { useGame } from '../stores/gameStore';
 import { analyze } from '../game/analysis';
-import { cellsOf, key } from '../game/grid';
+import { cellsOf, key, floorOf } from '../game/grid';
 import { validatePlacement } from '../game/placement';
-import { BLOCKS } from '../data/rules';
+import { BLOCKS, VERTICAL, PHYSICAL } from '../data/rules';
 import { Box, BuildingModel, Reactor, Tree } from './Buildings';
 import { BuildingField, INSTANCED_KINDS } from './BuildingField';
 import { PerformanceProbe } from './PerformanceProbe';
 import { PlatformField, StructuralEffects } from './StructuralEffects';
+import { visibleBuilding } from '../game/vertical/geometry';
+import { VerticalStructures } from './VerticalStructures';
+import { VERTICAL_KINDS } from '../data/rules';
 const Foundation = memo(function Foundation() {
   const campaign = useGame((s) => s.game.campaign);
   const rock = campaign ? CHAPTERS[stage(campaign.stage).chapter - 1].rock : undefined;
@@ -141,16 +144,25 @@ function Camera() {
   const mode = useGame((s) => s.cameraMode),
     reset = useGame((s) => s.cameraReset);
   const focus = useGame((s) => s.cameraFocus);
+  const vertical = useGame((s) => s.game.vertical);
   const screen = useGame((s) => s.screen),
     reduced = useGame((s) => s.settings.reducedMotion);
   useEffect(() => {
     camera.position.set(
-      ...((mode === 'top' ? [0, 20, 0.01] : [11.5, 12, 15]) as [number, number, number]),
+      ...((mode === 'top'
+        ? [0, 24, 0.01]
+        : mode === 'front'
+          ? [0, 4, 24]
+          : mode === 'side'
+            ? [24, 4, 0]
+            : mode === 'below'
+              ? [10, -12, 15]
+              : [11.5, 12, 15]) as [number, number, number]),
     );
     controls.current?.target.set(-0.5, -0.3, -0.5);
     if (focus) {
-      camera.position.set(focus.x + 11.5, 12, focus.z + 15);
-      controls.current?.target.set(focus.x, 0, focus.z);
+      camera.position.add(new Vector3(focus.x, floorOf(focus) * VERTICAL.height, focus.z));
+      controls.current?.target.set(focus.x, floorOf(focus) * VERTICAL.height, focus.z);
     }
     controls.current?.update();
   }, [camera, mode, reset, focus]);
@@ -161,12 +173,12 @@ function Camera() {
       enableDamping
       dampingFactor={0.1}
       minDistance={9}
-      maxDistance={31}
-      maxPolarAngle={Math.PI * 0.38}
+      maxDistance={48}
+      maxPolarAngle={vertical ? Math.PI * 0.92 : Math.PI * 0.38}
       minPolarAngle={0.03}
       screenSpacePanning={false}
       mouseButtons={{ LEFT: undefined, RIGHT: MOUSE.ROTATE, MIDDLE: MOUSE.PAN }}
-      enableRotate={mode === 'free'}
+      enableRotate={mode === 'free' || mode === 'floor'}
       autoRotate={(screen === 'menu' || cinematic) && !reduced}
       autoRotateSpeed={0.2}
       onChange={() => {
@@ -174,7 +186,7 @@ function Camera() {
         const c = controls.current;
         c.target.x = Math.max(-5, Math.min(5, c.target.x));
         c.target.z = Math.max(-5, Math.min(5, c.target.z));
-        c.target.y = Math.max(-0.3, Math.min(0.3, c.target.y));
+        c.target.y = Math.max(vertical ? -6 : -0.3, Math.min(vertical ? 12 : 0.3, c.target.y));
         useGame.setState({ azimuth: c.getAzimuthalAngle() });
       }}
     />
@@ -196,9 +208,10 @@ function Ghost() {
     if (falling.current) {
       const s = useGame.getState();
       const target =
-        s.game.mode !== 'mission' || s.game.reservedActive
+        floorOf(s.game.cursor) * VERTICAL.height +
+        (s.game.mode !== 'mission' || s.game.reservedActive
           ? 2.1
-          : 0.3 + (s.game.remaining / 20) * 3.5;
+          : 0.3 + (s.game.remaining / 20) * 3.5);
       falling.current.position.y += (target - falling.current.position.y) * Math.min(1, dt * 10);
     }
   });
@@ -213,7 +226,7 @@ function Ghost() {
   return (
     <group>
       {validity.cells.map((c) => (
-        <group key={key(c)} position={[c.x, 0.11, c.z]}>
+        <group key={key(c)} position={[c.x, floorOf(c) * VERTICAL.height + 0.11, c.z]}>
           <mesh rotation={[-Math.PI / 2, 0, 0]}>
             <planeGeometry args={[0.9, 0.9]} />
             <meshBasicMaterial color={color} transparent opacity={0.5} depthWrite={false} />
@@ -223,9 +236,15 @@ function Ghost() {
       ))}
       <group ref={falling} position={[cursor.x, 3.8, cursor.z]}>
         {cellsOf(active).map((c) => (
-          <group key={key(c)} position={[c.x, 0, c.z]}>
+          <group key={key(c)} position={[c.x, floorOf(c) * VERTICAL.height, c.z]}>
             <mesh>
-              <boxGeometry args={[0.81, active.kind === 'platform' ? 0.12 : 0.6, 0.81]} />
+              <boxGeometry
+                args={[
+                  0.81,
+                  active.kind === 'platform' ? 0.12 : PHYSICAL[active.kind].height,
+                  0.81,
+                ]}
+              />
               <meshStandardMaterial
                 color={BLOCKS[active.kind].color}
                 transparent
@@ -236,7 +255,13 @@ function Ghost() {
               />
             </mesh>
             <mesh>
-              <boxGeometry args={[0.84, active.kind === 'platform' ? 0.15 : 0.63, 0.84]} />
+              <boxGeometry
+                args={[
+                  0.84,
+                  active.kind === 'platform' ? 0.15 : PHYSICAL[active.kind].height + 0.03,
+                  0.84,
+                ]}
+              />
               <meshBasicMaterial color={color} wireframe transparent opacity={0.65} />
             </mesh>
           </group>
@@ -263,7 +288,7 @@ function PlacementEffect() {
     }
   });
   return (
-    <group position={[pos.x, 0, pos.z]}>
+    <group position={[pos.x, floorOf(pos) * VERTICAL.height, pos.z]}>
       <group ref={wave}>
         <mesh rotation={[-Math.PI / 2, 0, 0]}>
           <ringGeometry args={[0.45, 0.49, 32]} />
@@ -280,6 +305,8 @@ function PlacementEffect() {
   );
 }
 function City() {
+  const vertical = useGame((s) => s.game.vertical);
+  const floorY = (vertical?.floor ?? 0) * VERTICAL.height;
   const platforms = useGame((s) => s.game.platforms),
     buildings = useGame((s) => s.game.buildings);
   const screen = useGame((s) => s.screen),
@@ -342,7 +369,7 @@ function City() {
       lastAim.current = { x: e.clientX, y: e.clientY };
     }
     const p = root.current.worldToLocal(e.point.clone());
-    const c = { x: Math.round(p.x), z: Math.round(p.z) };
+    const c = { x: Math.round(p.x), z: Math.round(p.z), y: vertical?.floor ?? 0 };
     // Commit the visible preview even while camera damping / island tilt is moving.
     if (place) useGame.getState().place(useGame.getState().toolMode === 'inspect' ? c : undefined);
     else useGame.getState().aim(c);
@@ -356,8 +383,14 @@ function City() {
       </group>
       <BuildingField />
       <LivingCity />
+      <VerticalStructures />
       {buildings
-        .filter((b) => !INSTANCED_KINDS.includes(b.kind))
+        .filter(
+          (b) =>
+            !INSTANCED_KINDS.includes(b.kind) &&
+            !VERTICAL_KINDS.includes(b.kind) &&
+            visibleBuilding(b, useGame.getState().game),
+        )
         .map((b) => (
           <BuildingModel
             key={b.id}
@@ -380,7 +413,7 @@ function City() {
       {playing ? (
         <>
           <mesh
-            position={[-0.5, 0.07, -0.5]}
+            position={[-0.5, floorY + 0.07, -0.5]}
             rotation={[-Math.PI / 2, 0, 0]}
             onPointerMove={(e) => aim(e)}
             onClick={(e) => {
@@ -392,7 +425,7 @@ function City() {
           </mesh>
           <gridHelper
             args={[16, 16, '#d5d9bc', '#bed0bc']}
-            position={[-0.5, 0.075, -0.5]}
+            position={[-0.5, floorY + 0.075, -0.5]}
             material-transparent
             material-opacity={0.18}
           />
@@ -414,14 +447,18 @@ function City() {
                 />
               ) : null}
               <mesh
-                position={[stats.center.x, 0.2, stats.center.z]}
+                position={[stats.center.x, (stats.center.y ?? 0) + 0.2, stats.center.z]}
                 rotation={[-Math.PI / 2, 0, 0]}
               >
                 <ringGeometry args={[0.13, 0.19, 24]} />
                 <meshBasicMaterial color="#ffcd79" depthTest={false} />
               </mesh>
               <mesh
-                position={[stats.structural.centerLift.x, 0.19, stats.structural.centerLift.z]}
+                position={[
+                  stats.structural.centerLift.x,
+                  stats.structural.centerLift.y + 0.19,
+                  stats.structural.centerLift.z,
+                ]}
                 rotation={[-Math.PI / 2, 0, 0]}
               >
                 <ringGeometry args={[0.47, 0.49, 32]} />

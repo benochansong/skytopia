@@ -1,6 +1,18 @@
 import type { Game, Kind } from './game';
 export type LocalText = { ko: string; en: string };
 export type Metric =
+  | 'upperDecks'
+  | 'columns'
+  | 'upperHomes'
+  | 'verticalAccess'
+  | 'bridges'
+  | 'freightLinks'
+  | 'lowerDecks'
+  | 'lowerIndustry'
+  | 'cargoLifts'
+  | 'lowerPower'
+  | 'usedFloors'
+  | 'skyGardens'
   | 'newPower'
   | 'population'
   | 'placed'
@@ -19,6 +31,7 @@ export type Metric =
   | 'reinforced'
   | 'alternatePath'
   | 'overloads'
+  | 'critical'
   | 'repairs'
   | 'industry'
   | 'materials'
@@ -131,7 +144,7 @@ export type Profile = {
   legacyImported: boolean;
 };
 export type CampaignSave = {
-  version: 1;
+  version: 2;
   profile: Profile;
   current: Game | null;
   checkpoint: Game | null;

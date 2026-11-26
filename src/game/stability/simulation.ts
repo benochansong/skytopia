@@ -1,3 +1,6 @@
+import { buildGraph } from './structuralGraph';
+import { isLink, segments } from '../vertical/geometry';
+import { edgeKey } from './state';
 import { DIFFICULTIES, STRUCTURE } from '../../data/rules';
 import type { Game } from '../../types/game';
 import { analyze } from '../analysis';
@@ -10,6 +13,21 @@ import { restoreTarget } from '../repair/maintenance';
 export function structureStep(g: Game, dt = STRUCTURE.step): Game {
   if (g.structure.loss) return g;
   let next = g;
+  if (g.vertical) {
+    const buildings = g.buildings.some((b) => (b.temporary ?? 0) > 0)
+      ? g.buildings.map((b) =>
+          (b.temporary ?? 0) > 0 ? { ...b, temporary: Math.max(0, b.temporary! - dt) } : b,
+        )
+      : g.buildings;
+    next = {
+      ...g,
+      buildings,
+      vertical:
+        g.vertical.emergencyCooldown > 0
+          ? { ...g.vertical, emergencyCooldown: Math.max(0, g.vertical.emergencyCooldown - dt) }
+          : g.vertical,
+    };
+  }
   const before = analyze(g).structural,
     difficulty = DIFFICULTIES[g.difficulty];
   // Output inertia gives the player a grace interval after grid failure.
@@ -45,7 +63,8 @@ export function structureStep(g: Game, dt = STRUCTURE.step): Game {
     ...next,
     structure: { ...next.structure, lifts, emergency, grace: Math.max(0, g.structure.grace - dt) },
   };
-  const report = analyze(next).structural;
+  const report = analyze(next).structural,
+    graph = buildGraph(next);
   let platforms = next.platforms,
     edges = next.structure.edges,
     buildings = next.buildings;
@@ -62,7 +81,7 @@ export function structureStep(g: Game, dt = STRUCTURE.step): Game {
     if (platforms.every((p, i) => p === next.platforms[i])) platforms = next.platforms;
     for (const [id, e] of report.edges) {
       const loss = damagePerSecond(e.ratio) * difficulty.damage * dt;
-      if (loss <= 0 || e.hp <= 0) continue;
+      if (loss <= 0 || e.hp <= 0 || graph.members.has(id)) continue;
       if (edges === next.structure.edges) edges = { ...edges };
       const hp = Math.max(0, e.hp - loss);
       edges[id] = { durability: hp, reinforcement: e.reinforcement };
@@ -75,7 +94,20 @@ export function structureStep(g: Game, dt = STRUCTURE.step): Game {
         0,
         ...cellsOf(b, b.origin).map((c) => report.nodes.get(key(c))?.ratio ?? 0),
       );
-      const loss = stress > 1.2 ? damagePerSecond(stress) * 0.18 * dt * difficulty.damage : 0;
+      const ratio = isLink(b)
+        ? Math.max(
+            0,
+            ...segments(b, b.origin).map(
+              (pair) =>
+                report.edges.get(edgeKey(...(pair.map(key) as [string, string])))?.ratio ?? 0,
+            ),
+          )
+        : stress;
+      const loss = isLink(b)
+        ? damagePerSecond(ratio) * dt * difficulty.damage
+        : stress > 1.2
+          ? damagePerSecond(stress) * 0.18 * dt * difficulty.damage
+          : 0;
       return loss ? { ...b, durability: Math.max(0, b.durability - loss) } : b;
     });
     if (buildings.every((b, i) => b === next.buildings[i])) buildings = next.buildings;

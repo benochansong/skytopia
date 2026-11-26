@@ -1,13 +1,10 @@
 import { BLOCKS, PHYSICAL, STRUCTURE } from '../../data/rules';
 import type { Cell, Kind, Platform, Piece, Building, StructureState } from '../../types/game';
-import { cellsOf, key } from '../grid';
+import { cellsOf, key, parseKey, floorOf } from '../grid';
 export const edgeKey = (a: string, b: string) => [a, b].sort().join('|');
-export const fromKey = (id: string): Cell => {
-  const [x, z] = id.split(',').map(Number);
-  return { x, z };
-};
+export const fromKey = parseKey;
 export const platformDefinition = (p: Platform) =>
-  PHYSICAL[p.material === 'metal' ? 'metalPlatform' : 'platform'];
+  PHYSICAL[p.kind ?? (p.material === 'metal' ? 'metalPlatform' : 'platform')];
 export const platformMaxHP = (p: Platform) =>
   platformDefinition(p).hp + p.reinforcement * STRUCTURE.braceHP;
 export function freshStructure(): StructureState {
@@ -40,7 +37,8 @@ export function makePlatform(
   return {
     ...c,
     id: `p${id}:${key(c)}`,
-    y: 0,
+    y: floorOf(c),
+    ...(kind !== 'platform' && kind !== 'metalPlatform' ? { kind } : {}),
     variant: kind === 'metalPlatform' ? 'metal' : 'grass',
     material: kind === 'metalPlatform' ? 'metal' : 'basic',
     mass: BLOCKS[kind].mass / count,
@@ -54,7 +52,7 @@ export function makeBuilding(piece: Piece, origin: Cell, id: number, initial = f
     ...piece,
     origin: { ...origin },
     id,
-    y: 0,
+    y: floorOf(origin),
     initial,
     durability: PHYSICAL[piece.kind].hp,
     enabled: true,
@@ -63,6 +61,7 @@ export function makeBuilding(piece: Piece, origin: Cell, id: number, initial = f
 export function footprintCenter(b: Building): Cell {
   const cells = cellsOf(b, b.origin);
   return {
+    ...(b.y ? { y: b.y } : {}),
     x: cells.reduce((s, c) => s + c.x, 0) / cells.length,
     z: cells.reduce((s, c) => s + c.z, 0) / cells.length,
   };

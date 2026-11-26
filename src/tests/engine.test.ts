@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { SHAPES, BLOCKS, LEGACY_KINDS } from '../data/rules';
-import { cellsOf, cameraMove, rotate } from '../game/grid';
+import { cellsOf, cameraMove, rotate, key } from '../game/grid';
 import { newGame, place, hold, recycle, turn, tick, move } from '../game/engine';
 import { validatePlacement } from '../game/placement';
 import { analyze, objectives } from '../game/analysis';
@@ -22,9 +22,9 @@ describe('grid geometry and camera', () => {
     it(`${shape}: four rotations preserve every occupied cell`, () => {
       const original = cellsOf({ kind: 'platform', shape, rotation: 0 });
       expect(original.map((c) => rotate(c, 4))).toEqual(original);
-      expect(
-        new Set(cellsOf({ kind: 'platform', shape, rotation: 1 }).map((c) => `${c.x},${c.z}`)).size,
-      ).toBe(original.length);
+      expect(new Set(cellsOf({ kind: 'platform', shape, rotation: 1 }).map(key)).size).toBe(
+        original.length,
+      );
       let g = candidate(newGame(), 'platform', 0, 0, shape);
       for (let i = 0; i < 4; i++) g = turn(g, 1);
       expect(g.active.rotation).toBe(0);

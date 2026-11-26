@@ -30,29 +30,75 @@ export type Kind =
   | 'aetherStore'
   | 'plaza'
   | 'clinic'
-  | 'shop';
-export type Shape = 'single' | 'D' | 'I' | 'L' | 'T' | 'O' | 'S';
-export type Cell = { x: number; z: number };
-export type Piece = { kind: Kind; shape: Shape; rotation: number };
+  | 'shop'
+  | 'deck'
+  | 'metalDeck'
+  | 'gardenDeck'
+  | 'suspendedDeck'
+  | 'column'
+  | 'reinforcedColumn'
+  | 'industrialColumn'
+  | 'aetherColumn'
+  | 'beam'
+  | 'truss'
+  | 'diagonal'
+  | 'hanger'
+  | 'bridge'
+  | 'roadBridge'
+  | 'reinforcedBridge'
+  | 'archBridge'
+  | 'suspensionBridge'
+  | 'aetherBridge'
+  | 'stairs'
+  | 'elevator'
+  | 'cargoElevator'
+  | 'aetherElevator'
+  | 'verticalRelay'
+  | 'powerDistributor'
+  | 'skyGarden'
+  | 'towerHome'
+  | 'observatory';
+export type Shape =
+  | 'single'
+  | 'D'
+  | 'I'
+  | 'L'
+  | 'T'
+  | 'O'
+  | 'S'
+  | 'verticalI'
+  | 'spatialL'
+  | 'step'
+  | 'corner3D'
+  | 'arch'
+  | 'columnPair'
+  | 'hanging'
+  | 'span'
+  | 'multideck';
+export type Cell = { x: number; z: number; y?: number };
+export type Piece = { kind: Kind; shape: Shape; rotation: number; pitch?: number; roll?: number };
 export type Platform = Cell & {
   id: string;
-  y: 0;
+  y: number;
   variant: 'grass' | 'rock' | 'metal';
   mass: number;
   durability: number;
   material: 'basic' | 'metal';
+  kind?: Kind;
   reinforcement: number;
   anchor: boolean;
 };
 export type Building = Piece & {
   id: number;
   origin: Cell;
-  y: 0;
+  y: number;
   initial: boolean;
   durability: number;
   enabled: boolean;
   level?: number;
   priority?: number;
+  reinforcement?: number;
+  temporary?: number;
 };
 export type Supply = { seed: number; bag: Kind[]; draws: number; policy?: 'classic' | 'adaptive' };
 export type Difficulty = 'easy' | 'normal' | 'hard';
@@ -114,7 +160,8 @@ export type Settings = {
 };
 export type Game = {
   campaign?: import('./campaign').CampaignRun;
-  version: 3;
+  version: 4;
+  vertical?: import('./vertical').VerticalState;
   city: import('./city').CityState;
   mode: 'mission' | 'training' | 'lab' | 'citylab';
   missionId: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
@@ -156,7 +203,13 @@ export type PlacementReason =
   | 'criticalWarning'
   | 'resourcesNeeded'
   | 'settling'
-  | 'reinforcementLimit';
+  | 'reinforcementLimit'
+  | 'noSupport'
+  | 'verticalLocked'
+  | 'volumeOverlap'
+  | 'descentBlocked'
+  | 'invalidEndpoint'
+  | 'rockVolume';
 export type Placement = {
   valid: boolean;
   warning: boolean;

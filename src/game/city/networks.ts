@@ -1,3 +1,5 @@
+import { VERTICAL_DEFS } from '../../data/rules';
+import { endpoints } from '../vertical/geometry';
 import type { City } from '../stability/types';
 import type { GridNetwork } from '../../types/city';
 import { cellsOf, key, neighbors } from '../grid';
@@ -8,13 +10,18 @@ const cache: {
   edges: unknown;
   road: GridNetwork;
   power: GridNetwork;
+  freight: GridNetwork;
+  vehicle: GridNetwork;
+  enabled?: string;
 }[] = [];
-export function networks(city: City) {
+export function networks(city: City, elevators?: Set<number>) {
+  const enabled = elevators ? [...elevators].sort((a, b) => a - b).join(',') : undefined;
   const hit = cache.find(
     (c) =>
       c.platforms === city.platforms &&
       c.buildings === city.buildings &&
-      c.edges === city.structure?.edges,
+      c.edges === city.structure?.edges &&
+      c.enabled === enabled,
   );
   if (hit) return hit;
   const platforms = new Set(city.platforms.filter((p) => p.durability > 0).map(key));
@@ -22,7 +29,27 @@ export function networks(city: City) {
     platforms.has(a) &&
     platforms.has(b) &&
     (city.structure?.edges[edgeKey(a, b)]?.durability ?? 100) > 0;
-  function build(power: boolean): GridNetwork {
+  function build(channel: 'road' | 'power' | 'freight' | 'vehicle'): GridNetwork {
+    const power = channel === 'power';
+    const links = city.buildings.filter((b) => {
+      if (
+        !b.enabled ||
+        b.durability <= 0 ||
+        !endpoints(b, b.origin).every((c) => platforms.has(key(c)))
+      )
+        return false;
+      const d = VERTICAL_DEFS[b.kind];
+      if (!d) return false;
+      if (power) return d.power;
+      if (d.role === 'bridge')
+        return (
+          (b.kind !== 'aetherBridge' || !elevators || elevators.has(b.id)) &&
+          (channel === 'road' || d.freight)
+        );
+      if (d.role !== 'transport') return false;
+      if (b.kind !== 'stairs' && elevators && !elevators.has(b.id)) return false;
+      return channel === 'road' || (channel === 'freight' && d.freight);
+    });
     const carriers = new Set(
       city.buildings
         .filter(
@@ -34,6 +61,16 @@ export function networks(city: City) {
         .flatMap((b) => cellsOf(b, b.origin).map(key))
         .filter((k) => platforms.has(k)),
     );
+    for (const b of links) for (const c of endpoints(b, b.origin)) carriers.add(key(c));
+    // Elevator terminals distribute power on each landing; only relays bridge floors.
+    if (power)
+      for (const b of city.buildings)
+        if (
+          b.enabled &&
+          b.durability > 0 &&
+          ['elevator', 'cargoElevator', 'aetherElevator'].includes(b.kind)
+        )
+          for (const c of endpoints(b, b.origin)) if (platforms.has(key(c))) carriers.add(key(c));
     const adjacency = new Map(
       [...carriers].map((k) => [
         k,
@@ -42,6 +79,11 @@ export function networks(city: City) {
           .filter((n) => carriers.has(n) && intact(k, n)),
       ]),
     );
+    for (const b of links) {
+      const [a, z] = endpoints(b, b.origin).map(key);
+      adjacency.get(a)!.push(z);
+      adjacency.get(z)!.push(a);
+    }
     if (power)
       for (const b of city.buildings.filter(
         (b) => b.kind === 'relay' && b.enabled && b.durability > 0,
@@ -49,7 +91,7 @@ export function networks(city: City) {
         for (const n of neighbors(b.origin)) {
           const a = key(b.origin),
             middle = key(n),
-            end = key({ x: n.x + (n.x - b.origin.x), z: n.z + (n.z - b.origin.z) });
+            end = key({ x: n.x + (n.x - b.origin.x), z: n.z + (n.z - b.origin.z), y: b.y });
           if (carriers.has(end) && intact(a, middle) && intact(middle, end)) {
             adjacency.get(a)?.push(end);
             adjacency.get(end)?.push(a);
@@ -98,8 +140,11 @@ export function networks(city: City) {
     platforms: city.platforms,
     buildings: city.buildings,
     edges: city.structure?.edges,
-    road: build(false),
-    power: build(true),
+    enabled,
+    road: build('road'),
+    power: build('power'),
+    freight: build('freight'),
+    vehicle: build('vehicle'),
   };
   cache.unshift(value);
   if (cache.length > 6) cache.pop();

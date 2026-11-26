@@ -1,3 +1,4 @@
+import { VerticalEntry, VerticalControls } from './VerticalUI';
 import { stage } from '../game/campaign/definitions';
 import { CampaignEntry, CampaignObjectives } from './CampaignControls';
 import { CityMenu, CityHUD, CitySettings } from './CityUI';
@@ -171,7 +172,10 @@ export function MiniPiece({ piece, compact = false }: { piece: Piece | null; com
       <span>{BLOCKS[piece.kind][lang]}</span>
       <small>
         {piece.shape === 'single' ? '1×1' : `${piece.shape} · ${cells.length}`} /{' '}
-        {BLOCKS[piece.kind].mass} t
+        {BLOCKS[piece.kind].mass} t{' '}
+        {cells.some((c) => (c.y ?? 0) !== 0)
+          ? ` · Y ${Math.min(...cells.map((c) => c.y ?? 0))}…${Math.max(...cells.map((c) => c.y ?? 0))}`
+          : ''}
       </small>
     </div>
   );
@@ -272,7 +276,7 @@ export function Menu() {
     <div className="menu-screen">
       <header className="menu-top">
         <span className="edition">
-          SKY CAMPAIGN <i>04</i>
+          VERTICAL CIVILIZATION <i>05</i>
         </span>
         <button
           className="language-button"
@@ -305,6 +309,7 @@ export function Menu() {
         <p>{t.subtitle}</p>
         <div className="menu-actions">
           <CampaignEntry />
+          <VerticalEntry />
           <button className="primary" onClick={() => start('mission')}>
             <Icon name="play" size={17} />
             {t.newGame}
@@ -339,7 +344,7 @@ export function Menu() {
       <footer className="menu-footer">
         <span>BUILD ABOVE. BALANCE THE SKY. RISE BEYOND.</span>
         <span>
-          PHASE 4 <b>·</b> v0.4.0
+          PHASE 5 <b>·</b> v0.5.0
         </span>
       </footer>
       {pending ? (
@@ -402,7 +407,9 @@ export function HUD() {
     { icon: 'star', label: t.score, value: `${g.score.toLocaleString()}`, suffix: '' },
   ];
   return (
-    <div className={`hud ${g.city.enabled ? 'city-mode' : ''}`}>
+    <div
+      className={`hud ${g.city.enabled ? 'city-mode' : ''} ${g.vertical ? 'vertical-mode' : ''}`}
+    >
       <header className="topbar panel">
         <Logo small />
         <div className="resource-strip">
@@ -439,6 +446,7 @@ export function HUD() {
           <Icon name="pause" />
         </button>
       </header>
+      <VerticalControls />
       <aside className="left-rail">
         {g.campaign ? (
           <CampaignObjectives />
@@ -449,13 +457,15 @@ export function HUD() {
               {freeMode
                 ? 'FREE BUILD'
                 : g.mode === 'citylab'
-                  ? 'CITY LAB'
+                  ? g.vertical
+                    ? 'VERTICAL LAB'
+                    : 'CITY LAB'
                   : g.mode === 'lab'
                     ? P2[lang].lab
                     : t.mission}
               <span>
                 {g.mode === 'citylab'
-                  ? g.city.example
+                  ? (g.vertical?.example ?? g.city.example)
                   : g.mode === 'lab'
                     ? g.labExample
                     : `0${g.missionId}`}{' '}
@@ -463,7 +473,9 @@ export function HUD() {
             </div>
             <span className="eyebrow">
               {g.mode === 'citylab'
-                ? 'LIVING CITY'
+                ? g.vertical
+                  ? 'VERTICAL CIVILIZATION'
+                  : 'LIVING CITY'
                 : g.mode === 'lab'
                   ? 'STRUCTURAL LAB'
                   : MISSIONS[g.missionId].subtitle}
@@ -475,8 +487,12 @@ export function HUD() {
                   : 'Free build'
                 : g.mode === 'citylab'
                   ? lang === 'ko'
-                    ? '도시 운영 실험실'
-                    : 'City Lab'
+                    ? g.vertical
+                      ? '수직 건설 실험실'
+                      : '도시 운영 실험실'
+                    : g.vertical
+                      ? 'Vertical Lab'
+                      : 'City Lab'
                   : g.mode === 'lab'
                     ? LAB_EXAMPLES[g.labExample][lang]
                     : MISSIONS[g.missionId][lang]}
@@ -488,8 +504,12 @@ export function HUD() {
                   : 'Manage your city freely. Saved separately from campaign progress.'
                 : g.mode === 'citylab'
                   ? lang === 'ko'
-                    ? '도시 운영 패널에서 예제·시설·시간을 조절하세요.'
-                    : 'Use City management to control facilities, scenarios and time.'
+                    ? g.vertical
+                      ? '입체 공방에서 예제를 고르고 층별로 구조·이동·전력을 연결하세요.'
+                      : '도시 운영 패널에서 예제·시설·시간을 조절하세요.'
+                    : g.vertical
+                      ? 'Choose a workshop example and connect support, transport and power across floors.'
+                      : 'Use City management to control facilities, scenarios and time.'
                   : g.mode === 'lab'
                     ? P2[lang].unlimited
                     : g.missionId === 1

@@ -1,5 +1,5 @@
 import { OPERATION } from '../data/cityRules';
-import { BLOCKS } from '../data/rules';
+import { BLOCKS, VERTICAL_KINDS } from '../data/rules';
 import type { Kind, Piece, Supply } from '../types/game';
 const BAG: Kind[] = [
   'platform',
@@ -21,6 +21,7 @@ export function draw(
   training = false,
   context: {
     script?: Kind[];
+    vertical?: boolean;
     needsLift?: boolean;
     needsSpace?: boolean;
     needsRoad?: boolean;
@@ -30,7 +31,7 @@ export function draw(
   let { seed } = source;
   let bag = [...source.bag];
   if (!bag.length) {
-    bag = [...BAG];
+    bag = [...BAG, ...(context.vertical ? VERTICAL_KINDS : [])];
     if (source.policy === 'adaptive' && !training) {
       bag.push(
         'metalPlatform',

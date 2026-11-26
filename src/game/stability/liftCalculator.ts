@@ -1,5 +1,5 @@
 import { facility } from '../../data/cityRules';
-import { PHYSICAL, STRUCTURE, isLift } from '../../data/rules';
+import { PHYSICAL, STRUCTURE, isLift, VERTICAL } from '../../data/rules';
 import type { City, LiftOutput, Network } from './types';
 import { footprintCenter } from './state';
 import { cellsOf, key } from '../grid';
@@ -7,11 +7,12 @@ export function calculateLift(city: City, network: Network) {
   const core =
     STRUCTURE.coreLift *
     Math.max(0, (city.structure?.coreDurability ?? STRUCTURE.coreHP) / STRUCTURE.coreHP) *
-    (city.platforms.some((p) => p.x === 0 && p.z === 0 && p.durability > 0) ? 1 : 0);
+    (city.platforms.some((p) => p.x === 0 && p.z === 0 && p.y === 0 && p.durability > 0) ? 1 : 0);
   let total = core,
     maximum = core,
     mx = 0,
-    mz = 0;
+    mz = 0,
+    my = 0;
   const lifts: LiftOutput[] = [];
   for (const b of city.buildings.filter((b) => isLift(b.kind))) {
     const def = PHYSICAL[b.kind],
@@ -26,6 +27,7 @@ export function calculateLift(city: City, network: Network) {
     maximum += max;
     mx += output * cell.x;
     mz += output * cell.z;
+    my += output * b.y * VERTICAL.height;
     lifts.push({
       id: b.id,
       cell,
@@ -48,6 +50,7 @@ export function calculateLift(city: City, network: Network) {
     maximum += STRUCTURE.emergencyLift;
     mx += STRUCTURE.emergencyLift * emergency.cell.x;
     mz += STRUCTURE.emergencyLift * emergency.cell.z;
+    my += STRUCTURE.emergencyLift * (emergency.cell.y ?? 0) * VERTICAL.height;
     lifts.push({
       id: -1,
       cell: emergency.cell,
@@ -63,7 +66,7 @@ export function calculateLift(city: City, network: Network) {
   return {
     total,
     maximum,
-    center: { x: total ? mx / total : 0, y: 0, z: total ? mz / total : 0 },
+    center: { x: total ? mx / total : 0, y: total ? my / total : 0, z: total ? mz / total : 0 },
     lifts,
   };
 }

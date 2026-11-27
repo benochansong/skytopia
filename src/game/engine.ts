@@ -36,7 +36,14 @@ export function newGame(
   missionId: Game['missionId'] = 1,
   labExample: Game['labExample'] = 'A',
 ): Game {
-  let supply = { seed, bag: [], draws: 0, policy: 'adaptive' } as Game['supply'];
+  let supply = {
+    seed,
+    bag: [],
+    draws: 0,
+    policy: 'adaptive',
+    version: 2,
+    recent: [],
+  } as Game['supply'];
   const pieces: Piece[] = [];
   for (let i = 0; i < 4; i++) {
     const [p, s] = draw(supply, mode === 'training', {

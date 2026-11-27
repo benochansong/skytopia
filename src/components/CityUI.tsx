@@ -1,3 +1,4 @@
+import { growthStatus } from '../game/city/growth';
 import { useState } from 'react';
 import { useGame } from '../stores/gameStore';
 import { BLOCKS, KINDS, OPERATION, tierNames, CITY_RULES } from '../data/rules';
@@ -26,6 +27,9 @@ const labels = {
     workers: '노동력',
     storage: '창고',
     structure: '구조',
+    core: '코어',
+    lift: '부양 부족',
+    disaster: '재난',
   },
   en: {
     population: 'Population',
@@ -45,6 +49,9 @@ const labels = {
     workers: 'Workforce',
     storage: 'Storage',
     structure: 'Structure',
+    core: 'Core',
+    lift: 'Lift deficit',
+    disaster: 'Disaster',
   },
 };
 const status = {
@@ -74,6 +81,9 @@ const status = {
 const adviceText = {
   ko: {
     structure: '위험 구역을 수리·보강하거나 부양력을 늘리세요',
+    core: '구조 패널에서 코어를 수리하고 과부하 시설을 철거하세요',
+    lift: '부양기 가동·전력·연료를 확인하고 불필요한 하중을 줄이세요',
+    disaster: '재난 대응 패널에서 방어 가동과 대피 경로를 확인하세요',
     food: '농장 인력·전력과 식량 비축을 확인하세요',
     power: '발전시설을 가동하고 끊긴 연결부를 수리하세요',
     shelter: '도로에 연결된 주거를 확보하세요',
@@ -85,6 +95,9 @@ const adviceText = {
   },
   en: {
     structure: 'Repair, reinforce or add local lift',
+    core: 'Repair the core in the structural panel and remove excess load',
+    lift: 'Check lift operation, power and fuel; remove excess load',
+    disaster: 'Check active defenses and evacuation routes in Emergency management',
     food: 'Check farm staffing, power and food reserves',
     power: 'Start generators and repair broken connections',
     shelter: 'Provide road-connected housing',
@@ -95,6 +108,34 @@ const adviceText = {
     storage: 'Add storage or sell surplus stock',
   },
 };
+const supportText = {
+  unavailable: ['현재 도시에서 사용할 수 없습니다', 'Unavailable in this city'],
+  limit: ['난이도별 구호 횟수를 모두 사용했습니다', 'No grants remain for this difficulty'],
+  balance: ['크레딧 100 미만일 때 가능합니다', 'Available below 100 credits'],
+  cooldown: ['재사용 대기 중', 'Waiting for cooldown'],
+  storage: [
+    '코어 연결 창고에 식량 80의 빈 공간이 필요합니다',
+    'Core-connected storage needs room for 80 food',
+  ],
+  resources: ['자재·크레딧·에테르가 부족합니다', 'Insufficient materials, credits or aether'],
+} as const;
+const growthText = {
+  departure: [
+    '유예 종료 · 주민이 서서히 떠납니다',
+    'Grace ended · residents are gradually leaving',
+  ],
+  shelter: ['이재민의 주거가 필요합니다', 'Displaced residents need housing'],
+  evacuation: ['대피 중 · 복귀 후 성장이 재개됩니다', 'Evacuated · growth resumes after return'],
+  food: ['식량 부족 회복을 기다립니다', 'Waiting for food recovery'],
+  power: ['전력 공급이 부족합니다', 'Insufficient power supply'],
+  safety: ['안정도 65% 이상이 필요합니다', 'Needs at least 65% stability'],
+  happiness: ['행복도 55% 이상이 필요합니다', 'Needs at least 55% happiness'],
+  housing: ['전력이 공급되는 빈 주거가 필요합니다', 'Needs vacant powered housing'],
+  growing: [
+    '정착 가능 · 5초마다 상태를 다시 평가합니다',
+    'Settlement possible · reassessed every 5 seconds',
+  ],
+} as const;
 const apply = (fn: (g: Game) => Game) => useGame.getState().cityAction(fn);
 export function CityMenu() {
   const lang = useGame((s) => s.settings.language),
@@ -217,7 +258,7 @@ export function CityHUD() {
       </section>
       <aside className="city-advisor">
         {r.advice.map((a) => (
-          <div key={a.id}>
+          <div key={a.id} data-fatal={!!a.fatal}>
             <button
               onClick={() => {
                 if (a.cell) useGame.getState().focus(a.cell);
@@ -225,7 +266,7 @@ export function CityHUD() {
                 setTab('overview');
               }}
             >
-              {a.priority >= 100 ? '‼ ' : a.priority >= 85 ? '△ ' : '○ '}
+              {a.fatal ? '‼ ' : a.priority >= 85 ? '△ ' : '○ '}
               {t[a.id as keyof typeof t] ?? a.id} · {n(a.value)} →{' '}
               {a.id === 'food' && (
                 <small>
@@ -242,6 +283,14 @@ export function CityHUD() {
               <small>{adviceText[lang][a.id as keyof typeof adviceText.ko]}</small>
             </button>
             <button
+              disabled={a.fatal}
+              title={
+                a.fatal
+                  ? ko
+                    ? '위험을 해결하면 사라집니다'
+                    : 'Clears when the hazard resolves'
+                  : undefined
+              }
               aria-label={ko ? '30초 숨기기' : 'Dismiss for 30 seconds'}
               onClick={() =>
                 apply((g) => ({
@@ -347,6 +396,11 @@ export function CityHUD() {
               <p className="city-tier">
                 {tierNames[lang][g.city.tier - 1]} ·{' '}
                 {ko ? '다음 인구 기준' : 'Population milestones'}: 25 / 75 / 150 / 300 / 600
+              </p>
+              <p role="status">
+                {ko ? '인구 추세: ' : 'Population trend: '}
+                {growthText[growthStatus(g)][ko ? 0 : 1]} ·{' '}
+                {ko ? '초기 보호 남은 시간' : 'Initial grace remaining'} {Math.ceil(g.city.grace)}s
               </p>
               <div className="city-metrics">
                 {[
@@ -573,29 +627,55 @@ export function CityHUD() {
                 </p>
               ))}
               <div className="city-aid">
-                <button
-                  disabled={
-                    g.city.foodCooldown > 0 || !canPay(g, { materials: 0, credits: 45, aether: 0 })
-                  }
-                  onClick={() => apply(actions.emergencyFood)}
-                >
-                  {ko ? '긴급 식량 80 · 45크레딧' : 'Emergency food 80 · 45 credits'} (
-                  {Math.ceil(g.city.foodCooldown)}s)
-                </button>
-                <button
-                  disabled={
-                    g.city.powerCooldown > 0 ||
-                    !canPay(g, { materials: 15, credits: 35, aether: 2 })
-                  }
-                  onClick={() => apply(actions.emergencyPower)}
-                >
-                  {ko ? '임시 전력 +30 / 20초' : 'Temporary power +30 / 20s'} · 15 / 35 / 2 (
-                  {Math.ceil(g.city.powerCooldown)}s)
-                </button>
-                <button onClick={() => apply(actions.aid)}>
-                  {ko ? '유한 구호금 (잔액 100 미만)' : 'Limited grant (balance below 100)'} ·{' '}
-                  {g.city.aidUses}
-                </button>
+                {(['food', 'power', 'grant'] as const).map((type) => {
+                  const reason = actions.supportReason(g, type);
+                  const label =
+                    type === 'food'
+                      ? (ko ? '긴급 식량' : 'Emergency food') +
+                        ' ' +
+                        CITY_RULES.foodDelivery +
+                        ' · ' +
+                        CITY_RULES.foodPrice +
+                        ' ¤'
+                      : type === 'power'
+                        ? (ko ? '임시 전력' : 'Temporary power') +
+                          ' +' +
+                          CITY_RULES.powerBoost +
+                          ' / ' +
+                          CITY_RULES.powerSeconds +
+                          's · 15 / 35 / 2'
+                        : (ko ? '유한 구호금' : 'Limited grant') + ' · ' + g.city.aidUses;
+                  return (
+                    <div key={type}>
+                      <button
+                        disabled={!!reason}
+                        onClick={() =>
+                          apply(
+                            type === 'food'
+                              ? actions.emergencyFood
+                              : type === 'power'
+                                ? actions.emergencyPower
+                                : actions.aid,
+                          )
+                        }
+                      >
+                        {label}
+                      </button>
+                      {reason && (
+                        <small>
+                          {supportText[reason][ko ? 0 : 1]}
+                          {reason === 'cooldown'
+                            ? ' · ' +
+                              Math.ceil(
+                                type === 'food' ? g.city.foodCooldown : g.city.powerCooldown,
+                              ) +
+                              's'
+                            : ''}
+                        </small>
+                      )}
+                    </div>
+                  );
+                })}
                 {(['food', 'materials', 'aether'] as const).map((k) => (
                   <button
                     key={k}

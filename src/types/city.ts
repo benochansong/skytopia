@@ -120,5 +120,5 @@ export type CityReport = {
   factors: { code: string; value: number }[];
   environment: Map<number, number>;
   tierEligible: number;
-  advice: { id: string; priority: number; value: number; cell?: Cell }[];
+  advice: { id: string; priority: number; value: number; cell?: Cell; fatal?: boolean }[];
 };

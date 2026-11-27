@@ -32,6 +32,12 @@ class SceneBoundary extends Component<{ children: ReactNode }, { error: boolean 
   }
 }
 export default function App() {
+  const textScale = useGame((s) => s.settings.textScale),
+    highContrast = useGame((s) => s.settings.highContrast);
+  useEffect(() => {
+    document.documentElement.style.setProperty('--ui-scale', String(textScale));
+    document.documentElement.classList.toggle('high-contrast', highContrast);
+  }, [textScale, highContrast]);
   const photo = useGame((s) => s.photoMode);
   const online = useOnline((s) => s.enabled);
   const onlineScene = useOnline((s) => !!s.room && s.room.phase !== 'lobby' && s.games.length > 0);

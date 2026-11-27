@@ -99,6 +99,8 @@ export type Score = {
   objectives: number;
 };
 export type Result = {
+  /** Absent in legacy results: rules v1. */
+  rulesVersion?: number;
   id: string;
   version: 1;
   mode: RoomOptions['mode'];
@@ -117,6 +119,7 @@ export type HandView = {
   remaining: number;
 };
 export type RoomView = {
+  rulesVersion?: number;
   match: string;
   code: string;
   options: RoomOptions;

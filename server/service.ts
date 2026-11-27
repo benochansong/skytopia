@@ -45,6 +45,7 @@ type Player = Member & {
   left: boolean;
 };
 type Room = {
+  rulesVersion: number;
   code: string;
   options: RoomOptions;
   host: string;
@@ -173,6 +174,7 @@ export function createService(cfg: ServerConfig) {
     const player = r.players.find((x) => x.id === p.id);
     const hand = player ? (({ supply: _supply, ...h }) => h)(player.hand) : null;
     return {
+      rulesVersion: r.rulesVersion,
       match: r.match,
       code: r.code,
       options: r.options,
@@ -231,6 +233,7 @@ export function createService(cfg: ServerConfig) {
     const result: Result = {
       id: r.match,
       version: 1,
+      rulesVersion: r.rulesVersion,
       mode: r.options.mode,
       reason,
       winner,
@@ -271,6 +274,7 @@ export function createService(cfg: ServerConfig) {
       code = randomBytes(4).toString('hex').toUpperCase();
     } while (rooms.has(code));
     const r: Room = {
+      rulesVersion: ONLINE.version,
       code,
       options,
       host: p.id,
@@ -432,6 +436,7 @@ export function createService(cfg: ServerConfig) {
       db.begin({
         id: r.match,
         version: 1,
+        rulesVersion: r.rulesVersion,
         mode: r.options.mode,
         reason: 'running',
         winner: null,

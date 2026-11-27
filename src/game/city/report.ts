@@ -1,3 +1,4 @@
+import { selectAdvice, foodRunway } from './advisor';
 import type { Game } from '../../types/game';
 import type { CityReport } from '../../types/city';
 import { OPERATION, facility, TIER_POP, cityDifficulty, CITY_RULES } from '../../data/cityRules';
@@ -104,22 +105,63 @@ export function cityReport(g: Game): CityReport {
     TIER_POP.forEach((n, i) => {
       if (g.population >= n) tierEligible = i + 1;
     });
-  const foodNet = foodProduction - foodConsumption,
-    foodETA = foodNet < 0 ? o.inv.stocks.food / -foodNet : Infinity,
-    creditETA = net < 0 ? g.city.credits / -net : Infinity;
+  const poolNeeds = new Map<string, number>();
+  const consume = (pool: string, count: number) =>
+    poolNeeds.set(
+      pool,
+      (poolNeeds.get(pool) ?? 0) +
+        count * CITY_RULES.foodPerPerson * cityDifficulty[g.difficulty].consumption,
+    );
+  for (const [id, count] of Object.entries(g.city.residents))
+    consume(o.road.attachments.get(Number(id)) ?? 'isolated:' + id, count);
+  for (const e of g.disaster?.evacuated ?? [])
+    consume(o.road.attachments.get(e.shelter) ?? 'isolated:' + e.shelter, e.count);
+  consume(o.inv.root, g.city.displaced);
+  const foodETA = foodRunway(
+    [...poolNeeds].map(([pool, consumption]) => ({
+      consumption,
+      stock: o.inv.poolStocks.get(pool)?.food ?? 0,
+      production: operations.filter((op) => op.road === pool).reduce((n, op) => n + op.food, 0),
+    })),
+  );
+  const creditETA = net < 0 ? g.city.credits / -net : Infinity;
   const advice: CityReport['advice'] = [];
+  if (g.structure.coreDurability < 125)
+    advice.push({
+      id: 'core',
+      priority: 120,
+      value: g.structure.coreDurability,
+      cell: { x: 0, z: 0 },
+      fatal: true,
+    });
+  if (s.mass > s.lift)
+    advice.push({ id: 'lift', priority: 115, value: s.mass - s.lift, cell: s.center, fatal: true });
+  if (g.disaster?.threat && ['forecast', 'active'].includes(g.disaster.phase))
+    advice.push({
+      id: 'disaster',
+      priority: 85,
+      value: Math.max(
+        0,
+        (g.disaster.phase === 'forecast' ? g.disaster.threat.warning : g.disaster.threat.duration) -
+          g.disaster.clock,
+      ),
+      cell: g.disaster.threat.target,
+      fatal: g.disaster.phase === 'active',
+    });
   if (s.structural.critical || (s.structural.worst && s.structural.worst.ratio > 1))
     advice.push({
       id: 'structure',
+      fatal: !!s.structural.critical,
       priority: 100,
       value: s.structural.worst?.ratio ?? 0,
       cell: s.structural.worst?.cell,
     });
   if (foodETA < 120 || g.city.hungerTime > 0)
-    advice.push({ id: 'food', priority: 90, value: foodETA });
+    advice.push({ id: 'food', priority: 90, value: foodETA, fatal: g.city.hungerTime > 0 });
   if (o.deficit > 0)
     advice.push({
       id: 'power',
+      fatal: o.deficit > o.network.demand * 0.3,
       priority: 95,
       value: o.deficit,
       cell: g.buildings.find((b) => (o.network.powerRatios.get(b.id) ?? 1) < 0.5)?.origin,
@@ -179,15 +221,7 @@ export function cityReport(g: Game): CityReport {
     factors,
     environment,
     tierEligible,
-    advice: advice
-      .filter(
-        (a) =>
-          a.priority >= 100 ||
-          (a.id === 'food' && g.city.hungerTime > 0) ||
-          (g.city.dismissed[a.id] ?? -Infinity) + 30 <= g.elapsed,
-      )
-      .sort((a, b) => b.priority - a.priority)
-      .slice(0, 3),
+    advice: selectAdvice(advice, g.city.dismissed, g.elapsed),
   };
   cache.unshift({ g, r });
   // Two generations for each of the world's six independent cities.

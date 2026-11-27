@@ -20,23 +20,36 @@ import { resilience } from '../game/disasters/report';
 import { emergencyPower, orderCost } from '../game/city/actions';
 import { canPay } from '../game/city/inventory';
 import { canUse } from '../game/campaign/runtime';
-export function DisasterEntry() {
+export function DisasterEntry({ section = 'all' }: { section?: 'all' | 'lab' | 'survival' }) {
   const s = useGame(),
     ko = s.settings.language === 'ko';
   const best = loadSurvivalBest();
   return (
     <div className="disaster-menu">
-      <button onClick={() => s.startDisaster('lab')}>{ko ? '재난 실험실' : 'Disaster Lab'}</button>
-      <button disabled={!s.hasDisasterSave} onClick={() => s.startDisaster('lab', 'A', true)}>
-        {ko ? '재난 실험 이어하기' : 'Resume disaster lab'}
-      </button>
-      <button onClick={() => s.startDisaster('survival')}>
-        {ko ? '생존 모드' : 'Survival mode'}
-        {best ? ` · BEST ${best.score}` : ''}
-      </button>
-      <button disabled={!s.hasSurvivalSave} onClick={() => s.startDisaster('survival', 'A', true)}>
-        {ko ? '생존 이어하기' : 'Resume survival'}
-      </button>
+      {section !== 'survival' && (
+        <>
+          <button onClick={() => s.startDisaster('lab')}>
+            {ko ? '재난 실험실' : 'Disaster Lab'}
+          </button>
+          <button disabled={!s.hasDisasterSave} onClick={() => s.startDisaster('lab', 'A', true)}>
+            {ko ? '재난 실험 이어하기' : 'Resume disaster lab'}
+          </button>
+        </>
+      )}
+      {section !== 'lab' && (
+        <>
+          <button onClick={() => s.startDisaster('survival')}>
+            {ko ? '생존 모드' : 'Survival mode'}
+            {best ? ` · BEST ${best.score}` : ''}
+          </button>
+          <button
+            disabled={!s.hasSurvivalSave}
+            onClick={() => s.startDisaster('survival', 'A', true)}
+          >
+            {ko ? '생존 이어하기' : 'Resume survival'}
+          </button>
+        </>
+      )}
     </div>
   );
 }

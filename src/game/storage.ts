@@ -40,6 +40,10 @@ const piece = z
       (!(p.pitch || p.roll) || ['beam', 'truss'].includes(p.kind)),
   );
 export const settingsSchema = z.object({
+  uxVersion: z.literal(1).default(1),
+  textScale: finite.min(1).max(1.3).default(1),
+  highContrast: z.boolean().default(false),
+  onboarding: z.boolean().default(true),
   graphicsVersion: z.literal(1).default(1),
   quality: z.enum(['low', 'medium', 'high', 'ultra']).default('medium'),
   cloudDensity: finite.min(0).max(1).default(0.7),
@@ -205,12 +209,17 @@ const schema = z.object({
   hold: piece.nullable(),
   holdUsed: z.boolean(),
   cursor: cell,
-  supply: z.object({
-    seed: finite.int().min(0).max(4294967295),
-    bag: z.array(kind).max(64),
-    draws: finite.int().min(4),
-    policy: z.enum(['classic', 'adaptive']).optional(),
-  }),
+  supply: z
+    .object({
+      seed: finite.int().min(0).max(4294967295),
+      bag: z.array(kind).max(128),
+      draws: finite.int().min(4),
+      policy: z.enum(['classic', 'adaptive']).optional(),
+      version: z.literal(2).optional(),
+      recent: z.array(kind).max(24).optional(),
+    })
+    .refine((s) => (s.version === 2) === (s.recent !== undefined))
+    .refine((s) => s.version === 2 || s.bag.length <= 64),
   population: finite.nonnegative(),
   resources: finite.nonnegative(),
   score: finite.nonnegative(),

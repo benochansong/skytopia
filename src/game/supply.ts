@@ -1,6 +1,7 @@
+import { facilityTech } from './world/definitions';
 import type { Hazard } from '../types/disaster';
 import { OPERATION } from '../data/cityRules';
-import { BLOCKS, VERTICAL_KINDS, DISASTER_KINDS } from '../data/rules';
+import { BALANCE, BLOCKS, VERTICAL_KINDS, DISASTER_KINDS, WORLD_KINDS } from '../data/rules';
 import type { Kind, Piece, Supply } from '../types/game';
 const BAG: Kind[] = [
   'platform',
@@ -95,7 +96,39 @@ export function draw(
   }
   const tutorialKinds: Kind[] = ['home', 'platform', 'road', 'power', 'park'];
   const scripted = training ? tutorialKinds[source.draws] : context.script?.[source.draws];
-  const kind = scripted ?? bag.pop()!;
+  let kind: Kind;
+  if (source.version === 2 && !training && !scripted) {
+    const allowed = (k: Kind) =>
+      (!context.city || OPERATION[k].unlock <= context.city.tier) &&
+      (!WORLD_KINDS.includes(k) ||
+        (!!context.world && (!facilityTech[k] || context.world.techs.includes(facilityTech[k]!))));
+    bag = bag.filter(allowed);
+    if (!bag.length) bag = [...BAG].filter(allowed);
+    const recent = source.recent ?? [];
+    const needed: Kind[] = [];
+    if (context.needsLift) needed.push('liftSmall');
+    if (context.city?.needPower) needed.push('power');
+    if (context.city?.needFood) needed.push('farm');
+    if (context.needsRoad) needed.push('road');
+    if (context.needsSpace) needed.push('platform');
+    const age = (k: Kind) => {
+      const i = recent.lastIndexOf(k);
+      return i < 0 ? recent.length + 1 : recent.length - i;
+    };
+    const urgent = needed
+      .filter((k) => allowed(k) && age(k) >= BALANCE.supplyNeedAge)
+      .sort((a, b) => age(b) - age(a))[0];
+    const repeated =
+      recent.length >= BALANCE.repeatLimit &&
+      recent.slice(-BALANCE.repeatLimit).every((k) => k === recent.at(-1));
+    const candidate =
+      urgent ??
+      [...bag].reverse().find((k) => !repeated || k !== recent.at(-1)) ??
+      BAG.find((k) => allowed(k) && k !== recent.at(-1))!;
+    kind = candidate;
+    const index = bag.lastIndexOf(kind);
+    if (index >= 0) bag.splice(index, 1);
+  } else kind = scripted ?? bag.pop()!;
   const [r, nextSeed] = random(seed);
   const shapes = BLOCKS[kind].shapes;
   return [
@@ -106,6 +139,12 @@ export function draw(
     },
     {
       seed: nextSeed,
+      ...(source.version === 2
+        ? {
+            version: 2 as const,
+            recent: [...(source.recent ?? []), kind].slice(-BALANCE.supplyHistory),
+          }
+        : {}),
       bag,
       draws: source.draws + 1,
       ...(source.policy ? { policy: source.policy } : {}),

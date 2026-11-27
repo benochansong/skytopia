@@ -2790,3 +2790,132 @@ kbd {
 .world-dashboard input.world-name:focus {
   border-color: #a0d6cd;
 }
+
+/* Phase 11: a bounded menu keeps all modes reachable without covering the footer. */
+.menu-card {
+  width: 370px;
+  top: 29%;
+  bottom: 7%;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  padding: 20px;
+}
+.menu-card h1 {
+  font-size: 23px;
+  line-height: 1.35;
+  margin: 8px 0;
+}
+.menu-card > p {
+  margin-bottom: 14px;
+}
+.menu-actions .free-build-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+.free-build-row select {
+  grid-column: 1 / -1;
+  width: 100%;
+  min-width: 0;
+  background: #173b43;
+  color: #f0f4ec;
+  border: 1px solid #a7bd9470;
+  border-radius: 5px;
+  padding: 10px;
+}
+.menu-actions button {
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+.menu-group {
+  border-top: 1px solid #a7bd9460;
+  padding-top: 12px;
+}
+.menu-group summary {
+  cursor: pointer;
+  color: #ecd5ad;
+  padding: 8px 0;
+}
+.menu-group summary:focus-visible {
+  outline: 2px solid #f5d59d;
+}
+.menu-group-content {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+@media (max-height: 760px) {
+  .menu-card {
+    top: 23%;
+    bottom: 6%;
+  }
+  .menu-card h1,
+  .menu-card > .eyebrow,
+  .menu-card > p {
+    display: none;
+  }
+  .menu-heading {
+    top: 9%;
+  }
+  .logo strong {
+    font-size: 42px;
+  }
+}
+
+:root {
+  --ui-scale: 1;
+}
+.menu-actions button,
+.dialog button,
+.dialog label,
+.dialog select,
+.city-ribbon,
+.city-selection,
+.city-advisor button,
+.resource span,
+.mission-card p,
+.objectives li,
+.play-tools button {
+  font-size: calc(12px * var(--ui-scale));
+}
+.high-contrast {
+  --panel: #102831;
+  --gold: #ffe1a4;
+}
+.high-contrast .panel,
+.high-contrast .dialog,
+.high-contrast .menu-card {
+  background: #102831;
+  color: #fff;
+  border-color: #d3e8df;
+}
+.high-contrast button:disabled {
+  opacity: 0.65;
+}
+.high-contrast small,
+.high-contrast .menu-card p,
+.high-contrast .city-advisor small {
+  opacity: 1;
+  color: #e8f3ee;
+}
+.first-steps {
+  position: relative;
+  margin-bottom: 8px;
+  padding: 12px;
+  pointer-events: auto;
+}
+.first-steps p {
+  margin: 6px 0;
+  font-size: calc(12px * var(--ui-scale));
+}
+.first-steps button {
+  padding: 4px 8px;
+  font-size: 11px;
+}
+.city-advisor {
+  max-height: 40vh;
+  overflow-y: auto;
+  pointer-events: auto;
+}
+.city-advisor [data-fatal='true'] {
+  border-left: 3px solid #ffad80;
+}

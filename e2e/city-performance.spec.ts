@@ -4,6 +4,7 @@ test('measured active metropolis render and resource release', async ({ page, br
   test.skip(!process.env.SKYTOPIA_CITY_MEASURE, 'Manual software-WebGL measurement');
   test.setTimeout(180000);
   await page.goto('/');
+  await page.locator('summary').filter({ hasText: '실험실 · 구조와 도시' }).click();
   await page.getByRole('button', { name: '도시 운영 실험실' }).click();
   await page.getByRole('button', { name: '새 실험 시작' }).click();
   const snapshots = [];

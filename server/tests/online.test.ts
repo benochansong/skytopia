@@ -27,7 +27,7 @@ import {
 } from '../../src/game/online/match';
 import { validatePlacement } from '../../src/game/placement';
 import type { Game } from '../../src/types/game';
-import { RULES } from '../../src/data/rules';
+import { RULES, ONLINE } from '../../src/data/rules';
 import { makePlatform } from '../../src/game/stability/state';
 const services: ReturnType<typeof createService>[] = [];
 const sockets: WebSocket[] = [];
@@ -222,9 +222,12 @@ describe('authoritative online rules', () => {
 describe('real WebSocket server', () => {
   test('server time expiry produces a draw for equal cities and locks final results', async () => {
     const { s, a, b, room } = await match();
+    expect(room.rulesVersion).toBe(ONLINE.version);
     room.remaining = 0.25;
     s.step(0.25);
     expect(room.result?.reason).toBe('time');
+    expect(room.result?.rulesVersion).toBe(ONLINE.version);
+    expect(s.db.history(a.welcome.id)[0].rulesVersion).toBe(ONLINE.version);
     expect(room.result?.winner).toBeNull();
     expect(s.db.history(a.welcome.id)[0].id).toBe(s.db.history(b.welcome.id)[0].id);
     const result = room.result;

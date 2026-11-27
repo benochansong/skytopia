@@ -15,18 +15,22 @@ export function CampaignEntry() {
   const text = (ko: string, en: string) => (lang === 'ko' ? ko : en);
   return (
     <>
-      <button className="primary" onClick={() => setCreate(true)}>
+      <button className={save.current ? undefined : 'primary'} onClick={() => setCreate(true)}>
         {text('새 캠페인', 'New campaign')}
       </button>
       <div className="campaign-menu-row">
-        <button disabled={!save.current} onClick={() => useGame.getState().resumeCampaign()}>
+        <button
+          className={save.current ? 'primary' : undefined}
+          disabled={!save.current}
+          onClick={() => useGame.getState().resumeCampaign()}
+        >
           {text('캠페인 이어하기', 'Continue campaign')}
         </button>
         <button onClick={() => useGame.getState().campaignMap()}>
           {text('캠페인 지도', 'Campaign map')}
         </button>
       </div>
-      <div className="campaign-menu-row">
+      <div className="campaign-menu-row free-build-row">
         <select
           aria-label={text('자유 건설 설정', 'Free build preset')}
           value={freeStyle}

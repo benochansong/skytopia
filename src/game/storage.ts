@@ -40,6 +40,9 @@ const piece = z
       (!(p.pitch || p.roll) || ['beam', 'truss'].includes(p.kind)),
   );
 export const settingsSchema = z.object({
+  graphicsVersion: z.literal(1).default(1),
+  quality: z.enum(['low', 'medium', 'high', 'ultra']).default('medium'),
+  cloudDensity: finite.min(0).max(1).default(0.7),
   controlsVersion: z.literal(1).default(1),
   repeatDelay: finite.int().min(120).max(600).default(260),
   repeatInterval: finite.int().min(50).max(250).default(90),

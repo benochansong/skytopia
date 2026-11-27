@@ -9,6 +9,7 @@ import { constructionCost } from '../game/city/actions';
 import { projectPlacement } from '../game/building';
 import { validatePlacement } from '../game/placement';
 import './playtools.css';
+import { PhotoSettings } from './GraphicsSettings';
 
 const feedback: Record<string, [string, string]> = {
   built: ['건축 완료', 'Construction complete'],
@@ -166,6 +167,7 @@ export default function PlayTools() {
     return (
       <div className="photo-tools panel" aria-label={ko ? '사진 모드' : 'Photo mode'}>
         <strong>SKYTOPIA / PHOTO</strong>
+        <PhotoSettings />
         <span>
           {onlineActive()
             ? ko

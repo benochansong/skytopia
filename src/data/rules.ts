@@ -324,6 +324,9 @@ export const VERTICAL_DEFS: Partial<
   },
 };
 export const DEFAULT_SETTINGS: Settings = {
+  graphicsVersion: 1,
+  quality: 'medium',
+  cloudDensity: 0.7,
   controlsVersion: 1,
   repeatDelay: 260,
   repeatInterval: 90,

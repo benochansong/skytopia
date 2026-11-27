@@ -1,6 +1,9 @@
+import { citizenGeometry, vehicleGeometry } from './TrafficGeometry';
+import { environmentLook } from './Environment';
+import { QUALITY, photoDay } from './art';
+import { useVisual } from '../stores/visualStore';
 import { VERTICAL } from '../data/rules';
 import { visibleAt } from '../game/vertical/geometry';
-import { CHAPTERS, stage } from '../game/campaign/definitions';
 import { useMemo, useRef, useLayoutEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Color, InstancedMesh, Object3D, Group } from 'three';
@@ -12,16 +15,11 @@ import { cellsOf, floorOf } from '../game/grid';
 export function DayLight() {
   const g = useGame((s) => s.game),
     settings = useGame((s) => s.settings),
-    day = settings.dayNight ? Math.max(0, Math.sin((g.city.dayTime / 360) * Math.PI * 2)) : 1,
-    color = new Color('#263c66').lerp(
-      new Color(
-        g.campaign ? (CHAPTERS[stage(g.campaign.stage).chapter - 1].sky ?? '#add2e2') : '#add2e2',
-      ),
-      day,
-    );
-  const clouds = g.disaster?.weather.clouds ?? 0,
-    ether = g.disaster?.weather.instability ?? 0;
-  color.lerp(new Color(ether > 0.2 ? '#655f8c' : '#6e8396'), clouds * 0.6);
+    photo = useGame((s) => s.photoMode),
+    preset = useVisual((s) => s.preset),
+    look = environmentLook(g, settings, photo ? preset : 'live'),
+    { day, clouds } = look,
+    color = look.horizon;
   return (
     <>
       <color attach="background" args={[color]} />
@@ -38,9 +36,12 @@ export function DayLight() {
       <directionalLight
         position={[-8, 16, 8]}
         intensity={(0.45 + day * 2.05) * (1 - clouds * 0.55)}
-        color={day > 0.3 ? '#fff0d2' : '#afc9f5'}
-        castShadow={settings.shadows}
-        shadow-mapSize={[2048, 2048]}
+        color={look.dusk ? '#ffd2a1' : day > 0.3 ? '#fff0d2' : '#afc9f5'}
+        castShadow={settings.shadows && QUALITY[settings.quality].shadow > 0}
+        shadow-mapSize={[
+          QUALITY[settings.quality].shadow || 512,
+          QUALITY[settings.quality].shadow || 512,
+        ]}
         shadow-camera-left={-12}
         shadow-camera-right={12}
         shadow-camera-top={12}
@@ -52,6 +53,7 @@ export function DayLight() {
 }
 export function LivingCity() {
   const photo = useGame((s) => s.photoMode);
+  const photoPreset = useVisual((s) => s.preset);
   const g = useGame((s) => s.game),
     settings = useGame((s) => s.settings),
     mode = useGame((s) => (s.photoMode ? 'off' : s.analysisMode)),
@@ -164,7 +166,9 @@ export function LivingCity() {
     if (!lights.current || !markers.current || !warnings.current || !r) return;
     const o = new Object3D(),
       color = new Color(),
-      night = settings.dayNight && g.city.dayTime > 180;
+      night =
+        ((photo && photoPreset !== 'live') || settings.dayNight) &&
+        (photo ? (photoDay(photoPreset) ?? g.city.dayTime) : g.city.dayTime) > 180;
     let count = 0,
       marks = 0,
       warningCount = 0;
@@ -192,6 +196,8 @@ export function LivingCity() {
         b.enabled &&
         op.status !== 'power' &&
         op.road &&
+        op.efficiency > 0 &&
+        (!facility(b).capacity || (g.city.residents[b.id] ?? 0) > 0) &&
         (facility(b).capacity || facility(b).power)
       ) {
         for (const c of cellsOf(b, b.origin)) {
@@ -250,7 +256,7 @@ export function LivingCity() {
     markers.current.count = marks;
     markers.current.instanceMatrix.needsUpdate = true;
     if (markers.current.instanceColor) markers.current.instanceColor.needsUpdate = true;
-  }, [g.buildings, g.city.dayTime, settings.dayNight, mode, r, g.vertical]);
+  }, [g.buildings, g.city.dayTime, settings.dayNight, mode, r, g.vertical, photo, photoPreset]);
   if (!g.city.enabled || g.vertical?.view === 'structure' || g.vertical?.view === 'blueprint')
     return null;
   return (
@@ -268,13 +274,21 @@ export function LivingCity() {
         <icosahedronGeometry args={[1, 0]} />
         <meshStandardMaterial color="#acb6bb" transparent opacity={0.45} depthWrite={false} />
       </instancedMesh>
-      <instancedMesh ref={citizens} args={[undefined, undefined, 48]} frustumCulled={false}>
-        <boxGeometry />
-        <meshStandardMaterial color="#f2cc96" />
+      <instancedMesh
+        ref={citizens}
+        args={[citizenGeometry, undefined, 48]}
+        frustumCulled={false}
+        dispose={null}
+      >
+        <meshStandardMaterial vertexColors />
       </instancedMesh>
-      <instancedMesh ref={vehicles} args={[undefined, undefined, 16]} frustumCulled={false}>
-        <boxGeometry />
-        <meshStandardMaterial color="#72bad1" />
+      <instancedMesh
+        ref={vehicles}
+        args={[vehicleGeometry, undefined, 16]}
+        frustumCulled={false}
+        dispose={null}
+      >
+        <meshStandardMaterial vertexColors />
       </instancedMesh>
       <instancedMesh ref={lights} args={[undefined, undefined, 1792]} frustumCulled={false}>
         <boxGeometry />

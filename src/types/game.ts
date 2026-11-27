@@ -176,6 +176,9 @@ export type StructureState = {
   loss: null | { reason: 'lift' | 'balance' | 'core'; time: number; firstFailure: string };
 };
 export type Settings = {
+  graphicsVersion: 1;
+  quality: 'low' | 'medium' | 'high' | 'ultra';
+  cloudDensity: number;
   controlsVersion: 1;
   repeatDelay: number;
   repeatInterval: number;

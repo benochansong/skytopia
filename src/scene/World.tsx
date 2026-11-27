@@ -1,8 +1,13 @@
+import { GhostFacility } from './GhostFacility';
+import { PRIMARY_KINDS } from './PrimaryFacilities';
+import { PhotoCapture } from './PhotoCapture';
+import { Foundation, Scenery, SkyDome } from './Environment';
+import { QUALITY } from './art';
+import { STRUCTURE } from '../data/rules';
 import { WorldShips } from './WorldFacilities';
 import { DisasterEffects } from './DisasterEffects';
-import { CHAPTERS, stage } from '../game/campaign/definitions';
 import { DayLight, LivingCity } from './LivingCity';
-import { memo, useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import type { ThreeEvent } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
@@ -21,121 +26,7 @@ import { PlatformField, StructuralEffects } from './StructuralEffects';
 import { visibleBuilding } from '../game/vertical/geometry';
 import { VerticalStructures } from './VerticalStructures';
 import { VERTICAL_KINDS } from '../data/rules';
-const Foundation = memo(function Foundation() {
-  const campaign = useGame((s) => s.game.campaign);
-  const rock = campaign ? CHAPTERS[stage(campaign.stage).chapter - 1].rock : undefined;
-  return (
-    <group position={[-0.5, -0.3, -0.5]}>
-      <mesh position={[0, -1.5, 0]} rotation={[Math.PI, 0.2, 0]} castShadow receiveShadow>
-        <coneGeometry args={[3.7, 2.8, 7, 1]} />
-        <meshStandardMaterial color={rock ?? '#697e7a'} flatShading />
-      </mesh>
-      <mesh position={[0.4, -1.8, -0.3]} rotation={[Math.PI, 0.6, 0.14]} castShadow>
-        <coneGeometry args={[2.3, 3.5, 5, 1]} />
-        <meshStandardMaterial color={rock ?? '#526c73'} flatShading />
-      </mesh>
-      {Array.from({ length: 13 }, (_, i) => {
-        const a = i * 2.399,
-          r = 2.2 + Math.sin(i * 3) * 0.5;
-        return (
-          <mesh
-            key={i}
-            position={[Math.cos(a) * r, -0.35 - (i % 3) * 0.22, Math.sin(a) * r]}
-            rotation={[i, i * 0.4, 0]}
-            scale={[0.8, 0.9 + (i % 3) * 0.2, 0.8]}
-            castShadow
-          >
-            <icosahedronGeometry args={[0.95, 0]} />
-            <meshStandardMaterial color={i % 2 ? '#829188' : '#74867e'} flatShading />
-          </mesh>
-        );
-      })}
-      {[-1, 1].map((sign, i) => (
-        <mesh
-          key={sign}
-          position={[sign * 1.2, -1.9 + i * 0.5, 1.4]}
-          rotation={[0.3, 0, sign * 0.3]}
-          scale={[0.22, 0.8, 0.25]}
-        >
-          <octahedronGeometry />
-          <meshStandardMaterial color="#8ae9e2" emissive="#429dba" emissiveIntensity={0.8} />
-        </mesh>
-      ))}
-      <mesh position={[-1.4, -2.4, 2.55]}>
-        <boxGeometry args={[0.32, 4.5, 0.07]} />
-        <meshStandardMaterial
-          color="#9de8ef"
-          transparent
-          opacity={0.55}
-          emissive="#65b9cc"
-          emissiveIntensity={0.2}
-        />
-      </mesh>
-    </group>
-  );
-});
-const Scenery = memo(function Scenery() {
-  const clouds = useRef<Group>(null);
-  const islands = useRef<Group>(null);
-  useFrame(({ clock }) => {
-    const s = useGame.getState();
-    if (s.settings.reducedMotion || !['playing', 'menu'].includes(s.screen)) return;
-    const t = clock.elapsedTime;
-    if (clouds.current) clouds.current.position.x = Math.sin(t * 0.025) * 2;
-    if (islands.current) islands.current.position.y = Math.sin(t * 0.3) * 0.15;
-  });
-  return (
-    <group>
-      <group ref={clouds}>
-        {Array.from({ length: 16 }, (_, i) => (
-          <group
-            key={i}
-            position={[Math.sin(i * 7) * 23, -4 + (i % 4) * 1.8, Math.cos(i * 7) * 23]}
-            scale={1 + (i % 3) * 0.5}
-          >
-            {[0, 1, 2, 3].map((j) => (
-              <mesh
-                key={j}
-                position={[j * 0.9 - 1, Math.sin(j) * 0.2, Math.cos(j) * 0.45]}
-                scale={[1.6, 0.45 + (j % 2) * 0.15, 0.85]}
-              >
-                <icosahedronGeometry args={[1, 1]} />
-                <meshStandardMaterial
-                  color="#fff9ed"
-                  roughness={1}
-                  transparent
-                  opacity={0.8}
-                  flatShading
-                />
-              </mesh>
-            ))}
-          </group>
-        ))}
-      </group>
-      <group ref={islands}>
-        {[
-          [-11, -0.8, -8, 1.2],
-          [9, -2, -12, 0.8],
-          [-9, -4, 8, 0.6],
-          [14, 1, 0, 0.5],
-        ].map(([x, y, z, s], i) => (
-          <group key={i} position={[x, y, z]} scale={s}>
-            <mesh rotation={[Math.PI, i, 0]} position={[0, -1.5, 0]}>
-              <coneGeometry args={[2, 2.6, 6]} />
-              <meshStandardMaterial color="#809891" flatShading />
-            </mesh>
-            <mesh>
-              <cylinderGeometry args={[1.65, 1.9, 0.28, 6]} />
-              <meshStandardMaterial color="#9bbb84" flatShading />
-            </mesh>
-            <Tree position={[-0.5, 0.14, 0.1]} scale={1.7} />
-            <Tree position={[0.6, 0.14, -0.1]} scale={1.2} />
-          </group>
-        ))}
-      </group>
-    </group>
-  );
-});
+import { operatingNetwork } from '../game/city/operations';
 function Camera() {
   const sensitivity = useGame((s) => s.settings.cameraSensitivity),
     zoom = useGame((s) => s.settings.zoomSensitivity);
@@ -271,23 +162,32 @@ function Ghost() {
       <group ref={falling} position={[cursor.x, 3.8, cursor.z]}>
         {cellsOf(active).map((c) => (
           <group key={key(c)} position={[c.x, floorOf(c) * VERTICAL.height, c.z]}>
-            <mesh>
-              <boxGeometry
-                args={[
-                  0.81,
-                  active.kind === 'platform' ? 0.12 : PHYSICAL[active.kind].height,
-                  0.81,
-                ]}
-              />
-              <meshStandardMaterial
-                color={BLOCKS[active.kind].color}
-                transparent
-                opacity={0.5}
-                roughness={0.3}
-                metalness={0.1}
-                depthWrite={false}
-              />
-            </mesh>
+            {PRIMARY_KINDS.includes(active.kind) ? (
+              <group
+                position={[0, -PHYSICAL[active.kind].height / 2, 0]}
+                rotation={[0, (-active.rotation * Math.PI) / 2, 0]}
+              >
+                <GhostFacility kind={active.kind} color={color} />
+              </group>
+            ) : (
+              <mesh>
+                <boxGeometry
+                  args={[
+                    0.81,
+                    active.kind === 'platform' ? 0.12 : PHYSICAL[active.kind].height,
+                    0.81,
+                  ]}
+                />
+                <meshStandardMaterial
+                  color={BLOCKS[active.kind].color}
+                  transparent
+                  opacity={0.5}
+                  roughness={0.3}
+                  metalness={0.1}
+                  depthWrite={false}
+                />
+              </mesh>
+            )}
             <mesh>
               <boxGeometry
                 args={[
@@ -382,6 +282,7 @@ function City() {
       ).normalize(),
     [stats.center.x, stats.center.z, stats.structural.centerLift.x, stats.structural.centerLift.z],
   );
+  const operations = city.enabled ? operatingNetwork(useGame.getState().game).operations : null;
   const allRoads = useMemo(
     () =>
       new Set(
@@ -434,7 +335,10 @@ function City() {
       <Foundation />
       <PlatformField />
       <group position={[0, 0.08, 0]}>
-        <Reactor core />
+        <Reactor
+          core
+          output={Math.max(0, Math.min(1, structure.coreDurability / STRUCTURE.coreHP))}
+        />
       </group>
       <BuildingField />
       <LivingCity />
@@ -453,7 +357,14 @@ function City() {
             building={b}
             connected={stats.connectedIds.has(b.id)}
             powered={(stats.powerRatios.get(b.id) ?? 0) >= 1}
-            output={stats.structural.lifts.find((l) => l.id === b.id)?.factor ?? 1}
+            output={
+              b.enabled
+                ? (stats.structural.lifts.find((l) => l.id === b.id)?.factor ??
+                  (operations
+                    ? (operations.get(b.id)?.efficiency ?? 0)
+                    : Math.min(1, b.durability / PHYSICAL[b.kind].hp)))
+                : 0
+            }
             roads={allRoads}
           />
         ))}
@@ -463,9 +374,13 @@ function City() {
         [-2.4, 2.45],
         [2.5, -2.7],
         [-3.35, 0.6],
-      ].map(([x, z], i) => (
-        <Tree key={i} position={[x, 0.03, z]} scale={0.6 + (i % 2) * 0.3} />
-      ))}
+      ]
+        .filter(([x, z]) =>
+          platforms.some((p) => p.y === 0 && Math.abs(p.x - x) < 0.6 && Math.abs(p.z - z) < 0.6),
+        )
+        .map(([x, z], i) => (
+          <Tree key={i} position={[x, 0.03, z]} scale={0.6 + (i % 2) * 0.3} />
+        ))}
       {playing ? (
         <>
           <mesh
@@ -527,35 +442,8 @@ function City() {
     </group>
   );
 }
-function PhotoCapture() {
-  const { gl, scene, camera } = useThree();
-  useEffect(() => {
-    const capture = () => {
-      try {
-        gl.render(scene, camera);
-        gl.domElement.toBlob((blob) => {
-          if (!blob) {
-            window.dispatchEvent(new CustomEvent('skytopia:captured', { detail: false }));
-            return;
-          }
-          const url = URL.createObjectURL(blob),
-            a = document.createElement('a');
-          a.href = url;
-          a.download = `skytopia-${Date.now()}.png`;
-          a.click();
-          setTimeout(() => URL.revokeObjectURL(url), 1000);
-          window.dispatchEvent(new CustomEvent('skytopia:captured', { detail: true }));
-        }, 'image/png');
-      } catch {
-        window.dispatchEvent(new CustomEvent('skytopia:captured', { detail: false }));
-      }
-    };
-    window.addEventListener('skytopia:capture', capture);
-    return () => window.removeEventListener('skytopia:capture', capture);
-  }, [gl, scene, camera]);
-  return null;
-}
 export default function World() {
+  const quality = useGame((s) => s.settings.quality);
   const shadows = useGame((s) => s.settings.shadows),
     environment = useGame((s) => s.settings.environment);
   return (
@@ -568,8 +456,8 @@ export default function World() {
       onWheel={() => useGame.getState().tutorialEvent('zoom')}
     >
       <Canvas
-        shadows={shadows}
-        dpr={[1, 1.6]}
+        shadows={shadows && QUALITY[quality].shadow > 0}
+        dpr={[1, QUALITY[quality].dpr]}
         camera={{ position: [11.5, 12, 15], fov: 38, near: 0.1, far: 150 }}
         gl={{ antialias: true, alpha: false }}
         onCreated={({ scene }) => {
@@ -577,6 +465,7 @@ export default function World() {
         }}
       >
         <DayLight />
+        <SkyDome />
         {import.meta.env.DEV && import.meta.env.MODE === 'test' ? <PerformanceProbe /> : null}
         {environment && <Scenery />}
         <City />

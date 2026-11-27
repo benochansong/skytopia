@@ -1,5 +1,5 @@
 import { KINDS, VERTICAL } from '../data/rules';
-import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { Html } from '@react-three/drei';
 import { BufferGeometry, Group, InstancedMesh, Material, Matrix4, Mesh, Object3D } from 'three';
 import { Facility } from './Buildings';
@@ -8,6 +8,15 @@ import { cellsOf, key, neighbors, floorOf } from '../game/grid';
 import { analyze } from '../game/analysis';
 import type { Building, Kind } from '../types/game';
 import { visibleBuilding } from '../game/vertical/geometry';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { operatingNetwork } from '../game/city/operations';
+import { BLOCKS } from '../data/rules';
+import { useVisual } from '../stores/visualStore';
+import { photoDay } from './art';
+import { useFacilityAsset } from './assets';
+import { LowFacility, PRIMARY_KINDS } from './PrimaryFacilities';
+import { useFrame } from '@react-three/fiber';
+import { FacilityDetails } from './FacilityDetails';
 export const INSTANCED_KINDS: Kind[] = [
   ...KINDS.filter(
     (k) =>
@@ -15,9 +24,6 @@ export const INSTANCED_KINDS: Kind[] = [
         'platform',
         'metalPlatform',
         'brace',
-        'power',
-        'liftSmall',
-        'liftLarge',
         'home',
         'largeHome',
         'factory',
@@ -35,7 +41,13 @@ export const INSTANCED_KINDS: Kind[] = [
   'ballast',
   'road',
 ];
-type Part = { geometry: BufferGeometry; material: Material | Material[]; matrix: Matrix4 };
+type Part = {
+  geometry: BufferGeometry;
+  material: Material | Material[];
+  matrix: Matrix4;
+  castShadow: boolean;
+  receiveShadow: boolean;
+};
 function Instances({ part, buildings }: { part: Part; buildings: Building[] }) {
   const ref = useRef<InstancedMesh>(null);
   useLayoutEffect(() => {
@@ -56,10 +68,27 @@ function Instances({ part, buildings }: { part: Part; buildings: Building[] }) {
     ref.current!.computeBoundingSphere();
   }, [part, buildings]);
   return (
-    <instancedMesh ref={ref} args={[part.geometry, part.material, 1792]} castShadow receiveShadow />
+    <instancedMesh
+      ref={ref}
+      args={[part.geometry, part.material, 1792]}
+      dispose={null}
+      castShadow={part.castShadow}
+      receiveShadow={part.receiveShadow}
+    />
   );
 }
-function RepeatedFacility({ kind, buildings }: { kind: Kind; buildings: Building[] }) {
+function RepeatedFacility({
+  kind,
+  buildings,
+  output,
+  simple,
+}: {
+  kind: Kind;
+  buildings: Building[];
+  output: number;
+  simple: boolean;
+}) {
+  const model = useFacilityAsset(kind);
   const template = useRef<Group>(null),
     [parts, setParts] = useState<Part[]>([]);
   useLayoutEffect(() => {
@@ -67,20 +96,65 @@ function RepeatedFacility({ kind, buildings }: { kind: Kind; buildings: Building
     root.updateWorldMatrix(true, true);
     const inverse = root.matrixWorld.clone().invert(),
       out: Part[] = [];
+    const buckets = new Map<
+      string,
+      {
+        material: Material;
+        geometries: BufferGeometry[];
+        castShadow: boolean;
+        receiveShadow: boolean;
+      }
+    >();
     root.traverse((child) => {
-      if (child instanceof Mesh)
-        out.push({
-          geometry: child.geometry,
-          material: child.material,
-          matrix: new Matrix4().multiplyMatrices(inverse, child.matrixWorld),
-        });
+      if (!(child instanceof Mesh) || Array.isArray(child.material)) return;
+      const signature =
+        `${child.castShadow}:${child.receiveShadow}:` +
+        JSON.stringify(child.material.toJSON(), (key, value) =>
+          ['uuid', 'metadata'].includes(key) ? undefined : value,
+        );
+      const bucket: {
+        material: Material;
+        geometries: BufferGeometry[];
+        castShadow: boolean;
+        receiveShadow: boolean;
+      } = buckets.get(signature) ?? {
+        material: child.material,
+        geometries: [],
+        castShadow: child.castShadow,
+        receiveShadow: child.receiveShadow,
+      };
+      const geometry = child.geometry.index
+        ? child.geometry.toNonIndexed()
+        : child.geometry.clone();
+      geometry.applyMatrix4(new Matrix4().multiplyMatrices(inverse, child.matrixWorld));
+      bucket.geometries.push(geometry);
+      buckets.set(signature, bucket);
     });
+    for (const bucket of buckets.values()) {
+      const merged = mergeGeometries(bucket.geometries, false);
+      if (merged)
+        out.push({
+          geometry: merged,
+          material: bucket.material,
+          matrix: new Matrix4(),
+          castShadow: bucket.castShadow,
+          receiveShadow: bucket.receiveShadow,
+        });
+      bucket.geometries.forEach((geometry) => geometry.dispose());
+    }
     setParts(out);
-  }, [kind]);
+    return () => out.forEach((part) => part.geometry.dispose());
+  }, [kind, output, model, simple]);
   return (
     <>
       <group ref={template} visible={false}>
-        <Facility kind={kind} />
+        {simple && PRIMARY_KINDS.includes(kind) ? (
+          <LowFacility kind={kind} />
+        ) : model ? (
+          <primitive object={model} dispose={null} />
+        ) : (
+          <Facility kind={kind} output={output} />
+        )}
       </group>
       {parts.map((part, i) => (
         <Instances key={i} part={part} buildings={buildings} />
@@ -141,28 +215,63 @@ function Roads({ buildings }: { buildings: Building[] }) {
   );
 }
 export function BuildingField() {
+  const quality = useGame((s) => s.settings.quality),
+    selected = useGame((s) => s.selected);
+  const [far, setFar] = useState(false),
+    lastLod = useRef(0);
+  useFrame(({ camera, clock }) => {
+    if (clock.elapsedTime - lastLod.current > 0.5) {
+      lastLod.current = clock.elapsedTime;
+      const next = camera.position.length() > 38;
+      setFar((current) => (current === next ? current : next));
+    }
+  });
   const photo = useGame((s) => s.photoMode);
+  const preset = useVisual((s) => s.preset),
+    dayNight = useGame((s) => s.settings.dayNight);
   const buildings = useGame((s) => s.game.buildings),
     game = useGame((s) => s.game),
     lang = useGame((s) => s.settings.language),
     stats = analyze(game);
-  const groups = useMemo(
-    () =>
-      INSTANCED_KINDS.map((kind) => ({
-        kind,
-        buildings: buildings.filter((b) => b.kind === kind && visibleBuilding(b, game)),
-      })),
-    [buildings, game.vertical],
+  const operations = game.city.enabled ? operatingNetwork(game).operations : null;
+  const time = photo ? (photoDay(preset) ?? game.city.dayTime) : game.city.dayTime;
+  const night = ((photo && preset !== 'live') || dayNight) && time > 180;
+  const groups = INSTANCED_KINDS.flatMap((kind) =>
+    (kind === 'road' ? [0] : [0, 1]).map((output) => ({
+      kind,
+      output,
+      buildings: buildings.filter((b) => {
+        if (b.kind !== kind || !visibleBuilding(b, game)) return false;
+        if (kind === 'road') return true;
+        const active =
+          b.enabled &&
+          (b.kind === 'liftSmall' || b.kind === 'liftLarge'
+            ? (stats.structural.lifts.find((l) => l.id === b.id)?.factor ?? 0) > 0
+            : operations
+              ? (operations.get(b.id)?.efficiency ?? 0) > 0
+              : b.durability > 0 && (stats.powerRatios.get(b.id) ?? 1) > 0);
+        const lit =
+          active &&
+          (BLOCKS[kind].capacity === 0 ||
+            (night && (!game.city.enabled || (game.city.residents[b.id] ?? 0) > 0)));
+        return Number(lit) === output;
+      }),
+    })),
   );
   return (
     <>
       {groups.map((g) =>
         g.kind === 'road' ? (
-          <Roads key={g.kind} buildings={g.buildings} />
+          <Roads key={`${g.kind}-${g.output}`} buildings={g.buildings} />
         ) : g.buildings.length ? (
-          <RepeatedFacility key={g.kind} {...g} />
+          <RepeatedFacility
+            key={`${g.kind}-${g.output}`}
+            {...g}
+            simple={!selected && (quality === 'low' || far)}
+          />
         ) : null,
       )}
+      <FacilityDetails />
       {buildings
         .filter(
           (b) =>

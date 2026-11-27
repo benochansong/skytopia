@@ -6,6 +6,7 @@ import { stage } from '../game/campaign/definitions';
 import { CampaignEntry, CampaignObjectives } from './CampaignControls';
 import { CityMenu, CityHUD, CitySettings } from './CityUI';
 import { ControlSettings, PlacementInsight } from './PlayTools';
+import { GraphicsSettings } from './GraphicsSettings';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Phase2Menu, AnalysisToolbar, LabPanel, StructuralPanel, GameOver } from './StructuralUI';
@@ -258,7 +259,7 @@ export function Dialog({
 function Logo({ small = false }: { small?: boolean }) {
   return (
     <div className={`logo ${small ? 'small' : ''}`}>
-      <Icon name="diamond" size={small ? 26 : 38} />
+      <img src="/skytopia-mark.svg" alt="" width={small ? 30 : 52} height={small ? 38 : 65} />
       <div>
         <strong>SKYTOPIA</strong>
         <span>A E T H E R &nbsp; R I S I N G</span>
@@ -280,7 +281,7 @@ export function Menu() {
     <div className="menu-screen">
       <header className="menu-top">
         <span className="edition">
-          GAMEPLAY POLISH <i>09</i>
+          VISUAL UPGRADE <i>10</i>
         </span>
         <button
           className="language-button"
@@ -354,7 +355,7 @@ export function Menu() {
       <footer className="menu-footer">
         <span>BUILD ABOVE. BALANCE THE SKY. RISE BEYOND.</span>
         <span>
-          PHASE 9 <b>·</b> v0.9.0
+          PHASE 10 <b>·</b> v0.10.0
         </span>
       </footer>
       {pending ? (
@@ -747,6 +748,7 @@ export function Overlay() {
       <Dialog title={t.settings} onClose={close}>
         <div className="settings-rows">
           <ControlSettings />
+          <GraphicsSettings />
           <CitySettings />
           <button onClick={() => useGame.getState().replayOpening()}>
             {settings.language === 'ko' ? '오프닝 다시 보기' : 'Replay opening'}

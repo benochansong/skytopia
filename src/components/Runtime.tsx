@@ -2,9 +2,45 @@ import { stage } from '../game/campaign/definitions';
 import { useEffect, useRef } from 'react';
 import { Soundscape } from '../game/audio';
 import { useGame } from '../stores/gameStore';
+import { KeyRepeater } from '../game/controls';
 export default function Runtime() {
   const audio = useRef<Soundscape | null>(null);
   useEffect(() => {
+    const repeater = new KeyRepeater();
+    let softDrop = false;
+    const moves: Record<string, [number, number]> = {
+      KeyW: [0, -1],
+      ArrowUp: [0, -1],
+      KeyS: [0, 1],
+      ArrowDown: [0, 1],
+      KeyA: [-1, 0],
+      ArrowLeft: [-1, 0],
+      KeyD: [1, 0],
+      ArrowRight: [1, 0],
+    };
+    const clearKeys = () => {
+      repeater.clear();
+      softDrop = false;
+    };
+    const releaseKey = (e: KeyboardEvent) => {
+      repeater.release(e.code);
+      if (e.code === 'KeyV') softDrop = false;
+    };
+    const repeatTimer = window.setInterval(() => {
+      const s = useGame.getState();
+      if (
+        document.hidden ||
+        s.screen !== 'playing' ||
+        s.photoMode ||
+        document.querySelector('[role="dialog"]') ||
+        document.activeElement?.matches('input,select,textarea,button,[contenteditable="true"]')
+      ) {
+        repeater.clear();
+        return;
+      }
+      for (const code of repeater.poll(performance.now(), s.settings.repeatInterval))
+        s.move(...moves[code]);
+    }, 25);
     let last = performance.now(),
       lastSave = last,
       lastThreat = 0,
@@ -12,7 +48,7 @@ export default function Runtime() {
       lastDisasterPhase = '';
     const timer = window.setInterval(() => {
       const now = performance.now();
-      if (!document.hidden) useGame.getState().tick(Math.min((now - last) / 1000, 1));
+      if (!document.hidden) useGame.getState().tick(Math.min((now - last) / 1000, 1), softDrop);
       last = now;
       const current = useGame.getState(),
         hazard = current.game.disaster;
@@ -71,6 +107,7 @@ export default function Runtime() {
         s.save(true);
     };
     const visibility = () => {
+      clearKeys();
       if (document.hidden && useGame.getState().screen === 'playing') useGame.getState().pause();
       last = performance.now();
     };
@@ -97,12 +134,28 @@ export default function Runtime() {
       )
         return;
       const s = useGame.getState();
+      if (s.photoMode) {
+        if (e.code === 'Escape') {
+          e.preventDefault();
+          s.togglePhoto();
+        }
+        return;
+      }
+      if (document.querySelector('[role="dialog"]')) {
+        repeater.clear();
+        return;
+      }
       if (e.code === 'Escape') {
         if (s.screen === 'settings' || s.screen === 'about') s.setScreen(s.returnScreen);
         else s.pause();
         return;
       }
       if (s.screen !== 'playing' || s.game.world?.view === 'map') return;
+      if (e.code === 'KeyV') {
+        e.preventDefault();
+        softDrop = true;
+        return;
+      }
       if (el.closest('[role="dialog"]')) return;
       if (e.code === 'Tab' && !e.shiftKey && !el.closest('button')) {
         e.preventDefault();
@@ -118,19 +171,15 @@ export default function Runtime() {
         if (e.code === 'KeyF') s.rotateAxis('roll');
         return;
       }
-      const moves: Record<string, [number, number]> = {
-        KeyW: [0, -1],
-        ArrowUp: [0, -1],
-        KeyS: [0, 1],
-        ArrowDown: [0, 1],
-        KeyA: [-1, 0],
-        ArrowLeft: [-1, 0],
-        KeyD: [1, 0],
-        ArrowRight: [1, 0],
-      };
       if (moves[e.code]) {
         e.preventDefault();
-        s.move(...moves[e.code]);
+        if (!e.repeat && repeater.press(e.code, performance.now(), s.settings.repeatDelay))
+          s.move(...moves[e.code]);
+        return;
+      }
+      if (e.code === 'KeyZ' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        if (!e.repeat) s.undo();
         return;
       }
       if (!['KeyQ', 'KeyE', 'Space', 'KeyC', 'KeyX', 'KeyH'].includes(e.code)) return;
@@ -158,6 +207,14 @@ export default function Runtime() {
                   : 'recovered',
           );
       if (state.placementSerial !== prev.placementSerial) audio.current.cue('place');
+      if (state.game.active.rotation !== prev.game.active.rotation) audio.current.cue('rotate');
+      if (state.notice !== prev.notice && state.notice === 'held') audio.current.cue('hold');
+      if (state.notice !== prev.notice && state.notice === 'recycled') audio.current.cue('recycle');
+      if (
+        state.feedback !== prev.feedback &&
+        ['connection', 'power', 'balance', 'expansion'].includes(state.feedback)
+      )
+        audio.current.cue('combo');
       if (
         state.game.structure.nextEventId >= prev.game.structure.nextEventId &&
         state.game.elapsed >= prev.game.elapsed
@@ -170,14 +227,21 @@ export default function Runtime() {
       }
     });
     window.addEventListener('keydown', keyboard);
+    window.addEventListener('keyup', releaseKey);
+    window.addEventListener('blur', clearKeys);
+    window.addEventListener('pointerdown', clearKeys);
     window.addEventListener('keydown', unlock);
     window.addEventListener('pointerdown', unlock);
     window.addEventListener('beforeunload', unload);
     document.addEventListener('visibilitychange', visibility);
     return () => {
       clearInterval(timer);
+      clearInterval(repeatTimer);
       unsubscribe();
       window.removeEventListener('keydown', keyboard);
+      window.removeEventListener('keyup', releaseKey);
+      window.removeEventListener('blur', clearKeys);
+      window.removeEventListener('pointerdown', clearKeys);
       window.removeEventListener('keydown', unlock);
       window.removeEventListener('pointerdown', unlock);
       window.removeEventListener('beforeunload', unload);

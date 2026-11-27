@@ -9,6 +9,7 @@ import { operatingNetwork } from '../game/city/operations';
 import { key } from '../game/grid';
 import { targetInfo } from '../game/repair/maintenance';
 export function DisasterEffects() {
+  const photo = useGame((s) => s.photoMode);
   const g = useGame((s) => s.game),
     settings = useGame((s) => s.settings),
     rain = useRef<InstancedMesh>(null),
@@ -32,7 +33,7 @@ export function DisasterEffects() {
     rain.current.instanceMatrix.needsUpdate = true;
   });
   const lines = useMemo(() => {
-    if (!d) return new Float32Array();
+    if (!d || photo) return new Float32Array();
     const values: number[] = [];
     if (d.view === 'wind' || d.view === 'risk') {
       const loads = weatherLoads(g),
@@ -67,7 +68,7 @@ export function DisasterEffects() {
           values.push(a.x, (a.y ?? 0) * 3 + 0.35, a.z, b.x, (b.y ?? 0) * 3 + 0.35, b.z);
     }
     return new Float32Array(values);
-  }, [g, d]);
+  }, [g, d, photo]);
   if (!d) return null;
   return (
     <group raycast={() => {}}>
@@ -113,7 +114,8 @@ export function DisasterEffects() {
             />
           </mesh>
         ))}
-      {d.view === 'shield' &&
+      {!photo &&
+        d.view === 'shield' &&
         g.buildings
           .filter(
             (b) =>
@@ -156,6 +158,7 @@ export function DisasterEffects() {
             <group key={e.id}>
               <mesh
                 position={[e.cell.x, (e.cell.y ?? 0) * 3 + 0.2, e.cell.z]}
+                visible={!photo}
                 rotation={[-Math.PI / 2, 0, 0]}
                 raycast={() => {}}
               >
@@ -214,7 +217,8 @@ export function DisasterEffects() {
           )}
         </group>
       ))}
-      {['damage', 'recovery', 'aether'].includes(d.view) &&
+      {!photo &&
+        ['damage', 'recovery', 'aether'].includes(d.view) &&
         g.buildings
           .filter((b) =>
             d.view === 'aether'

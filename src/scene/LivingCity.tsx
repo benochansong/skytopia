@@ -51,9 +51,10 @@ export function DayLight() {
   );
 }
 export function LivingCity() {
+  const photo = useGame((s) => s.photoMode);
   const g = useGame((s) => s.game),
     settings = useGame((s) => s.settings),
-    mode = useGame((s) => s.analysisMode),
+    mode = useGame((s) => (s.photoMode ? 'off' : s.analysisMode)),
     citizens = useRef<InstancedMesh>(null),
     vehicles = useRef<InstancedMesh>(null),
     lights = useRef<InstancedMesh>(null),
@@ -254,7 +255,12 @@ export function LivingCity() {
     return null;
   return (
     <>
-      <instancedMesh ref={warnings} args={[undefined, undefined, 1792]} frustumCulled={false}>
+      <instancedMesh
+        ref={warnings}
+        args={[undefined, undefined, 1792]}
+        frustumCulled={false}
+        visible={!photo}
+      >
         <octahedronGeometry args={[1, 0]} />
         <meshBasicMaterial />
       </instancedMesh>

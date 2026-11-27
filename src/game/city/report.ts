@@ -120,7 +120,7 @@ export function cityReport(g: Game): CityReport {
   if (o.deficit > 0)
     advice.push({
       id: 'power',
-      priority: 85,
+      priority: 95,
       value: o.deficit,
       cell: g.buildings.find((b) => (o.network.powerRatios.get(b.id) ?? 1) < 0.5)?.origin,
     });
@@ -180,7 +180,12 @@ export function cityReport(g: Game): CityReport {
     environment,
     tierEligible,
     advice: advice
-      .filter((a) => (g.city.dismissed[a.id] ?? -Infinity) + 30 <= g.elapsed)
+      .filter(
+        (a) =>
+          a.priority >= 100 ||
+          (a.id === 'food' && g.city.hungerTime > 0) ||
+          (g.city.dismissed[a.id] ?? -Infinity) + 30 <= g.elapsed,
+      )
       .sort((a, b) => b.priority - a.priority)
       .slice(0, 3),
   };

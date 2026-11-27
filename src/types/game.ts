@@ -176,6 +176,14 @@ export type StructureState = {
   loss: null | { reason: 'lift' | 'balance' | 'core'; time: number; firstFailure: string };
 };
 export type Settings = {
+  controlsVersion: 1;
+  repeatDelay: number;
+  repeatInterval: number;
+  smartSnap: boolean;
+  rotationAssist: boolean;
+  assistance: 'guided' | 'normal' | 'expert';
+  cameraSensitivity: number;
+  zoomSensitivity: number;
   stormParticles: number;
   reducedFlashes: boolean;
   cameraShake: number;
@@ -195,6 +203,11 @@ export type Settings = {
   environment: boolean;
 };
 export type Game = {
+  polish?: {
+    version: 1;
+    recycleAt: number;
+    freeStyle?: 'relaxed' | 'classic' | 'engineering' | 'survival';
+  };
   world?: import('./world').WorldState;
   worldContext?: import('./world').WorldContext;
   campaign?: import('./campaign').CampaignRun;

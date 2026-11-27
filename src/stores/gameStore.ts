@@ -26,6 +26,10 @@ import { advanceDialogue, chooseStory, campaignStep } from '../game/campaign/run
 import { cityExample } from '../game/city/scenarios';
 import { create } from 'zustand';
 import type { Cell, Game, Settings, Kind, Target } from '../types/game';
+import { assistedCursor } from '../game/controls';
+import { buildFeedback, canUndo } from '../game/playFeedback';
+import { diagnose } from './diagnostics';
+import { stage } from '../game/campaign/definitions';
 import * as engine from '../game/engine';
 import { loadGame, loadSettings, saveGame, saveSettings } from '../game/storage';
 import { validatePlacement } from '../game/placement';
@@ -88,11 +92,16 @@ type Store = {
   storyChoice: (choice: string) => void;
   checkpoint: (restore?: boolean) => void;
   continueCity: () => void;
-  startFree: (resume?: boolean) => void;
+  startFree: (resume?: boolean, style?: 'relaxed' | 'classic' | 'engineering' | 'survival') => void;
   finishOpening: () => void;
   replayOpening: () => void;
 
   game: Game;
+  photoMode: boolean;
+  togglePhoto: () => void;
+  undo: () => void;
+  feedback: string;
+  feedbackUntil: number;
   screen: Screen;
   settings: Settings;
   hasSave: boolean;
@@ -123,7 +132,7 @@ type Store = {
   place: (cursor?: Cell) => void;
   hold: () => void;
   recycle: () => void;
-  tick: (dt: number) => void;
+  tick: (dt: number, softDrop?: boolean) => void;
   save: (silent?: boolean) => void;
   configure: (patch: Partial<Settings>) => void;
   camera: (mode?: 'free' | 'top' | 'front' | 'side' | 'below' | 'floor') => void;
@@ -144,6 +153,7 @@ const settings = loadSettings();
 const saved = loadGame();
 const campaignLoaded = loadCampaign();
 export const useGame = create<Store>((set, get) => {
+  let undoPoint: { before: Game; after: Game } | null = null;
   const apply = (next: Game) => {
     if (onlineActive()) return;
     const current = get();
@@ -222,9 +232,44 @@ export const useGame = create<Store>((set, get) => {
           : {}),
     });
   };
-  const active = () => get().screen === 'playing' && !get().game.campaign?.dialogue;
+  const active = () =>
+    get().screen === 'playing' && !get().photoMode && !get().game.campaign?.dialogue;
   const preview = (next: Game) => (onlineActive() ? set({ game: next }) : apply(next));
   return {
+    photoMode: false,
+    feedback: '',
+    feedbackUntil: 0,
+    togglePhoto: () => {
+      if (!['playing', 'paused', 'victory', 'gameover'].includes(get().screen)) return;
+      set({
+        photoMode: !get().photoMode,
+        ...(!get().photoMode
+          ? { cameraMode: 'free' as const, cameraReset: get().cameraReset + 1 }
+          : {}),
+      });
+    },
+    undo: () => {
+      const s = get();
+      if (
+        onlineActive() ||
+        !active() ||
+        s.game.campaign ||
+        s.game.world ||
+        s.game.disaster ||
+        s.game.difficulty === 'hard'
+      )
+        return;
+      if (!undoPoint || !canUndo(s.game, undoPoint.after)) {
+        set({ feedback: 'undoExpired', feedbackUntil: performance.now() + 2500 });
+        return;
+      }
+      set({
+        game: { ...undoPoint.before, settings: s.settings },
+        feedback: 'undone',
+        feedbackUntil: performance.now() + 2500,
+      });
+      undoPoint = null;
+    },
     startWorld: (options = {}) => {
       const loaded = options.resume ? loadWorld(!!options.example) : null;
       if (options.resume && !loaded?.ok) {
@@ -453,7 +498,7 @@ export const useGame = create<Store>((set, get) => {
       set({ game, screen: 'playing' });
       get().save(true);
     },
-    startFree: (resume = false) => {
+    startFree: (resume = false, style = 'classic') => {
       let game = resume ? get().campaignSave.free : null;
       if (!game) {
         game = cityExample(engine.newGame('citylab', Date.now() >>> 0, get().settings), 'C');
@@ -462,6 +507,13 @@ export const useGame = create<Store>((set, get) => {
           vertical: freshVertical(),
           labPaused: false,
           city: { ...game.city, unlimited: false },
+        };
+        if (style === 'survival') game = disasterCity(get().settings, 'survival');
+        game = {
+          ...game,
+          polish: { version: 1, recycleAt: 0, freeStyle: style },
+          difficulty: style === 'engineering' ? 'hard' : game.difficulty,
+          city: { ...game.city, unlimited: style === 'relaxed' },
         };
       }
       game = { ...game, vertical: game.vertical ?? freshVertical() };
@@ -589,10 +641,22 @@ export const useGame = create<Store>((set, get) => {
         cursor.z !== g.cursor.z ||
         (cursor.y ?? 0) !== (g.cursor.y ?? 0)
       )
-        preview(engine.move(g, cursor));
+        preview(
+          engine.move(
+            g,
+            get().settings.smartSnap &&
+              get().settings.assistance !== 'expert' &&
+              get().toolMode === 'build'
+              ? assistedCursor(g, cursor)
+              : cursor,
+          ),
+        );
     },
     rotate: (delta) => {
-      if (active()) preview(engine.turn(get().game, delta));
+      if (!active()) return;
+      const turned = engine.turn(get().game, delta);
+      const assist = get().settings.rotationAssist && get().settings.assistance !== 'expert';
+      preview(assist ? { ...turned, cursor: assistedCursor(turned, turned.cursor) } : turned);
     },
     place: (cursor) => {
       if (!active()) return;
@@ -607,6 +671,7 @@ export const useGame = create<Store>((set, get) => {
       }
       const g = cursor ? engine.move(get().game, cursor) : get().game;
       const v = validatePlacement(g);
+      diagnose('placementAttempt', v.reason);
       if (!v.valid) {
         set({ notice: v.reason });
         return;
@@ -617,7 +682,11 @@ export const useGame = create<Store>((set, get) => {
         return;
       }
       apply(next);
+      undoPoint = { before: g, after: get().game };
+      diagnose('placementSuccess', g.active.kind);
       set({
+        feedback: buildFeedback(g, next),
+        feedbackUntil: performance.now() + 2200,
         placementSerial: get().placementSerial + 1,
         lastPlaced: { ...g.cursor },
         notice: 'placed',
@@ -649,15 +718,32 @@ export const useGame = create<Store>((set, get) => {
           set({ notice: 'trainingFirst' });
           return;
         }
-        apply(engine.recycle(g));
+        const next = engine.recycle(g);
+        if (next === g) {
+          set({ feedback: 'recycleCooldown', feedbackUntil: performance.now() + 1800 });
+          return;
+        }
+        apply(next);
+        diagnose('recycle');
         set({ notice: 'recycled' });
       }
     },
-    tick: (dt) => {
+    tick: (dt, softDrop = false) => {
+      if (!Number.isFinite(dt) || dt <= 0) return;
       if (onlineActive()) return;
       if (!active()) return;
-      const g = get().game,
-        next = engine.tick(g, dt);
+      const g = get().game;
+      const falling =
+        softDrop &&
+        !g.labPaused &&
+        g.city.speed > 0 &&
+        g.mode === 'mission' &&
+        !g.reservedActive &&
+        (!g.campaign || stage(g.campaign.stage).fall);
+      const next = engine.tick(
+        falling ? { ...g, remaining: Math.max(0.001, g.remaining - Math.min(dt, 1) * 3) } : g,
+        dt,
+      );
       apply(next);
       if (g.active !== next.active)
         set({

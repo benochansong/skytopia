@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 import { useGame } from './stores/gameStore';
 import { HUD, Menu, Overlay } from './components/Interface';
 import Runtime from './components/Runtime';
+import PlayTools from './components/PlayTools';
 import { TEXT } from './locales/text';
 const CampaignScreens = lazy(() => import('./components/CampaignUI'));
 const CampaignOverlay = lazy(() =>
@@ -31,7 +32,9 @@ class SceneBoundary extends Component<{ children: ReactNode }, { error: boolean 
   }
 }
 export default function App() {
+  const photo = useGame((s) => s.photoMode);
   const online = useOnline((s) => s.enabled);
+  const onlineScene = useOnline((s) => !!s.room && s.room.phase !== 'lobby' && s.games.length > 0);
   const campaign = useGame((s) => s.game.campaign);
   const worldMap = useGame(
     (s) =>
@@ -51,8 +54,11 @@ export default function App() {
   const map = ['campaign', 'profile', 'challenges'].includes(screen);
   if (online)
     return (
-      <main className={`game-app ${reduced ? 'reduced-motion' : ''}`}>
+      <main
+        className={`game-app ${photo ? 'photo-active' : ''} ${reduced ? 'reduced-motion' : ''}`}
+      >
         <Runtime />
+        {onlineScene && <PlayTools />}
         <SceneBoundary>
           <Suspense fallback={<div className="loading-scene">SKY RIVALS…</div>}>
             <OnlineUI />
@@ -61,8 +67,9 @@ export default function App() {
       </main>
     );
   return (
-    <main className={`game-app ${reduced ? 'reduced-motion' : ''}`}>
+    <main className={`game-app ${photo ? 'photo-active' : ''} ${reduced ? 'reduced-motion' : ''}`}>
       <Runtime />
+      <PlayTools />
       {!map && !worldMap && (
         <SceneBoundary>
           <Suspense
@@ -87,11 +94,11 @@ export default function App() {
       ) : (
         <HUD />
       )}
-      {campaign && ['playing', 'paused', 'victory', 'gameover'].includes(screen) ? (
+      {!photo && campaign && ['playing', 'paused', 'victory', 'gameover'].includes(screen) ? (
         <Suspense fallback={null}>
           <CampaignOverlay key={campaign.stage + ':' + campaign.seed} />
         </Suspense>
-      ) : !map && screen !== 'opening' ? (
+      ) : !photo && !map && screen !== 'opening' ? (
         <Overlay />
       ) : null}
     </main>

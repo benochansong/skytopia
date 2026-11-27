@@ -91,6 +91,17 @@ export function worldReport(g: Game) {
     .slice(0, 8);
   return { cities, stable, routes, population, specialties, score, tier, nexus, warnings };
 }
+/** Display order never changes simulation order or economic transfers. */
+export function priorityCities(report: ReturnType<typeof worldReport>) {
+  const priority = (c: (typeof report.cities)[number]) =>
+    (c.city.game.structure.loss ? 1000 : 0) +
+    (c.structure.structural.critical ? 500 : 0) +
+    (c.city.game.disaster?.phase === 'active' ? 250 : 0) +
+    (c.economy.deficit > 0 ? 100 : 0) +
+    (c.economy.foodETA < 120 ? 50 : 0) +
+    Math.max(0, 100 - c.structure.stability);
+  return report.cities.slice().sort((a, b) => priority(b) - priority(a));
+}
 export function specialize(g: Game, id: string, specialty: Specialty): Game {
   if (!g.world) return g;
   const w = mutableWorld(syncWorld(g)),

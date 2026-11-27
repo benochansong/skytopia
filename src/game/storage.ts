@@ -40,6 +40,14 @@ const piece = z
       (!(p.pitch || p.roll) || ['beam', 'truss'].includes(p.kind)),
   );
 export const settingsSchema = z.object({
+  controlsVersion: z.literal(1).default(1),
+  repeatDelay: finite.int().min(120).max(600).default(260),
+  repeatInterval: finite.int().min(50).max(250).default(90),
+  smartSnap: z.boolean().default(false),
+  rotationAssist: z.boolean().default(true),
+  assistance: z.enum(['guided', 'normal', 'expert']).default('normal'),
+  cameraSensitivity: finite.min(0.3).max(2).default(1),
+  zoomSensitivity: finite.min(0.3).max(2).default(1),
   stormParticles: finite.int().min(0).max(200).default(96),
   reducedFlashes: z.boolean().default(true),
   cameraShake: finite.min(0).max(1).default(0),
@@ -158,6 +166,13 @@ const schema = z.object({
       builtColumns: finite.int().nonnegative(),
       builtBridges: finite.int().nonnegative(),
       emergencyCooldown: finite.nonnegative(),
+    })
+    .optional(),
+  polish: z
+    .object({
+      version: z.literal(1),
+      recycleAt: finite.nonnegative(),
+      freeStyle: z.enum(['relaxed', 'classic', 'engineering', 'survival']).optional(),
     })
     .optional(),
   city: citySchema,

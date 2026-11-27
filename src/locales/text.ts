@@ -92,7 +92,8 @@ export const TEXT = {
     pausedHint: '도시와 블록의 시간이 멈춰 있습니다.',
     aboutText:
       '서기 2478년. 에테르의 힘으로 살아남은 인류는 하늘에 새로운 문명을 건설합니다. 무작위로 공급되는 블록은 사라지지 않고 도시의 일부가 됩니다. 도로로 시설을 연결하고, 전력을 공급하며, 하늘의 균형을 지키세요.',
-    phaseNote: 'PHASE 7 · 구름 너머를 탐사하고 비공정으로 도시들을 연결하세요.',
+    phaseNote:
+      'PHASE 9 · 건축 조작을 설정하고 도시를 사진으로 남겨보세요. 온라인은 별도 서버가 필요합니다.',
     platformNote: '플랫폼은 섬 가장자리의 빈 공간에 연결하세요.',
     facilityNote: '시설은 플랫폼 위에 배치하고 중앙 도로망에 연결하세요.',
     quit: '저장 후 메뉴',
@@ -196,7 +197,8 @@ export const TEXT = {
     pausedHint: 'Your city and falling block are paused.',
     aboutText:
       'The year is 2478. Humanity has taken to the skies with the power of Aether. Each randomly supplied block becomes a permanent part of your city. Connect buildings with roads, supply power, and keep the sky in balance.',
-    phaseNote: 'PHASE 7 · Explore beyond the clouds and connect cities with airships.',
+    phaseNote:
+      'PHASE 9 · Tune building controls and capture your city. Online play requires a separate server.',
     platformNote: 'Connect platforms to empty spaces along the island edge.',
     facilityNote: 'Place facilities on platforms and connect to the central road.',
     quit: 'Save & main menu',

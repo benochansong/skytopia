@@ -17,7 +17,13 @@ import {
 } from '../game/world/logistics';
 import { regionNames, shipDefs, specialtyNames, technologies } from '../game/world/definitions';
 import { startResearch } from '../game/world/research';
-import { buildBridge, orderWorldFacility, specialize, worldReport } from '../game/world/management';
+import {
+  buildBridge,
+  orderWorldFacility,
+  specialize,
+  worldReport,
+  priorityCities,
+} from '../game/world/management';
 import { canUse } from '../game/campaign/runtime';
 import { stage } from '../game/campaign/definitions';
 import { campaignGoals } from '../game/campaign/objectives';
@@ -652,7 +658,7 @@ export default function WorldUI() {
         )}
         {tab === 'cities' && (
           <div className="world-grid">
-            {report.cities.map(({ city: c, structure: a, economy: r, resilience }) => (
+            {priorityCities(report).map(({ city: c, structure: a, economy: r, resilience }) => (
               <article className="world-card" key={c.id}>
                 <input
                   aria-label={text('도시 이름', 'City name')}
@@ -683,6 +689,21 @@ export default function WorldUI() {
                   {text('식량 순생산', 'Net food')}{' '}
                   {(r.foodProduction - r.foodConsumption).toFixed(1)}/s
                 </p>
+                {r.foodETA < 120 && (
+                  <p className="error-message">
+                    △ {text('식량 부족 예상', 'Food shortage in')} {Math.ceil(r.foodETA)}s ·{' '}
+                    {text('공급 후보', 'Potential supplier')}:{' '}
+                    {report.cities
+                      .filter(
+                        (x) =>
+                          x.city.id !== c.id &&
+                          x.economy.foodProduction > x.economy.foodConsumption &&
+                          x.economy.stocks.food > 50,
+                      )
+                      .map((x) => x.city.name)
+                      .join(', ') || text('잉여 도시 없음', 'No surplus city')}
+                  </p>
+                )}
                 <p>
                   {CARGO_TYPES.filter((x) => x !== 'passengers')
                     .map((x) => `${resourceNames[x][index]} ${number(cargoStock(c, x))}`)

@@ -225,7 +225,20 @@ export function CityHUD() {
                 setTab('overview');
               }}
             >
+              {a.priority >= 100 ? '‼ ' : a.priority >= 85 ? '△ ' : '○ '}
               {t[a.id as keyof typeof t] ?? a.id} · {n(a.value)} →{' '}
+              {a.id === 'food' && (
+                <small>
+                  {ko ? '생산 / 소비' : 'Production / consumption'} {r.foodProduction.toFixed(2)} /{' '}
+                  {r.foodConsumption.toFixed(2)} · {ko ? '비축' : 'Stock'} {n(r.stocks.food)}
+                </small>
+              )}
+              {a.id === 'power' && (
+                <small>
+                  {ko ? '공급 / 수요' : 'Supplied / demand'} {r.supplied.toFixed(1)} /{' '}
+                  {r.demand.toFixed(1)}
+                </small>
+              )}
               <small>{adviceText[lang][a.id as keyof typeof adviceText.ko]}</small>
             </button>
             <button

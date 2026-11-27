@@ -1,0 +1,8 @@
+{
+  "elapsed": 6.200000001117587,
+  "nextId": 1,
+  "supplied": true,
+  "draws": [6, 6],
+  "materials": [102, 102],
+  "note": "Synchronous browser store action; not human input latency or a hardware FPS claim."
+}

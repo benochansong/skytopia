@@ -1,0 +1,124 @@
+.play-tools {
+  position: absolute;
+  top: 32px;
+  left: 270px;
+  display: flex;
+  gap: 4px;
+  padding: 5px;
+  z-index: 8;
+  max-width: 230px;
+}
+.play-tools button {
+  font-size: 11px;
+  padding: 6px 8px;
+  white-space: nowrap;
+}
+.topbar .logo.small {
+  margin-right: 185px;
+}
+.play-tools.online-tools {
+  left: calc(50% + 75px);
+  top: 30px;
+}
+.city-tools-menu {
+  position: relative;
+}
+.city-tools-menu summary {
+  cursor: pointer;
+  padding: 6px 8px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.city-tools-menu > div {
+  position: absolute;
+  top: 35px;
+  left: 0;
+  display: grid;
+  gap: 5px;
+  min-width: 170px;
+  padding: 10px;
+  background: #203b43;
+  border: 1px solid #658582;
+  border-radius: 8px;
+}
+.build-feedback {
+  position: absolute;
+  top: 265px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 9px 18px;
+  border: 1px solid #a7e8cd;
+  background: #163e3aeb;
+  color: #e5fff4;
+  border-radius: 20px;
+  z-index: 9;
+  pointer-events: none;
+}
+.photo-tools {
+  position: absolute;
+  bottom: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  padding: 14px 20px;
+  z-index: 30;
+  width: max-content;
+  max-width: 90vw;
+}
+.photo-tools span,
+.photo-tools small {
+  font-size: 12px;
+}
+.control-settings {
+  border: 1px solid #b8cbbd66;
+  border-radius: 8px;
+  padding: 14px;
+  margin-bottom: 16px;
+}
+.control-settings label {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  align-items: center;
+  margin: 8px 0;
+}
+.control-settings input[type='range'] {
+  width: 125px;
+}
+.placement-insight {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  max-width: 470px;
+  font-size: 11px;
+  margin: auto;
+  padding: 5px 9px;
+  background: #f8f5e4e8;
+  border-radius: 8px;
+  color: #274343;
+}
+.placement-insight button {
+  padding: 3px 7px;
+  font-size: 11px;
+}
+.photo-active .hud,
+.photo-active .overlay,
+.photo-active .campaign-overlay {
+  display: none;
+}
+@media (max-width: 1000px) {
+  .play-tools {
+    top: 32px;
+    left: 190px;
+    max-width: 200px;
+  }
+  .build-feedback {
+    top: 175px;
+  }
+}

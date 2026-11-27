@@ -126,7 +126,7 @@ rules·types·storage·supply·engine, city/report/actions/advisor/growth, First
 
 ## 32. 실제 브라우저 플레이
 
-새 UX3흐름은 통과했다. 전체 Chrome과 Edge에서 캠페인·저장·자유·생존·그래픽·온라인 회귀를 확인한다. 실제 시각 자료는 docs/images에 보존한다. 최종 수량은 PLAYTEST_REPORT.md를 따른다.
+새 UX3흐름은 통과했다. Chrome에서 캠페인·저장·자유·생존·그래픽·온라인 회귀를 검사하고, Edge에서는 UX·대전/협동·그래픽 9흐름을 통과했다. 실제 시각 자료는 docs/images에 보존한다. 최종 수량은 PLAYTEST_REPORT.md를 따른다.
 
 ## 33. 확인된 버그
 

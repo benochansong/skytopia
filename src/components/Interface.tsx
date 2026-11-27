@@ -1,4 +1,5 @@
 import { WorldEntry, WorldControls } from './WorldUI';
+import { openOnline } from '../multiplayer/client';
 import { DisasterEntry, DisasterControls } from './DisasterUI';
 import { VerticalEntry, VerticalControls } from './VerticalUI';
 import { stage } from '../game/campaign/definitions';
@@ -278,7 +279,7 @@ export function Menu() {
     <div className="menu-screen">
       <header className="menu-top">
         <span className="edition">
-          STORMS OF AETHER <i>06</i>
+          SKY RIVALS <i>08</i>
         </span>
         <button
           className="language-button"
@@ -313,6 +314,10 @@ export function Menu() {
           <CampaignEntry />
           <VerticalEntry />
           <WorldEntry />
+          <button onClick={openOnline}>
+            {lang === 'ko' ? '온라인 · SKY RIVALS' : 'Online · SKY RIVALS'}
+            <span className="tag">08</span>
+          </button>
           <DisasterEntry />
           <button className="primary" onClick={() => start('mission')}>
             <Icon name="play" size={17} />
@@ -348,7 +353,7 @@ export function Menu() {
       <footer className="menu-footer">
         <span>BUILD ABOVE. BALANCE THE SKY. RISE BEYOND.</span>
         <span>
-          PHASE 7 <b>·</b> v0.7.0
+          PHASE 8 <b>·</b> v0.8.0
         </span>
       </footer>
       {pending ? (

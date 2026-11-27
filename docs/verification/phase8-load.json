@@ -1,0 +1,50 @@
+{
+  "date": "2026-11-27T00:32:31.697Z",
+  "node": "v24.14.0",
+  "platform": "win32",
+  "note": "Single-process loopback; real WS clients; initial cities; no build spam, TLS, WAN or GPU. Not a production capacity promise.",
+  "measurements": [
+    {
+      "matches": 2,
+      "players": 4,
+      "cities": 4,
+      "seconds": 10.0146178,
+      "cpuMs": 1547,
+      "p50TickMs": 23.1265999999996,
+      "p95TickMs": 59.105100000000675,
+      "tickSamples": 38,
+      "outgoingBytesPerSecond": 38904.72984400862,
+      "maxMessageBytes": 29308,
+      "rssBytes": 134742016,
+      "buildingsPerCity": 39
+    },
+    {
+      "matches": 4,
+      "players": 8,
+      "cities": 8,
+      "seconds": 10.00802,
+      "cpuMs": 3360,
+      "p50TickMs": 41.130999999997584,
+      "p95TickMs": 105.18540000000212,
+      "tickSamples": 38,
+      "outgoingBytesPerSecond": 78255.43913781147,
+      "maxMessageBytes": 29320,
+      "rssBytes": 201781248,
+      "buildingsPerCity": 39
+    },
+    {
+      "matches": 8,
+      "players": 16,
+      "cities": 16,
+      "seconds": 10.006599699999999,
+      "cpuMs": 5547,
+      "p50TickMs": 125.49179999999615,
+      "p95TickMs": 196.57589999999618,
+      "tickSamples": 39,
+      "outgoingBytesPerSecond": 163458.32241095847,
+      "maxMessageBytes": 29322,
+      "rssBytes": 286670848,
+      "buildingsPerCity": 39
+    }
+  ]
+}

@@ -1,3 +1,4 @@
+import { onlineActive, onlineAction } from '../multiplayer/port';
 import { worldAchievements } from '../game/world/progress';
 import { newWorld, worldExample } from '../game/world/scenarios';
 import { createWorld, switchCity } from '../game/world/state';
@@ -144,6 +145,7 @@ const saved = loadGame();
 const campaignLoaded = loadCampaign();
 export const useGame = create<Store>((set, get) => {
   const apply = (next: Game) => {
+    if (onlineActive()) return;
     const current = get();
     if (next.campaign) {
       next = campaignStep(next, 0);
@@ -221,6 +223,7 @@ export const useGame = create<Store>((set, get) => {
     });
   };
   const active = () => get().screen === 'playing' && !get().game.campaign?.dialogue;
+  const preview = (next: Game) => (onlineActive() ? set({ game: next }) : apply(next));
   return {
     startWorld: (options = {}) => {
       const loaded = options.resume ? loadWorld(!!options.example) : null;
@@ -559,6 +562,7 @@ export const useGame = create<Store>((set, get) => {
       });
     },
     pause: () => {
+      if (onlineActive()) return;
       const s = get().screen;
       if (s === 'playing') {
         get().save(true);
@@ -569,7 +573,7 @@ export const useGame = create<Store>((set, get) => {
       if (!active()) return;
       const g = get().game,
         d = cameraMove(dx, dz, get().azimuth);
-      apply(
+      preview(
         engine.move(g, {
           x: g.cursor.x + d.x,
           z: g.cursor.z + d.z,
@@ -585,15 +589,20 @@ export const useGame = create<Store>((set, get) => {
         cursor.z !== g.cursor.z ||
         (cursor.y ?? 0) !== (g.cursor.y ?? 0)
       )
-        apply(engine.move(g, cursor));
+        preview(engine.move(g, cursor));
     },
     rotate: (delta) => {
-      if (active()) apply(engine.turn(get().game, delta));
+      if (active()) preview(engine.turn(get().game, delta));
     },
     place: (cursor) => {
       if (!active()) return;
       if (get().toolMode === 'inspect') {
         get().select(cursor ?? get().game.cursor);
+        return;
+      }
+      if (onlineActive()) {
+        if (cursor) set({ game: engine.move(get().game, cursor) });
+        onlineAction('place');
         return;
       }
       const g = cursor ? engine.move(get().game, cursor) : get().game;
@@ -615,6 +624,10 @@ export const useGame = create<Store>((set, get) => {
       });
     },
     hold: () => {
+      if (onlineActive()) {
+        onlineAction('hold');
+        return;
+      }
       if (active()) {
         const g = get().game;
         if (g.mode === 'training' && g.tutorial < 8) {
@@ -626,6 +639,10 @@ export const useGame = create<Store>((set, get) => {
       }
     },
     recycle: () => {
+      if (onlineActive()) {
+        onlineAction('recycle');
+        return;
+      }
       if (active()) {
         const g = get().game;
         if (g.mode === 'training' && g.tutorial < 8) {
@@ -637,6 +654,7 @@ export const useGame = create<Store>((set, get) => {
       }
     },
     tick: (dt) => {
+      if (onlineActive()) return;
       if (!active()) return;
       const g = get().game,
         next = engine.tick(g, dt);
@@ -650,6 +668,7 @@ export const useGame = create<Store>((set, get) => {
         });
     },
     save: (silent = false) => {
+      if (onlineActive()) return;
       if (get().game.world && !get().game.campaign) {
         const ok = saveWorld(get().game);
         set({

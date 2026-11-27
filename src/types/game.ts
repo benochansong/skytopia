@@ -131,7 +131,14 @@ export type Building = Piece & {
   reinforcement?: number;
   temporary?: number;
 };
-export type Supply = { seed: number; bag: Kind[]; draws: number; policy?: 'classic' | 'adaptive' };
+export type Supply = {
+  seed: number;
+  bag: Kind[];
+  draws: number;
+  policy?: 'classic' | 'adaptive';
+  version?: 2;
+  recent?: Kind[];
+};
 export type Difficulty = 'easy' | 'normal' | 'hard';
 export type Target = { type: 'platform' | 'edge' | 'building'; id: string };
 export type EdgeState = { durability: number; reinforcement: number };
@@ -176,6 +183,10 @@ export type StructureState = {
   loss: null | { reason: 'lift' | 'balance' | 'core'; time: number; firstFailure: string };
 };
 export type Settings = {
+  uxVersion: 1;
+  textScale: number;
+  highContrast: boolean;
+  onboarding: boolean;
   graphicsVersion: 1;
   quality: 'low' | 'medium' | 'high' | 'ultra';
   cloudDensity: number;

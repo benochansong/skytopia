@@ -84,6 +84,7 @@ test('real two-browser duel: invite, fair start, authoritative placement, reconn
       ),
     );
     await start(a, b);
+    await expect(a.getByTestId('rules-version')).toHaveText('Rules v2');
     const first = await state(a),
       second = await state(b);
     expect(first.id).not.toBe(second.id);

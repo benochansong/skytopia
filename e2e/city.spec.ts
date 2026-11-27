@@ -3,6 +3,7 @@ test('City Lab operations, overlays, upgrade, time, night and separate save', as
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/');
+  await page.locator('summary').filter({ hasText: '실험실 · 구조와 도시' }).click();
   await page.getByRole('button', { name: '도시 운영 실험실' }).click();
   await page.getByRole('button', { name: '새 실험 시작' }).click();
   await page.getByRole('button', { name: '도시 운영 ↗', exact: true }).click();
@@ -45,6 +46,7 @@ test('City Lab operations, overlays, upgrade, time, night and separate save', as
   expect(saved.city.speed).toBe(0);
   await page.screenshot({ path: 'test-results/phase3-night.png' });
   await page.reload();
+  await page.locator('summary').filter({ hasText: '실험실 · 구조와 도시' }).click();
   await page.getByRole('button', { name: '도시 운영 실험실' }).click();
   await page.getByRole('button', { name: '실험 불러오기' }).click();
   expect(await page.evaluate(() => window.__SKYTOPIA_TEST__!.getState().game.city)).toEqual(
@@ -54,6 +56,7 @@ test('City Lab operations, overlays, upgrade, time, night and separate save', as
 });
 test('campaign lists new missions and shows separate Living City economy', async ({ page }) => {
   await page.goto('/');
+  await page.locator('summary').filter({ hasText: '실험실 · 구조와 도시' }).click();
   await page.getByRole('button', { name: '캠페인 선택' }).click();
   await page.getByRole('button', { name: /MISSION 05/ }).click();
   await expect(page.getByRole('heading', { name: '첫 번째 수확' })).toBeVisible();

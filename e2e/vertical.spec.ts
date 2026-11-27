@@ -16,6 +16,7 @@ test('vertical workshop builds connected upper housing, switches floors, inspect
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/');
+  await page.locator('summary').filter({ hasText: '실험실 · 구조와 도시' }).click();
   await page.getByRole('button', { name: '수직 건설 실험실', exact: true }).click();
   await expect(page.getByLabel('층 선택')).toBeVisible();
   await place(page, -2, 1);
@@ -55,6 +56,7 @@ test('vertical workshop builds connected upper housing, switches floors, inspect
   );
   expect(saved.version).toBe(5);
   await page.reload();
+  await page.locator('summary').filter({ hasText: '실험실 · 구조와 도시' }).click();
   await page.getByRole('button', { name: '수직 실험 이어하기', exact: true }).click();
   expect(await page.evaluate(() => window.__SKYTOPIA_TEST__!.getState().game.buildings)).toEqual(
     saved.buildings,
@@ -71,6 +73,7 @@ test('all five vertical examples, six views and camera presets render without mu
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/');
+  await page.locator('summary').filter({ hasText: '실험실 · 구조와 도시' }).click();
   await page.getByRole('button', { name: '수직 건설 실험실', exact: true }).click();
   for (const example of ['A', 'B', 'C', 'D', 'E']) {
     await page.getByRole('button', { name: '입체 공방', exact: true }).click();

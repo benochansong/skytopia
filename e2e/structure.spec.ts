@@ -7,6 +7,7 @@ test('laboratory overlays, inspection, timed repair, reinforcement, demolition a
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/');
+  await page.locator('summary').filter({ hasText: '실험실 · 구조와 도시' }).click();
   await page.getByRole('button', { name: '구조 실험실' }).click();
   await page.getByRole('button', { name: /EXPERIMENT D/ }).click();
   expect((await game(page)).labPaused).toBe(true);
@@ -49,6 +50,7 @@ test('laboratory overlays, inspection, timed repair, reinforcement, demolition a
   expect(await page.evaluate(() => localStorage.getItem('skytopia.save.v5'))).toBeNull();
   await page.screenshot({ path: 'test-results/phase2-lab.png' });
   await page.reload();
+  await page.locator('summary').filter({ hasText: '실험실 · 구조와 도시' }).click();
   await page.getByRole('button', { name: '구조 실험실' }).click();
   await page.getByRole('button', { name: '실험 이어하기', exact: true }).click();
   expect((await game(page)).platforms).toEqual(saved.platforms);
@@ -61,6 +63,7 @@ test('mission selection, purchased blueprint, forecast, collapse history and rel
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/');
+  await page.locator('summary').filter({ hasText: '실험실 · 구조와 도시' }).click();
   await page.getByRole('button', { name: '캠페인 선택' }).click();
   await page.getByRole('button', { name: /MISSION 03/ }).click();
   await expect(page.getByRole('heading', { name: '하늘의 균형' })).toBeVisible();

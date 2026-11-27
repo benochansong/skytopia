@@ -78,6 +78,9 @@ function Results({ result, ko }: { result: Result; ko: boolean }) {
               ? '공동 결과'
               : 'Shared result'}
       </p>
+      <p>
+        {ko ? '규칙' : 'Rules'} v{result.rulesVersion ?? 1}
+      </p>
       <div className="online-scorecards">
         {result.players.map((p) => (
           <article key={p.id}>
@@ -138,6 +141,9 @@ function MatchHUD({ ko }: { ko: boolean }) {
             {r.options.mode === 'coop' ? 'CO-OP CITY' : 'SKY DUEL'}
           </span>
           <strong>{r.options.name}</strong>
+          <span data-testid="rules-version">
+            {t('규칙', 'Rules')} v{r.rulesVersion ?? 1}
+          </span>
           <small>
             {r.code} · {s.latency} ms ·{' '}
             {s.status === 'connected'

@@ -1,10 +1,12 @@
 # SKYTOPIA: AETHER RISING
 
-**PHASE 10 — VISUAL UPGRADE · 하늘의 예술**
+**PHASE 11 — BALANCE & UX · 균형과 사용성**
 
 무작위로 내려오는 블록으로 공중 도시를 짓고, 인구·식량·전력·경제·구조 안전을 함께 관리하는 3D 건설 퍼즐입니다. Phase 1–7의 30미션 캠페인·수직 건설·재난·문명 운영을 유지하며, 별도 권위 서버를 사용하는 실제 2인 대전과 공동 도시 협동을 추가합니다. 싱글플레이는 서버 없이 이용할 수 있습니다.
 
 ![실제 도시의 사진 모드 캡처](docs/images/phase10-capture.png)
+
+Phase 11은 새 오프라인 게임의 필수 공급 공백과 연속 반복을 제한하고, 구역별 식량 소진 예상·치명적 경고·지원 비용 경계를 개선합니다. 메뉴 그룹, 큰 글자·높은 대비, 첫 건설 안내와 인구 정체 이유를 제공합니다. 기존 도시 능력치·캠페인 목표·시각 스타일은 유지합니다. [개발 보고](docs/PHASE11-REPORT.md), [밸런스](docs/BALANCE_GUIDE.md), [난이도](docs/DIFFICULTY_GUIDE.md), [UX](docs/UX_GUIDE.md), [측정과 검증](docs/PLAYTEST_REPORT.md), [알려진 제약](docs/KNOWN_ISSUES.md)을 참고하세요.
 
 Phase 10은 실제 플랫폼에 맞춘 섬, 핵심 주택·산업·농업 모델, 코어 출력·가동·야간 창문 표현, 하늘 그라데이션과 지역 색, 공유 geometry와 인스턴싱, 화질 프리셋을 제공합니다. 사진 모드에서 시간대·구름·설계도·최대 2배 PNG·로고를 선택합니다. [개발 보고](docs/PHASE10-REPORT.md), [아트 방향](docs/ART_DIRECTION.md), [에셋 파이프라인](docs/ASSET_PIPELINE.md), [그래픽 안내](docs/GRAPHICS_GUIDE.md), [검증 기록](docs/VERIFICATION.md)을 참고하세요.
 
@@ -25,6 +27,7 @@ npm run build        # dist/ 정적 빌드
 npm run preview
 npm run test:e2e      # Chrome; 격리된 5188 테스트 서버
 npm run test:e2e:edge
+npm run balance:audit -- after # 개발용 고정 시나리오 JSON/CSV
 npm run format:check
 npm run server:build # dist-server/index.mjs
 npm run server:start # .env 사용, 기본 127.0.0.1:8787

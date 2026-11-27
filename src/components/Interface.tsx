@@ -1,3 +1,4 @@
+import { FirstSteps } from './FirstSteps';
 import { WorldEntry, WorldControls } from './WorldUI';
 import { openOnline } from '../multiplayer/client';
 import { DisasterEntry, DisasterControls } from './DisasterUI';
@@ -281,7 +282,7 @@ export function Menu() {
     <div className="menu-screen">
       <header className="menu-top">
         <span className="edition">
-          VISUAL UPGRADE <i>10</i>
+          BALANCE & UX <i>11</i>
         </span>
         <button
           className="language-button"
@@ -314,13 +315,12 @@ export function Menu() {
         <p>{t.subtitle}</p>
         <div className="menu-actions">
           <CampaignEntry />
-          <VerticalEntry />
           <WorldEntry />
           <button onClick={openOnline}>
             {lang === 'ko' ? '온라인 · SKY RIVALS' : 'Online · SKY RIVALS'}
             <span className="tag">08</span>
           </button>
-          <DisasterEntry />
+          <DisasterEntry section="survival" />
           <button className="primary" onClick={() => start('mission')}>
             <Icon name="play" size={17} />
             {t.newGame}
@@ -332,8 +332,17 @@ export function Menu() {
             {t.training}
             <span className="tag">{lang === 'ko' ? '추천' : 'START HERE'}</span>
           </button>
-          <Phase2Menu />
-          <CityMenu />
+          <details className="menu-group">
+            <summary>
+              {lang === 'ko' ? '실험실 · 구조와 도시' : 'Laboratories · structure and city'}
+            </summary>
+            <div className="menu-group-content">
+              <Phase2Menu />
+              <CityMenu />
+              <VerticalEntry />
+              <DisasterEntry section="lab" />
+            </div>
+          </details>
         </div>
         <div className="menu-links">
           <button onClick={() => useGame.getState().setScreen('settings')}>{t.settings}</button>
@@ -355,7 +364,7 @@ export function Menu() {
       <footer className="menu-footer">
         <span>BUILD ABOVE. BALANCE THE SKY. RISE BEYOND.</span>
         <span>
-          PHASE 10 <b>·</b> v0.10.0
+          PHASE 11 <b>·</b> v0.11.0
         </span>
       </footer>
       {pending ? (
@@ -461,6 +470,7 @@ export function HUD() {
       <VerticalControls />
       <DisasterControls />
       <aside className="left-rail">
+        <FirstSteps />
         {g.campaign ? (
           <CampaignObjectives />
         ) : g.world ? (

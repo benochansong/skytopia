@@ -4,6 +4,7 @@ test('measured WebGL performance and resource release', async ({ page, browser }
   test.skip(!process.env.SKYTOPIA_MEASURE, 'Manual measurement; no claimed hardware FPS target.');
   test.setTimeout(180000);
   await page.goto('/');
+  await page.locator('summary').filter({ hasText: '실험실 · 구조와 도시' }).click();
   await page.getByRole('button', { name: '구조 실험실' }).click();
   await page.getByRole('button', { name: /EXPERIMENT A/ }).click();
   const snapshots: unknown[] = [];

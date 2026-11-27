@@ -107,6 +107,7 @@ test('graphics presets, photo looks and bounded capture preserve the paused city
     if (m.type() === 'error' && /THREE|Shader|WebGL/i.test(m.text())) errors.push(m.text());
   });
   await page.goto('/');
+  await page.locator('summary').filter({ hasText: '실험실 · 구조와 도시' }).click();
   await page.getByRole('button', { name: '도시 운영 실험실' }).click();
   await page.getByRole('button', { name: '새 실험 시작', exact: true }).click();
   await page.evaluate(() => {
@@ -208,6 +209,7 @@ test('same-city WebGL counters and resource return after visual upgrade', async 
   test.skip(!process.env.SKYTOPIA_VISUAL_MEASURE, 'Manual software WebGL measurement');
   test.setTimeout(180000);
   await page.goto('/');
+  await page.locator('summary').filter({ hasText: '실험실 · 구조와 도시' }).click();
   await page.getByRole('button', { name: '도시 운영 실험실' }).click();
   await page.getByRole('button', { name: '새 실험 시작', exact: true }).click();
   const snapshots = [];

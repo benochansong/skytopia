@@ -4,6 +4,7 @@ test('disaster forecast, shields, pause and separate save survive a reload', asy
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/');
+  await page.locator('summary').filter({ hasText: '실험실 · 구조와 도시' }).click();
   await page.getByRole('button', { name: '재난 실험실', exact: true }).click();
   await page.getByRole('button', { name: '재난 대응', exact: true }).click();
   await page.getByRole('button', { name: /^D ·/ }).click();
@@ -23,6 +24,7 @@ test('disaster forecast, shields, pause and separate save survive a reload', asy
   expect(saved.disaster.threat.impacts.length).toBeGreaterThan(0);
   expect(await page.evaluate(() => localStorage.getItem('skytopia.vertical.v2'))).toBeNull();
   await page.reload();
+  await page.locator('summary').filter({ hasText: '실험실 · 구조와 도시' }).click();
   await page.getByRole('button', { name: '재난 실험 이어하기', exact: true }).click();
   expect(
     await page.evaluate(() => window.__SKYTOPIA_TEST__!.getState().game.disaster!.threat),
@@ -48,6 +50,7 @@ test('six disaster examples, analysis overlays and English controls render', asy
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/');
+  await page.locator('summary').filter({ hasText: '실험실 · 구조와 도시' }).click();
   await page.getByRole('button', { name: '재난 실험실', exact: true }).click();
   await page.getByRole('button', { name: '재난 대응', exact: true }).click();
   for (const example of ['A', 'B', 'C', 'D', 'E', 'F']) {

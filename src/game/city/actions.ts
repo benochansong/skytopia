@@ -116,10 +116,26 @@ export function setOperation(
     return g;
   return { ...g, buildings: g.buildings.map((b) => (b.id === id ? { ...b, ...patch } : b)) };
 }
+export function supportReason(g: Game, type: 'food' | 'power' | 'grant') {
+  if (g.structure.loss || !g.city.enabled) return 'unavailable';
+  if (type === 'grant') {
+    if (g.city.aidUses >= cityDifficulty[g.difficulty].aid) return 'limit';
+    return g.city.credits >= 100 ? 'balance' : null;
+  }
+  if ((type === 'food' ? g.city.foodCooldown : g.city.powerCooldown) > 0) return 'cooldown';
+  if (type === 'food') {
+    const inv = inventory(g);
+    if (inv.capacity.food - inv.stocks.food < CITY_RULES.foodDelivery) return 'storage';
+  }
+  const cost =
+    type === 'food'
+      ? { materials: 0, credits: CITY_RULES.foodPrice, aether: 0 }
+      : CITY_RULES.powerCost;
+  return canPay(g, cost) ? null : 'resources';
+}
 export function emergencyFood(g: Game): Game {
   const cost = { materials: 0, credits: CITY_RULES.foodPrice, aether: 0 };
-  if (g.structure.loss) return g;
-  if (g.city.foodCooldown > 0 || !canPay(g, cost) || !g.city.enabled) return g;
+  if (supportReason(g, 'food')) return g;
   const next = adjustStock(pay(g, cost), inventory(g).root, 'food', CITY_RULES.foodDelivery);
   return cityEvent(
     { ...next, city: { ...next.city, foodCooldown: CITY_RULES.foodCooldown } },
@@ -128,8 +144,8 @@ export function emergencyFood(g: Game): Game {
   );
 }
 export function emergencyPower(g: Game): Game {
-  const cost = { materials: 15, credits: 35, aether: 2 };
-  if (g.structure.loss || !g.city.enabled || g.city.powerCooldown > 0 || !canPay(g, cost)) return g;
+  const cost = CITY_RULES.powerCost;
+  if (supportReason(g, 'power')) return g;
   const next = pay(g, cost);
   return cityEvent(
     {
@@ -145,13 +161,7 @@ export function emergencyPower(g: Game): Game {
   );
 }
 export function aid(g: Game): Game {
-  if (
-    g.structure.loss ||
-    !g.city.enabled ||
-    g.city.aidUses >= cityDifficulty[g.difficulty].aid ||
-    g.city.credits >= 100
-  )
-    return g;
+  if (supportReason(g, 'grant')) return g;
   let next = adjustStock(g, inventory(g).root, 'food', 60);
   next = adjustStock(next, inventory(next).root, 'materials', 30);
   return cityEvent(

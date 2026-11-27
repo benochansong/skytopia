@@ -29,6 +29,34 @@ export function ControlSettings() {
     <fieldset className="control-settings">
       <legend>{ko ? '건축 조작' : 'Building controls'}</legend>
       <label>
+        {ko ? '글자 크기' : 'Text size'}
+        <select
+          aria-label={ko ? '글자 크기' : 'Text size'}
+          value={s.textScale}
+          onChange={(e) => set({ textScale: Number(e.target.value) })}
+        >
+          <option value="1">100%</option>
+          <option value="1.15">115%</option>
+          <option value="1.3">130%</option>
+        </select>
+      </label>
+      <label>
+        {ko ? '높은 대비' : 'High contrast'}
+        <input
+          type="checkbox"
+          checked={s.highContrast}
+          onChange={(e) => set({ highContrast: e.target.checked })}
+        />
+      </label>
+      <label>
+        {ko ? '첫 건설 안내' : 'First building guide'}
+        <input
+          type="checkbox"
+          checked={s.onboarding}
+          onChange={(e) => set({ onboarding: e.target.checked })}
+        />
+      </label>
+      <label>
         {ko ? '보조 수준' : 'Assistance'}
         <select
           aria-label={ko ? '보조 수준' : 'Assistance'}

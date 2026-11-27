@@ -1,3 +1,13 @@
+// Balance revisions are recorded independently; physical/economy constants remain compatible.
+export const BALANCE = {
+  solo: 2,
+  campaign: 1,
+  disaster: 1,
+  supply: 2,
+  supplyHistory: 24,
+  supplyNeedAge: 8,
+  repeatLimit: 2,
+} as const;
 import type { Building } from '../types/game';
 import type { Stock } from '../types/city';
 import type { Cell, Kind, Settings, Shape } from '../types/game';
@@ -324,6 +334,10 @@ export const VERTICAL_DEFS: Partial<
   },
 };
 export const DEFAULT_SETTINGS: Settings = {
+  uxVersion: 1,
+  textScale: 1,
+  highContrast: false,
+  onboarding: true,
   graphicsVersion: 1,
   quality: 'medium',
   cloudDensity: 0.7,
@@ -1745,6 +1759,7 @@ export const CITY_RULES = {
   orderCooldown: 25,
   maxOrders: 2,
   foodDelivery: 80,
+  powerCost: { materials: 15, credits: 35, aether: 2 },
   foodPrice: 45,
   foodCooldown: 60,
   batteryCapacity: 180,
@@ -1957,7 +1972,7 @@ export const cityDifficulty = {
 };
 // Online rules are versioned separately from offline saves.
 export const ONLINE = {
-  version: 1,
+  version: 2,
   tick: 0.25,
   broadcast: 0.5,
   countdown: 3,

@@ -1,7 +1,7 @@
 {
   "name": "skytopia-aether-rising",
   "private": true,
-  "version": "0.10.0",
+  "version": "0.11.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
@@ -9,6 +9,7 @@
     "preview": "vite preview --host 127.0.0.1",
     "typecheck": "tsc -b",
     "test": "vitest run",
+    "balance:audit": "tsx scripts/balance-audit.ts",
     "test:watch": "vitest",
     "test:e2e": "playwright test --project=chrome",
     "test:e2e:edge": "playwright test --project=edge",

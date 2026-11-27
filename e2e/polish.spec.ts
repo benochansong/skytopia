@@ -62,14 +62,27 @@ test('recycling is bounded and a new hand is immediately usable after placement'
 }) => {
   await page.goto('/');
   await page.getByRole('button', { name: '새로운 게임', exact: true }).click();
-  const timerBefore = await page.evaluate(
-    () => window.__SKYTOPIA_TEST__!.getState().game.remaining,
-  );
+  const before = await page.evaluate(() => {
+    const g = window.__SKYTOPIA_TEST__!.getState().game;
+    return { remaining: g.remaining, elapsed: g.elapsed };
+  });
   await page.keyboard.down('v');
-  await page.waitForTimeout(800);
+  await expect
+    .poll(
+      async () =>
+        before.remaining -
+        (await page.evaluate(() => window.__SKYTOPIA_TEST__!.getState().game.remaining)),
+    )
+    .toBeGreaterThan(1.5);
+  const during = await page.evaluate(() => {
+    const g = window.__SKYTOPIA_TEST__!.getState().game;
+    return { remaining: g.remaining, elapsed: g.elapsed };
+  });
   await page.keyboard.up('v');
-  const timerAfter = await page.evaluate(() => window.__SKYTOPIA_TEST__!.getState().game.remaining);
-  expect(timerBefore - timerAfter).toBeGreaterThan(1.5);
+  // Compare simulation time, not software-renderer wall time. Normal fall cannot pass.
+  expect(before.remaining - during.remaining).toBeGreaterThan(
+    (during.elapsed - before.elapsed) * 1.5,
+  );
   await page.evaluate(() => {
     const s = window.__SKYTOPIA_TEST__!;
     s.setState((x) => ({ game: { ...x.game, city: { ...x.game.city, speed: 0 } } }));

@@ -1,0 +1,57 @@
+{
+  "browser": "158.0.8127.37",
+  "renderer": "SwiftShader software WebGL, 1440×900, DPR 1, shadows on, development build, active economy and representative traffic",
+  "snapshots": [
+    {
+      "mode": "base",
+      "drawCalls": 274,
+      "triangles": 25640,
+      "geometries": 286,
+      "textures": 2,
+      "samples": 35,
+      "medianFrameMs": 195.30000000074506,
+      "p95FrameMs": 588.2999999988824,
+      "averageFps": 3.836415253587205,
+      "platforms": 121,
+      "buildings": 70,
+      "population": 103.88793480023027,
+      "simulationSeconds": 10.25,
+      "loss": null,
+      "critical": null
+    },
+    {
+      "mode": "metropolis",
+      "drawCalls": 520,
+      "triangles": 64460,
+      "geometries": 535,
+      "textures": 2,
+      "samples": 25,
+      "medianFrameMs": 286.5,
+      "p95FrameMs": 852.7000000011176,
+      "averageFps": 2.8597247800872863,
+      "platforms": 256,
+      "buildings": 135,
+      "population": 604.5635364048826,
+      "simulationSeconds": 11,
+      "loss": null,
+      "critical": null
+    },
+    {
+      "mode": "return",
+      "drawCalls": 273,
+      "triangles": 25560,
+      "geometries": 288,
+      "textures": 2,
+      "samples": 37,
+      "medianFrameMs": 157.80000000074506,
+      "p95FrameMs": 523,
+      "averageFps": 4.32536064155563,
+      "platforms": 121,
+      "buildings": 70,
+      "population": 103.88793480023027,
+      "simulationSeconds": 10.5,
+      "loss": null,
+      "critical": null
+    }
+  ]
+}

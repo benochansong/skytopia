@@ -1,10 +1,12 @@
 # SKYTOPIA: AETHER RISING
 
-**PHASE 9 — GAMEPLAY POLISH · 건축 조작과 플레이 편의**
+**PHASE 10 — VISUAL UPGRADE · 하늘의 예술**
 
 무작위로 내려오는 블록으로 공중 도시를 짓고, 인구·식량·전력·경제·구조 안전을 함께 관리하는 3D 건설 퍼즐입니다. Phase 1–7의 30미션 캠페인·수직 건설·재난·문명 운영을 유지하며, 별도 권위 서버를 사용하는 실제 2인 대전과 공동 도시 협동을 추가합니다. 싱글플레이는 서버 없이 이용할 수 있습니다.
 
-![건축 조작과 배치 영향 안내](docs/images/phase9-play.png)
+![실제 도시의 사진 모드 캡처](docs/images/phase10-capture.png)
+
+Phase 10은 실제 플랫폼에 맞춘 섬, 핵심 주택·산업·농업 모델, 코어 출력·가동·야간 창문 표현, 하늘 그라데이션과 지역 색, 공유 geometry와 인스턴싱, 화질 프리셋을 제공합니다. 사진 모드에서 시간대·구름·설계도·최대 2배 PNG·로고를 선택합니다. [개발 보고](docs/PHASE10-REPORT.md), [아트 방향](docs/ART_DIRECTION.md), [에셋 파이프라인](docs/ASSET_PIPELINE.md), [그래픽 안내](docs/GRAPHICS_GUIDE.md), [검증 기록](docs/VERIFICATION.md)을 참고하세요.
 
 Phase 9는 키 반복 속도·카메라 감도, 선택적 한 칸 스냅과 회전 보정, 실제 배치 영향 안내, 재활용 연타 제한, 위험한 자동 배치 방지, 자유 건설 프리셋, 위험 도시 우선 표시와 사진 PNG 저장을 제공합니다. 온라인 서버 판정과 기존 저장 슬롯을 유지합니다. [개발 보고](docs/PHASE9-REPORT.md), [진단](docs/PHASE9-AUDIT.md), [검증 기록](docs/VERIFICATION.md)을 참고하세요.
 

@@ -74,6 +74,10 @@ test('real two-browser duel: invite, fair start, authoritative placement, reconn
   try {
     await enter(a, 'Architect A');
     await enter(b, 'Architect B');
+    await a.evaluate(() =>
+      window.__SKYTOPIA_TEST__!.getState().configure({ quality: 'low', shadows: false }),
+    );
+    await b.evaluate(() => window.__SKYTOPIA_TEST__!.getState().configure({ quality: 'high' }));
     const saves = await a.evaluate(() =>
       Object.fromEntries(
         Object.entries(localStorage).filter(([k]) => !k.startsWith('skytopia.online.')),
@@ -84,6 +88,12 @@ test('real two-browser duel: invite, fair start, authoritative placement, reconn
       second = await state(b);
     expect(first.id).not.toBe(second.id);
     expect(first.room.hand.active).toEqual(second.room.hand.active);
+    expect(await a.evaluate(() => window.__SKYTOPIA_TEST__!.getState().settings.quality)).toBe(
+      'low',
+    );
+    expect(await b.evaluate(() => window.__SKYTOPIA_TEST__!.getState().settings.quality)).toBe(
+      'high',
+    );
     expect(first.games[0].buildings).toEqual(first.games[1].buildings);
     const count = first.games[0].buildings.length;
     await choose(a, await validCell(a));

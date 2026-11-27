@@ -38,11 +38,47 @@ function Difficulty() {
 }
 function Portrait({ id }: { id: string }) {
   const p = CHARACTERS[id];
+  const lang = useLang();
   return (
-    <svg className="portrait" viewBox="0 0 100 100" role="img" aria-label={p.name.en}>
+    <svg className="portrait" viewBox="0 0 100 100" role="img" aria-label={p.name[lang]}>
       <path d="M50 4 94 28v44L50 96 6 72V28Z" fill={p.color} opacity=".2" />
-      <circle cx="50" cy="36" r="16" fill={p.color} />
-      <path d="M22 80c0-30 56-30 56 0" fill={p.color} />
+      <path d="M22 83c0-31 56-31 56 0" fill="#52677c" stroke={p.color} strokeWidth="2" />
+      <path d="m39 61 11 15 11-15-6-8H45Z" fill="#e4eaf0" />
+      <ellipse
+        cx="50"
+        cy="38"
+        rx="16"
+        ry="20"
+        fill={id === 'maya' ? '#b87c58' : id === 'orion' ? '#cd9977' : '#ebbc99'}
+      />
+      <path
+        d={
+          id === 'elena'
+            ? 'M33 42V26q7-18 25-8l10 16-8-4-4-9-19 16Z'
+            : id === 'maya'
+              ? 'M32 49V30q0-20 21-17 20 3 16 32l-8-15-12-5-13 18Z'
+              : 'M33 32q-4-23 21-19 16 0 14 20l-12-9-22 13Z'
+        }
+        fill={id === 'kael' ? '#e0d5c4' : '#3c3845'}
+      />
+      <path
+        d="M41 39h4m10 0h4M46 51q4 3 8 0"
+        fill="none"
+        stroke="#443b3b"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      {id === 'kael' && (
+        <path
+          d="M37 35h11v9H37Zm15 0h11v9H52ZM48 38h4"
+          fill="none"
+          stroke="#52677c"
+          strokeWidth="2"
+        />
+      )}
+      {id === 'elena' && <path d="M31 28q2-18 19-17 18 0 21 17Z" fill="#e8bc67" />}
+      {id === 'orion' && <path d="m29 24 21-14 23 14-23 7Z" fill="#52677c" stroke="#e8bc67" />}
+      <path d="M29 71h12M59 71h12" stroke="#e8bc67" strokeWidth="3" />
       <text x="50" y="89" textAnchor="middle" fill="white" fontSize="10">
         {p.initials}
       </text>

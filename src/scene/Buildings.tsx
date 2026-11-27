@@ -1,3 +1,6 @@
+import { ArtBox as Box } from './ArtPrimitives';
+import { PrimaryFacility, PRIMARY_KINDS } from './PrimaryFacilities';
+import { ART } from './art';
 import { WorldFacility } from './WorldFacilities';
 import { WORLD_KINDS } from '../data/rules';
 import { DefenseFacility } from './DefenseFacility';
@@ -11,32 +14,8 @@ import type { Group } from 'three';
 import type { Building, Kind } from '../types/game';
 import { cellsOf, key, neighbors, floorOf } from '../game/grid';
 import { useGame } from '../stores/gameStore';
+export { ArtBox as Box } from './ArtPrimitives';
 type Vec = [number, number, number];
-export function Box({
-  position = [0, 0, 0],
-  size = [1, 1, 1],
-  color,
-  emissive,
-  rotation = [0, 0, 0],
-}: {
-  position?: Vec;
-  size?: Vec;
-  color: string;
-  emissive?: string;
-  rotation?: Vec;
-}) {
-  return (
-    <mesh position={position} rotation={rotation} castShadow receiveShadow>
-      <boxGeometry args={size} />
-      <meshStandardMaterial
-        color={color}
-        roughness={0.78}
-        emissive={emissive}
-        emissiveIntensity={emissive ? 1.2 : 0}
-      />
-    </mesh>
-  );
-}
 export function Tree({ position = [0, 0, 0], scale = 1 }: { position?: Vec; scale?: number }) {
   return (
     <group position={position} scale={scale}>
@@ -68,14 +47,14 @@ export function Reactor({ core = false, output = 1 }: { core?: boolean; output?:
     <group scale={core ? 1.35 : 0.85}>
       <mesh position={[0, 0.12, 0]} castShadow>
         <cylinderGeometry args={[0.38, 0.46, 0.24, 8]} />
-        <meshStandardMaterial color="#cfddcc" metalness={0.3} roughness={0.6} />
+        <meshStandardMaterial color={ART.stone} metalness={0.3} roughness={0.6} />
       </mesh>
       <mesh position={[0, 0.55, 0]} castShadow>
         <octahedronGeometry args={[0.29, 0]} />
         <meshStandardMaterial
           color="#a5ffeb"
           emissive="#2bc8d2"
-          emissiveIntensity={0.15 + 1.45 * output}
+          emissiveIntensity={0.05 + 1.45 * output}
           metalness={0.25}
           roughness={0.2}
         />
@@ -83,11 +62,15 @@ export function Reactor({ core = false, output = 1 }: { core?: boolean; output?:
       <group ref={ring} position={[0, 0.6, 0]}>
         <mesh rotation={[Math.PI / 3, 0, 0]}>
           <torusGeometry args={[0.42, 0.035, 6, 32]} />
-          <meshStandardMaterial color="#ccb784" metalness={0.65} roughness={0.3} />
+          <meshStandardMaterial color={ART.gold} metalness={0.65} roughness={0.3} />
         </mesh>
         <mesh rotation={[-Math.PI / 3, 0, 0]}>
           <torusGeometry args={[0.36, 0.024, 6, 32]} />
-          <meshStandardMaterial color="#6fe6e8" emissive="#35a5b5" />
+          <meshStandardMaterial
+            color="#6fe6e8"
+            emissive="#35a5b5"
+            emissiveIntensity={output * 0.7}
+          />
         </mesh>
       </group>
       {[0, 1, 2, 3].map((i) => (
@@ -95,13 +78,14 @@ export function Reactor({ core = false, output = 1 }: { core?: boolean; output?:
           key={i}
           position={[Math.sin((i * Math.PI) / 2) * 0.32, 0.3, Math.cos((i * Math.PI) / 2) * 0.32]}
           size={[0.1, 0.5, 0.1]}
-          color="#456b76"
+          color={ART.metal}
         />
       ))}
     </group>
   );
 }
 export function Facility({ kind, output = 1 }: { kind: Kind; output?: number }) {
+  if (PRIMARY_KINDS.includes(kind)) return <PrimaryFacility kind={kind} output={output} />;
   if (WORLD_KINDS.includes(kind)) return <WorldFacility kind={kind} output={output} />;
   if (DISASTER_KINDS.includes(kind)) return <DefenseFacility kind={kind} />;
   if (
@@ -291,7 +275,7 @@ export function Facility({ kind, output = 1 }: { kind: Kind; output?: number }) 
         <Tree position={[-0.35, 0, -0.3]} scale={0.45} />
       </group>
     );
-  if (kind === 'power') return <Reactor />;
+  if (kind === 'power') return <Reactor output={output} />;
   if (kind === 'farm')
     return (
       <group>

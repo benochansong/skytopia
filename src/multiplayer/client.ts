@@ -197,7 +197,12 @@ function connect() {
         pending = null;
         useOnline.setState({ pending: false, viewing: -1 });
       }
-      useOnline.setState({ room: message.room, games, revision: message.revision });
+      useOnline.setState({
+        room: message.room,
+        games,
+        revision: message.revision,
+        ...(message.room.phase === 'ended' ? { error: '', pending: false } : {}),
+      });
       projectCity();
       return;
     }

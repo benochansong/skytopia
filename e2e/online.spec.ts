@@ -91,6 +91,10 @@ test('real two-browser duel: invite, fair start, authoritative placement, reconn
     await expect.poll(async () => (await state(a)).games[0].buildings.length).toBe(count + 1);
     await expect.poll(async () => (await state(b)).games[0].buildings.length).toBe(count + 1);
     expect((await state(b)).games[1].buildings.length).toBe(count);
+    await a.getByRole('button', { name: 'Photo mode', exact: true }).click();
+    const photoClock = (await state(a)).room.remaining;
+    await expect.poll(async () => (await state(a)).room.remaining).toBeLessThan(photoClock);
+    await a.keyboard.press('Escape');
     await a.screenshot({ path: 'test-results/online-duel.png', fullPage: true });
     const id = first.id;
     await a.reload();

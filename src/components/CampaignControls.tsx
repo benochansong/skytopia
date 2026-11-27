@@ -4,6 +4,9 @@ import { Dialog } from './Interface';
 import { stage } from '../game/campaign/definitions';
 import { campaignGoals, metrics } from '../game/campaign/objectives';
 export function CampaignEntry() {
+  const [freeStyle, setFreeStyle] = useState<'relaxed' | 'classic' | 'engineering' | 'survival'>(
+    'classic',
+  );
   const lang = useGame((s) => s.settings.language),
     save = useGame((s) => s.campaignSave),
     issue = useGame((s) => s.campaignIssue),
@@ -24,7 +27,25 @@ export function CampaignEntry() {
         </button>
       </div>
       <div className="campaign-menu-row">
-        <button onClick={() => useGame.getState().startFree()}>
+        <select
+          aria-label={text('자유 건설 설정', 'Free build preset')}
+          value={freeStyle}
+          onChange={(e) => setFreeStyle(e.target.value as typeof freeStyle)}
+        >
+          <option value="relaxed">
+            {text('편안한 건설 · 무제한 자원', 'Relaxed · unlimited resources')}
+          </option>
+          <option value="classic">
+            {text('일반 건설 · 무작위 공급', 'Classic · random supply')}
+          </option>
+          <option value="engineering">
+            {text('구조 도전 · 전문가 물리', 'Engineering · expert physics')}
+          </option>
+          <option value="survival">
+            {text('생존 건설 · 재난 웨이브', 'Survival · disaster waves')}
+          </option>
+        </select>
+        <button onClick={() => useGame.getState().startFree(false, freeStyle)}>
           {text('자유 건설', 'Free build')}
         </button>
         {save.free && (

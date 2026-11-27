@@ -8,8 +8,10 @@ import { validatePlacement } from '../game/placement';
 import type { RoomOptions, Result } from '../game/online/protocol';
 import { TEXT } from '../locales/text';
 import './online.css';
+import { Dialog } from '../components/Interface';
 const World = lazy(() => import('../scene/World'));
 const errors: Record<string, [string, string]> = {
+  recycleCooldown: ['재활용은 3초 간격으로 가능합니다.', 'Recycle is available every 3 seconds.'],
   connectionRequired: [
     '서버에 연결할 수 없습니다. 서버 실행 상태를 확인하세요.',
     'Cannot reach the server. Check that it is running.',
@@ -83,6 +85,10 @@ function Results({ result, ko }: { result: Result; ko: boolean }) {
               {p.name} · {p.score.total.toLocaleString()}
             </strong>
             <dl>
+              <div>
+                <dt>{ko ? '목표 달성' : 'Objectives'}</dt>
+                <dd>{p.score.objectives}/4</dd>
+              </div>
               {p.score.parts.map((part, i) => (
                 <div key={labels[i]}>
                   <dt>{labels[i]}</dt>
@@ -96,6 +102,10 @@ function Results({ result, ko }: { result: Result; ko: boolean }) {
         ))}
       </div>
       <small>
+        {ko
+          ? '시간 종료 시: 목표 수 → 총점 → 안정도 → 공간 효율 순으로 비교합니다.'
+          : 'At time limit: objectives → total → stability → space efficiency.'}
+        <br />
         {ko
           ? '서버 확정 결과 · 비랭크 게스트 경기'
           : 'Server-confirmed result · unranked guest match'}
@@ -268,8 +278,14 @@ function MatchHUD({ ko }: { ko: boolean }) {
           <button onClick={() => action('hold')} disabled={disabled || !!r.hand?.holdUsed}>
             {t('보관 C', 'Hold C')}
           </button>
-          <button onClick={() => action('recycle')} disabled={disabled}>
+          <button
+            onClick={() => action('recycle')}
+            disabled={disabled || (!!r.hand && g.elapsed < r.hand.recycleAt)}
+          >
             {t('재활용 X', 'Recycle X')}
+            {r.hand && g.elapsed < r.hand.recycleAt
+              ? ` · ${(r.hand.recycleAt - g.elapsed).toFixed(1)}s`
+              : ''}
           </button>
         </div>
         <div className="online-coordinates">
@@ -401,12 +417,7 @@ function MatchHUD({ ko }: { ko: boolean }) {
         </div>
       )}
       {confirm && (
-        <div
-          className="online-modal"
-          role="dialog"
-          aria-modal="true"
-          aria-label={t('작업 확인', 'Confirm action')}
-        >
+        <Dialog title={t('작업 확인', 'Confirm action')} onClose={() => setConfirm(null)}>
           <div className="online-panel">
             <h2>
               {confirm === 'demolish'
@@ -414,12 +425,17 @@ function MatchHUD({ ko }: { ko: boolean }) {
                 : t('방에서 나갈까요?', 'Leave this room?')}
             </h2>
             <p>
-              {confirm === 'leave' && playing
+              {confirm === 'leave' && s.status !== 'connected'
                 ? t(
-                    '대전 중에는 패배, 협동 중에는 공동 포기로 기록됩니다.',
-                    'During play this is a duel loss or a shared co-op surrender.',
+                    '이 화면을 닫아도 서버 경기는 즉시 끝나지 않습니다. 재접속 유예 만료 시 처리됩니다.',
+                    'Closing this screen does not immediately end the server match. Disconnect grace rules still apply.',
                   )
-                : t('이 작업은 되돌릴 수 없습니다.', 'This action cannot be undone.')}
+                : confirm === 'leave' && playing
+                  ? t(
+                      '대전 중에는 패배, 협동 중에는 공동 포기로 기록됩니다.',
+                      'During play this is a duel loss or a shared co-op surrender.',
+                    )
+                  : t('이 작업은 되돌릴 수 없습니다.', 'This action cannot be undone.')}
             </p>
             <div className="online-actions">
               <button autoFocus onClick={() => setConfirm(null)}>
@@ -438,12 +454,13 @@ function MatchHUD({ ko }: { ko: boolean }) {
               </button>
             </div>
           </div>
-        </div>
+        </Dialog>
       )}
     </>
   );
 }
 export default function OnlineUI() {
+  const photo = useGame((s) => s.photoMode);
   const s = useOnline(),
     ko = useGame((x) => x.settings.language === 'ko');
   const [name, setName] = useState(s.name || ''),
@@ -467,7 +484,7 @@ export default function OnlineUI() {
           <Suspense fallback={<div className="loading-scene">SKY RIVALS…</div>}>
             <World />
           </Suspense>
-          <MatchHUD ko={ko} />
+          {!photo && <MatchHUD ko={ko} />}
         </>
       ) : (
         <div className="online-lobby">

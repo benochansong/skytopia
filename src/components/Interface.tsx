@@ -5,6 +5,7 @@ import { VerticalEntry, VerticalControls } from './VerticalUI';
 import { stage } from '../game/campaign/definitions';
 import { CampaignEntry, CampaignObjectives } from './CampaignControls';
 import { CityMenu, CityHUD, CitySettings } from './CityUI';
+import { ControlSettings, PlacementInsight } from './PlayTools';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Phase2Menu, AnalysisToolbar, LabPanel, StructuralPanel, GameOver } from './StructuralUI';
@@ -279,7 +280,7 @@ export function Menu() {
     <div className="menu-screen">
       <header className="menu-top">
         <span className="edition">
-          SKY RIVALS <i>08</i>
+          GAMEPLAY POLISH <i>09</i>
         </span>
         <button
           className="language-button"
@@ -353,7 +354,7 @@ export function Menu() {
       <footer className="menu-footer">
         <span>BUILD ABOVE. BALANCE THE SKY. RISE BEYOND.</span>
         <span>
-          PHASE 8 <b>·</b> v0.8.0
+          PHASE 9 <b>·</b> v0.9.0
         </span>
       </footer>
       {pending ? (
@@ -630,6 +631,7 @@ export function HUD() {
         </button>
       </div>
       <div className="placement-feedback">
+        <PlacementInsight />
         <div
           className={`placement-status ${!validity.valid ? 'invalid' : validity.warning ? 'warn' : ''}`}
           role="status"
@@ -726,7 +728,7 @@ export function HUD() {
         </div>
       </section>
       <footer className="controls-footer">
-        <span>{t.controls}</span>
+        <span>{t.controls} · V ↓</span>
         <span>{t.cameraControls}</span>
       </footer>
     </div>
@@ -744,6 +746,7 @@ export function Overlay() {
     return (
       <Dialog title={t.settings} onClose={close}>
         <div className="settings-rows">
+          <ControlSettings />
           <CitySettings />
           <button onClick={() => useGame.getState().replayOpening()}>
             {settings.language === 'ko' ? '오프닝 다시 보기' : 'Replay opening'}

@@ -1,4 +1,4 @@
-import { DEFAULT_SETTINGS, ONLINE } from '../../data/rules';
+import { DEFAULT_SETTINGS, ONLINE, RULES } from '../../data/rules';
 import type { Game, Piece, Supply } from '../../types/game';
 import { freshVertical } from '../../types/vertical';
 import { analyze } from '../analysis';
@@ -28,6 +28,7 @@ export function newHand(seed: number): Hand {
   }
   return {
     supply,
+    recycleAt: 0,
     token: 0,
     active: pieces[0],
     next: pieces.slice(1),
@@ -106,7 +107,10 @@ export function execute(
     const next = h.hold ? { ...h, active: h.hold, token: h.token + 1 } : advanceHand(h);
     return { game: g, hand: { ...next, hold: h.active, holdUsed: true, remaining: h.remaining } };
   }
-  if (a.type === 'recycle') return { game: g, hand: advanceHand(h) };
+  if (a.type === 'recycle') {
+    if (g.elapsed < h.recycleAt) return fail('recycleCooldown');
+    return { game: g, hand: { ...advanceHand(h), recycleAt: g.elapsed + RULES.recycleCooldown } };
+  }
   if (a.type === 'place') {
     if ((a.pitch || a.roll) && !['beam', 'truss'].includes(h.active.kind))
       return fail('invalidRotation');

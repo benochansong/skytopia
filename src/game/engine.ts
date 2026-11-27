@@ -138,7 +138,10 @@ function advance(g: Game): Game {
     );
   if (
     g.mode === 'lab' ||
-    (g.mode === 'citylab' && !g.worldContext && g.disaster?.mode !== 'survival')
+    (g.mode === 'citylab' &&
+      !g.worldContext &&
+      !g.polish?.freeStyle &&
+      g.disaster?.mode !== 'survival')
   )
     return { ...g, remaining: g.worldContext?.blockTime || RULES.fallSeconds, holdUsed: false };
   const s = analyze(g);
@@ -269,7 +272,7 @@ export function place(g: Game): Game {
     won: g.won || (g.mode === 'mission' && g.missionId === 1 && objectives(changed).every(Boolean)),
   };
 }
-export function recycle(g: Game): Game {
+export function recycle(g: Game, automatic = false): Game {
   if (
     g.structure.loss ||
     g.campaign?.dialogue ||
@@ -277,6 +280,14 @@ export function recycle(g: Game): Game {
     (g.campaign?.result && !g.campaign.continued)
   )
     return g;
+  if (
+    !automatic &&
+    !g.city.unlimited &&
+    !(g.campaign && stage(g.campaign.stage).limit) &&
+    g.elapsed < (g.polish?.recycleAt ?? 0)
+  )
+    return g;
+  g = { ...g, polish: { ...g.polish, version: 1, recycleAt: g.elapsed + RULES.recycleCooldown } };
   if (g.campaign) {
     const d = stage(g.campaign.stage);
     if (d.limit && g.campaign.used >= d.limit) return g;
@@ -302,7 +313,7 @@ export function hold(g: Game): Game {
     g.reservedActive ||
     g.structure.loss ||
     g.mode === 'lab' ||
-    (g.mode === 'citylab' && !g.worldContext)
+    (g.mode === 'citylab' && !g.worldContext && !g.polish?.freeStyle)
   )
     return g;
   if (g.holdUsed) return g;
@@ -369,8 +380,10 @@ export function tickStep(g: Game, dt: number, background = false): Game {
   // A disconnected city stops growing; existing residents stay until capacity falls.
   if (!g.city.enabled)
     result.population = Math.min(stats.capacity, Math.max(g.population, result.population));
-  if (result.remaining === 0)
-    result = validatePlacement(result).valid ? place(result) : recycle(result);
+  if (result.remaining === 0) {
+    const candidate = validatePlacement(result);
+    result = candidate.valid && candidate.risk < 2 ? place(result) : recycle(result, true);
+  }
   result = disasterBefore(result, dt);
   if (!g.campaign || stage(g.campaign.stage).structure)
     result = background ? structureStep(result, dt) : simulateStructure(result, dt);
@@ -404,9 +417,10 @@ export function tickStep(g: Game, dt: number, background = false): Game {
 
 export function tick(g: Game, dt: number): Game {
   if (g.world) {
-    const next = tickWorld(g, dt, tickStep, (city) =>
-      validatePlacement(city).valid ? place(city) : recycle(city),
-    );
+    const next = tickWorld(g, dt, tickStep, (city) => {
+      const candidate = validatePlacement(city);
+      return candidate.valid && candidate.risk < 2 ? place(city) : recycle(city, true);
+    });
     return next.campaign ? campaignStep(next, next.world!.clock - g.world.clock) : next;
   }
   if (

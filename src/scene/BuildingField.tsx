@@ -141,6 +141,7 @@ function Roads({ buildings }: { buildings: Building[] }) {
   );
 }
 export function BuildingField() {
+  const photo = useGame((s) => s.photoMode);
   const buildings = useGame((s) => s.game.buildings),
     game = useGame((s) => s.game),
     lang = useGame((s) => s.settings.language),
@@ -166,6 +167,7 @@ export function BuildingField() {
         .filter(
           (b) =>
             visibleBuilding(b, game) &&
+            !photo &&
             !game.city.enabled &&
             INSTANCED_KINDS.includes(b.kind) &&
             b.kind !== 'road' &&

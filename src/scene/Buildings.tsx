@@ -348,6 +348,7 @@ export const BuildingModel = memo(function BuildingModel({
 }) {
   const language = useGame((s) => s.settings.language),
     cityEnabled = useGame((s) => s.game.city.enabled);
+  const photo = useGame((s) => s.photoMode);
   const cells = cellsOf(b, b.origin);
   return (
     <group>
@@ -378,7 +379,7 @@ export const BuildingModel = memo(function BuildingModel({
           )}
         </group>
       ))}
-      {!cityEnabled && (!connected || !powered) && b.kind !== 'road' ? (
+      {!photo && !cityEnabled && (!connected || !powered) && b.kind !== 'road' ? (
         <Html
           zIndexRange={[3, 0]}
           position={[b.origin.x, b.y * VERTICAL.height + 1.2, b.origin.z]}

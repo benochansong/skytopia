@@ -12,7 +12,8 @@ import { useGame } from '../stores/gameStore';
 import { analyze } from '../game/analysis';
 import { cellsOf, key, floorOf } from '../game/grid';
 import { validatePlacement } from '../game/placement';
-import { BLOCKS, VERTICAL, PHYSICAL } from '../data/rules';
+import { BLOCKS, VERTICAL, PHYSICAL, RULES } from '../data/rules';
+import { useOnline } from '../multiplayer/client';
 import { Box, BuildingModel, Reactor, Tree } from './Buildings';
 import { BuildingField, INSTANCED_KINDS } from './BuildingField';
 import { PerformanceProbe } from './PerformanceProbe';
@@ -136,6 +137,8 @@ const Scenery = memo(function Scenery() {
   );
 });
 function Camera() {
+  const sensitivity = useGame((s) => s.settings.cameraSensitivity),
+    zoom = useGame((s) => s.settings.zoomSensitivity);
   const activeCity = useGame((s) => s.game.world?.active);
   const cinematic = useGame(
     (s) =>
@@ -181,6 +184,8 @@ function Camera() {
       makeDefault
       enableDamping
       dampingFactor={0.1}
+      rotateSpeed={sensitivity}
+      zoomSpeed={zoom}
       minDistance={9}
       maxDistance={48}
       maxPolarAngle={vertical ? Math.PI * 0.92 : Math.PI * 0.38}
@@ -211,8 +216,8 @@ function Camera() {
       onChange={() => {
         if (!controls.current) return;
         const c = controls.current;
-        c.target.x = Math.max(-5, Math.min(5, c.target.x));
-        c.target.z = Math.max(-5, Math.min(5, c.target.z));
+        c.target.x = Math.max(RULES.min, Math.min(RULES.max, c.target.x));
+        c.target.z = Math.max(RULES.min, Math.min(RULES.max, c.target.z));
         c.target.y = Math.max(vertical ? -6 : -0.3, Math.min(vertical ? 12 : 0.3, c.target.y));
         useGame.setState({ azimuth: c.getAzimuthalAngle() });
       }}
@@ -220,6 +225,8 @@ function Camera() {
   );
 }
 function Ghost() {
+  const resources = useGame((s) => s.game.resources),
+    city = useGame((s) => s.game.city);
   const active = useGame((s) => s.game.active),
     cursor = useGame((s) => s.game.cursor);
   const platforms = useGame((s) => s.game.platforms),
@@ -229,7 +236,7 @@ function Ghost() {
   const falling = useRef<Group>(null);
   const validity = useMemo(
     () => validatePlacement(useGame.getState().game),
-    [active, cursor, platforms, buildings, structure, reserved],
+    [active, cursor, platforms, buildings, structure, reserved, resources, city],
   );
   useFrame((_, dt) => {
     if (falling.current) {
@@ -332,6 +339,10 @@ function PlacementEffect() {
   );
 }
 function City() {
+  const photo = useGame((s) => s.photoMode);
+  const canBuild = useOnline(
+    (s) => !s.enabled || (!!s.room?.hand && s.viewing < 0 && s.room.phase === 'playing'),
+  );
   const vertical = useGame((s) => s.game.vertical);
   const floorY = (vertical?.floor ?? 0) * VERTICAL.height;
   const platforms = useGame((s) => s.game.platforms),
@@ -379,6 +390,7 @@ function City() {
     [buildings],
   );
   const playing =
+    !photo &&
     screen !== 'menu' &&
     screen !== 'about' &&
     !(screen === 'settings' && useGame.getState().returnScreen === 'menu');
@@ -473,7 +485,7 @@ function City() {
             material-transparent
             material-opacity={0.18}
           />
-          <Ghost />
+          {canBuild && <Ghost />}
           <PlacementEffect />
           <StructuralEffects />
           {balance || analysisMode === 'center' ? (
@@ -515,6 +527,34 @@ function City() {
     </group>
   );
 }
+function PhotoCapture() {
+  const { gl, scene, camera } = useThree();
+  useEffect(() => {
+    const capture = () => {
+      try {
+        gl.render(scene, camera);
+        gl.domElement.toBlob((blob) => {
+          if (!blob) {
+            window.dispatchEvent(new CustomEvent('skytopia:captured', { detail: false }));
+            return;
+          }
+          const url = URL.createObjectURL(blob),
+            a = document.createElement('a');
+          a.href = url;
+          a.download = `skytopia-${Date.now()}.png`;
+          a.click();
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+          window.dispatchEvent(new CustomEvent('skytopia:captured', { detail: true }));
+        }, 'image/png');
+      } catch {
+        window.dispatchEvent(new CustomEvent('skytopia:captured', { detail: false }));
+      }
+    };
+    window.addEventListener('skytopia:capture', capture);
+    return () => window.removeEventListener('skytopia:capture', capture);
+  }, [gl, scene, camera]);
+  return null;
+}
 export default function World() {
   const shadows = useGame((s) => s.settings.shadows),
     environment = useGame((s) => s.settings.environment);
@@ -542,6 +582,7 @@ export default function World() {
         <City />
         <WorldShips />
         <Camera />
+        <PhotoCapture />
       </Canvas>
       <div className="sky-vignette" />
     </div>

@@ -2,6 +2,7 @@ import type { Building } from '../types/game';
 import type { Stock } from '../types/city';
 import type { Cell, Kind, Settings, Shape } from '../types/game';
 export const RULES = {
+  recycleCooldown: 3,
   min: -8,
   max: 7,
   initialMin: -3,
@@ -323,6 +324,14 @@ export const VERTICAL_DEFS: Partial<
   },
 };
 export const DEFAULT_SETTINGS: Settings = {
+  controlsVersion: 1,
+  repeatDelay: 260,
+  repeatInterval: 90,
+  smartSnap: false,
+  rotationAssist: true,
+  assistance: 'normal',
+  cameraSensitivity: 1,
+  zoomSensitivity: 1,
   stormParticles: 96,
   reducedFlashes: true,
   cameraShake: 0,

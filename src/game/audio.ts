@@ -65,6 +65,10 @@ export class Soundscape {
       | 'forecast'
       | 'stormEnd'
       | 'place'
+      | 'rotate'
+      | 'hold'
+      | 'recycle'
+      | 'combo'
       | 'loss'
       | 'ambient'
       | 'engine'
@@ -85,6 +89,11 @@ export class Soundscape {
             : 0.12;
     if (now - (this.last.get(kind) ?? -Infinity) < gap) return;
     this.last.set(kind, now);
+    if (['rotate', 'hold', 'recycle', 'combo'].includes(kind)) {
+      const hz = kind === 'combo' ? 620 : kind === 'hold' ? 420 : kind === 'rotate' ? 260 : 180;
+      this.tone('effects', hz, hz * (kind === 'recycle' ? 0.7 : 1.3), 0.1, 'sine', 0.025);
+      return;
+    }
     if (kind === 'storm') {
       this.tone('effects', 65, 105, 3, 'triangle', 0.012);
       return;

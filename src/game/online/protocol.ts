@@ -108,6 +108,7 @@ export type Result = {
   players: { id: string; name: string; score: Score }[];
 };
 export type HandView = {
+  recycleAt: number;
   token: number;
   active: Piece;
   next: Piece[];

@@ -1943,3 +1943,19 @@ export const cityDifficulty = {
   normal: { workers: 0.6, consumption: 1, upkeep: 1, grace: 60, aid: 1 },
   hard: { workers: 0.55, consumption: 1.15, upkeep: 1.15, grace: 40, aid: 0 },
 };
+// Online rules are versioned separately from offline saves.
+export const ONLINE = {
+  version: 1,
+  tick: 0.25,
+  broadcast: 0.5,
+  countdown: 3,
+  grace: 60,
+  handSeconds: 20,
+  maxBuilds: 180,
+  maxRooms: 12,
+  coopBuilds: 4,
+  coopPopulation: 30,
+  coopStability: 75,
+  coopHold: 10,
+  scoreWeights: [25, 25, 20, 15, 10, 5],
+} as const;

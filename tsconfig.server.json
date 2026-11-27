@@ -1,0 +1,5 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "composite": false },
+  "include": ["server", "src/game", "src/types", "src/data"]
+}

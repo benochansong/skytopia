@@ -1,0 +1,11 @@
+{
+  "at": "2026-11-27T00:13:53.862Z",
+  "compiledServer": true,
+  "twoRealSockets": true,
+  "forcedProcessTermination": true,
+  "guestIdentityRetained": true,
+  "singleAbortedResult": true,
+  "noWinner": true,
+  "health": 200,
+  "unauthenticatedMetrics": 404
+}

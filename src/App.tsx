@@ -1,4 +1,5 @@
 import WorldUI from './components/WorldUI';
+import { useOnline } from './multiplayer/client';
 import { Component, Suspense, lazy, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { useGame } from './stores/gameStore';
@@ -10,6 +11,7 @@ const CampaignOverlay = lazy(() =>
   import('./components/CampaignUI').then((m) => ({ default: m.CampaignOverlay })),
 );
 const World = lazy(() => import('./scene/World'));
+const OnlineUI = lazy(() => import('./multiplayer/OnlineUI'));
 class SceneBoundary extends Component<{ children: ReactNode }, { error: boolean }> {
   state = { error: false };
   static getDerivedStateFromError() {
@@ -29,6 +31,7 @@ class SceneBoundary extends Component<{ children: ReactNode }, { error: boolean 
   }
 }
 export default function App() {
+  const online = useOnline((s) => s.enabled);
   const campaign = useGame((s) => s.game.campaign);
   const worldMap = useGame(
     (s) =>
@@ -46,6 +49,17 @@ export default function App() {
   const menu =
     screen === 'menu' || ((screen === 'settings' || screen === 'about') && returnScreen === 'menu');
   const map = ['campaign', 'profile', 'challenges'].includes(screen);
+  if (online)
+    return (
+      <main className={`game-app ${reduced ? 'reduced-motion' : ''}`}>
+        <Runtime />
+        <SceneBoundary>
+          <Suspense fallback={<div className="loading-scene">SKY RIVALS…</div>}>
+            <OnlineUI />
+          </Suspense>
+        </SceneBoundary>
+      </main>
+    );
   return (
     <main className={`game-app ${reduced ? 'reduced-motion' : ''}`}>
       <Runtime />

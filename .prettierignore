@@ -1,5 +1,6 @@
 node_modules
 dist
+dist-server
 test-results
 playwright-report
 package-lock.json
@@ -14,3 +15,4 @@ docs/PHASE5-SPEC.md
 
 docs/PHASE6-SPEC.md
 docs/PHASE7-SPEC.md
+docs/PHASE8-SPEC.md
